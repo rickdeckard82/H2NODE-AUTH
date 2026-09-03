@@ -18,6 +18,7 @@ from app.api.routes import (
     auth,
     auth_groups,
     auth_users,
+    backup,
     equipment,
     health,
     manufacturers,
@@ -109,6 +110,7 @@ for r in (
     accounting.router,
     audit.router,
     system_users.router,
+    backup.router,
 ):
     app.include_router(r, prefix=_p)
 

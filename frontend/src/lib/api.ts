@@ -15,7 +15,13 @@ function csrfToken(): string {
   return m ? decodeURIComponent(m[1]) : "";
 }
 
-type Options = { method?: string; body?: unknown; raw?: boolean; query?: Record<string, unknown> };
+type Options = {
+  method?: string;
+  body?: unknown;
+  raw?: boolean;
+  form?: boolean;
+  query?: Record<string, unknown>;
+};
 
 let refreshing: Promise<boolean> | null = null;
 
@@ -48,14 +54,19 @@ function buildUrl(path: string, query?: Record<string, unknown>): string {
 async function request<T>(path: string, opts: Options = {}, retry = true): Promise<T> {
   const method = opts.method ?? "GET";
   const headers: Record<string, string> = {};
-  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData: deixa o navegador definir o Content-Type (com boundary).
+  if (opts.body !== undefined && !opts.form) headers["Content-Type"] = "application/json";
   if (method !== "GET" && method !== "HEAD") headers["X-CSRF-Token"] = csrfToken();
 
   const res = await fetch(buildUrl(path, opts.query), {
     method,
     credentials: "include",
     headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    body: opts.form
+      ? (opts.body as BodyInit)
+      : opts.body !== undefined
+        ? JSON.stringify(opts.body)
+        : undefined,
   });
 
   if (res.status === 401 && retry && !path.startsWith("/auth/")) {
@@ -79,6 +90,8 @@ export const api = {
   del: <T,>(path: string) => request<T>(path, { method: "DELETE" }),
   blob: (path: string, query?: Record<string, unknown>) =>
     request<Blob>(path, { query, raw: true }),
+  upload: <T,>(path: string, form: FormData) =>
+    request<T>(path, { method: "POST", body: form, form: true }),
 };
 
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };

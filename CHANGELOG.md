@@ -4,6 +4,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [0.2.0] — 2026-09-03
+
+### Adicionado
+
+- **Backup e restauração pelo painel** (Configuração → Backup e restauração, só
+  superadmin). Exporta um `.sql` com esquema + dados de todas as tabelas (RADIUS,
+  painel e `alembic_version`); opção de incluir ou não o histórico de accounting
+  (`radacct`/`radpostauth`). A restauração recria o banco a partir do arquivo
+  enviado, com confirmação explícita (`RESTAURAR`). Dump lógico feito em Python
+  (pymysql) — não exige `mysqldump` na imagem do backend. Endpoints
+  `GET /api/backup/export` e `POST /api/backup/import`; ambos registrados na
+  auditoria. `gunicorn --timeout 180` para acomodar restaurações grandes.
+
 ## [0.1.0] — 2026-09-02
 
 Lançamento inicial.

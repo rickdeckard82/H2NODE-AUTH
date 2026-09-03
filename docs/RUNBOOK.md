@@ -62,6 +62,20 @@ Se um equipamento novo não autenticar logo após o cadastro:
 
 ## Backup / restore
 
+### Pelo painel (superadmin → Configuração → Backup e restauração)
+
+- **Baixar backup**: gera um `.sql` com esquema + dados de todas as tabelas
+  (RADIUS + painel + `alembic_version`). Caixa "incluir accounting" controla se
+  `radacct`/`radpostauth` entram (desmarque para um arquivo pequeno de config).
+- **Restaurar**: envia o `.sql`, digita `RESTAURAR` e confirma. **Destrutivo** —
+  cada tabela é dropada e recriada a partir do arquivo. A sessão atual pode cair;
+  refaça login. Endpoints: `GET /api/backup/export`, `POST /api/backup/import`.
+
+O dump lógico é feito em Python (pymysql), não precisa do binário `mysqldump` no
+container do backend. Restaure só num stack com o **mesmo `FERNET_KEY`**.
+
+### Pela linha de comando (alternativa / automação)
+
 ```bash
 # backup
 docker compose exec db sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction radius' > backup-$(date +%F).sql
@@ -70,8 +84,12 @@ docker compose exec db sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single
 cat backup-YYYY-MM-DD.sql | docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" radius'
 ```
 
+Perfil `backup` (`docker compose --profile backup up -d`) sobe um sidecar que faz
+dump periódico no volume `db_backups`.
+
 Itens críticos a guardar fora do host: os dumps **e** o `.env` (contém `FERNET_KEY` —
-sem ela os segredos cifrados são irrecuperáveis) e `JWT_SECRET`.
+sem ela os segredos cifrados são irrecuperáveis) e `JWT_SECRET`. O backup do painel
+**não** inclui esses segredos.
 
 ## Rotação de segredos
 

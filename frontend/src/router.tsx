@@ -13,6 +13,7 @@ const EquipmentPage = lazy(() => import("./features/equipment/EquipmentPage"));
 const ManufacturersPage = lazy(() => import("./features/manufacturers/ManufacturersPage"));
 const PrivilegeProfilesPage = lazy(() => import("./features/privilege-profiles/PrivilegeProfilesPage"));
 const SystemUsersPage = lazy(() => import("./features/system-users/SystemUsersPage"));
+const BackupPage = lazy(() => import("./features/backup/BackupPage"));
 const AccountingPage = lazy(() => import("./features/accounting/AccountingPage"));
 const AuditPage = lazy(() => import("./features/audit/AuditPage"));
 
@@ -94,6 +95,14 @@ export const router = createBrowserRouter([
         element: (
           <Protected roles={["superadmin"]}>
             <SystemUsersPage />
+          </Protected>
+        ),
+      },
+      {
+        path: "backup",
+        element: (
+          <Protected roles={["superadmin"]}>
+            <BackupPage />
           </Protected>
         ),
       },

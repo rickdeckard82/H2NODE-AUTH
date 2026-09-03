@@ -55,6 +55,7 @@ const NAV: NavEntry[] = [
     icon: "settings",
     children: [
       { to: "/system-users", label: "Utilizadores do sistema", icon: "userCog", roles: ["superadmin"] },
+      { to: "/backup", label: "Backup e restauração", icon: "database", roles: ["superadmin"] },
     ],
   },
 ];

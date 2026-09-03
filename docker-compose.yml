@@ -62,6 +62,9 @@ services:
     volumes:
       - radius_logs:/var/log/radius
     networks:
+      # edge: necessário para o Docker entregar o tráfego publicado (1812/1813 udp)
+      #       ao container. internal: acesso ao MySQL/backend.
+      - edge
       - internal
     depends_on:
       db:
