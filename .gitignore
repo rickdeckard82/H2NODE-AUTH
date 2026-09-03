@@ -1,0 +1,17 @@
+.env
+secrets/*
+!secrets/.gitkeep
+*.pyc
+__pycache__/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+node_modules/
+frontend/dist/
+proxy/tls/*.pem
+proxy/tls/*.key
+proxy/tls/*.crt
+*.log
+.DS_Store

@@ -1,0 +1,106 @@
+# ─────────────────────────────────────────────────────────────
+# Virtual server `default` — AAA de login administrativo (PAP) para
+# equipamentos Huawei / Juniper / Datacom / Mikrotik.
+#
+# Enxuto de propósito: sem EAP/802.1X. Auth = PAP contra radcheck (SQL),
+# Authz = radgroupreply por perfil + tradução de VSA por fabricante,
+# Acct = radacct (SQL), auditoria de auth = radpostauth (SQL).
+# ─────────────────────────────────────────────────────────────
+
+server default {
+
+listen {
+    type   = auth
+    ipaddr = *
+    port   = 0
+}
+
+listen {
+    type   = acct
+    ipaddr = *
+    port   = 0
+}
+
+# ───────────────────────────── AUTHORIZE ─────────────────────────────
+authorize {
+    filter_username
+    preprocess
+
+    # Só aceitamos logins no formato validado pelo painel. Isso também
+    # neutraliza injeção nas consultas %{sql:...} inline abaixo.
+    if (&User-Name !~ /^[A-Za-z0-9._@-]+$/) {
+        update reply { &Reply-Message := "Formato de usuário inválido" }
+        update control { &Auth-Type := Reject }
+    }
+
+    # Carrega radcheck / radgroupcheck / radgroupreply / radusergroup.
+    sql
+
+    # Enforce do estado do usuário na camada de aplicação:
+    # inativo ou expirado => rejeita, mesmo que a senha esteja correta.
+    if ("%{sql:SELECT 1 FROM app_auth_user WHERE username = '%{tolower:%{User-Name}}' AND is_active = 1 AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1}" != "1") {
+        update reply { &Reply-Message := "Conta desativada, expirada ou inexistente" }
+        update control { &Auth-Type := Reject }
+    }
+
+    # Allowlist de IP de origem por grupo de usuário: se o usuário está num
+    # grupo e nenhuma faixa do grupo cobre o IP de origem do pacote => rejeita.
+    if ("%{sql:SELECT 1 FROM app_auth_user u WHERE u.username = '%{tolower:%{User-Name}}' AND u.auth_group_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM app_auth_group_cidr c WHERE c.group_id = u.auth_group_id AND c.family = IF(LOCATE(':', '%{Packet-Src-IP-Address}') > 0, 6, 4) AND INET6_ATON('%{Packet-Src-IP-Address}') BETWEEN c.ip_start AND c.ip_end) LIMIT 1}" == "1") {
+        update reply { &Reply-Message := "IP de origem nao autorizado para o grupo" }
+        update control { &Auth-Type := Reject }
+    }
+
+    expiration
+    logintime
+
+    # Se nenhum método foi escolhido e há uma senha conhecida, usa PAP.
+    pap
+}
+
+# ──────────────────────────── AUTHENTICATE ───────────────────────────
+authenticate {
+    Auth-Type PAP {
+        pap
+    }
+    Auth-Type CHAP {
+        chap
+    }
+}
+
+# ────────────────────────────── PREACCT ──────────────────────────────
+preacct {
+    preprocess
+    acct_unique
+    suffix
+}
+
+# ───────────────────────────── ACCOUNTING ────────────────────────────
+accounting {
+    # Grava start / interim-update / stop em radacct.
+    sql
+    exec
+    attr_filter.accounting_response
+}
+
+# ──────────────────────────── POST-AUTH ──────────────────────────────
+post-auth {
+    # Traduz o perfil em VSA do fabricante do NAS que originou o request
+    # e remove os VSAs dos demais fabricantes.
+    vendor-authz
+
+    # Registra a tentativa (sucesso) em radpostauth.
+    sql
+
+    update {
+        &reply: += &session-state:
+    }
+
+    Post-Auth-Type REJECT {
+        # Registra a tentativa (falha) em radpostauth.
+        sql
+        attr_filter.access_reject
+        update reply { &Reply-Message := "Acesso negado" }
+    }
+}
+
+}

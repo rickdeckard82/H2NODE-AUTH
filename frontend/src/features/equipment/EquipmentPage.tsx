@@ -1,0 +1,436 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import {
+  Badge,
+  Button,
+  Card,
+  Field,
+  Modal,
+  PageHeader,
+  Pagination,
+  Spinner,
+  useToast,
+} from "../../components/ui";
+import { api, ApiError, type Page } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
+import { fmtDate } from "../../lib/format";
+import type { Equipment, Manufacturer } from "../../lib/types";
+
+interface FormState {
+  id?: number;
+  name: string;
+  mgmt_ip: string;
+  manufacturer_id: number | "";
+  model: string;
+  site: string;
+  shortname: string;
+  coa_port: number;
+  status: Equipment["status"];
+  description: string;
+  radius_secret: string;
+  inherit_secret: boolean;
+}
+
+const empty: FormState = {
+  name: "",
+  mgmt_ip: "",
+  manufacturer_id: "",
+  model: "",
+  site: "",
+  shortname: "",
+  coa_port: 3799,
+  status: "active",
+  description: "",
+  radius_secret: "",
+  inherit_secret: false,
+};
+
+const STATUS_TONE: Record<Equipment["status"], "green" | "amber" | "red"> = {
+  active: "green",
+  maintenance: "amber",
+  disabled: "red",
+};
+
+export default function EquipmentPage() {
+  const { can } = useAuth();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const writable = can("operator");
+
+  const [manufacturerFilter, setManufacturerFilter] = useState<number | "all">("all");
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [form, setForm] = useState<FormState | null>(null);
+
+  const manufacturers = useQuery({
+    queryKey: ["manufacturers"],
+    queryFn: () => api.get<Manufacturer[]>("/manufacturers"),
+  });
+
+  const list = useQuery({
+    queryKey: ["equipment", manufacturerFilter, q, page],
+    queryFn: () =>
+      api.get<Page<Equipment>>("/equipment", {
+        manufacturer_id: manufacturerFilter === "all" ? undefined : manufacturerFilter,
+        q,
+        page,
+        page_size: 20,
+      }),
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["equipment"] });
+    qc.invalidateQueries({ queryKey: ["manufacturers"] });
+  };
+
+  const save = useMutation({
+    mutationFn: (f: FormState) => {
+      const body: Record<string, unknown> = {
+        name: f.name,
+        mgmt_ip: f.mgmt_ip,
+        manufacturer_id: f.manufacturer_id,
+        model: f.model || null,
+        site: f.site || null,
+        shortname: f.shortname,
+        coa_port: f.coa_port,
+        status: f.status,
+        description: f.description || null,
+      };
+      if (f.id && f.inherit_secret) body.inherit_secret = true;
+      else if (f.radius_secret) body.radius_secret = f.radius_secret;
+      if (f.id) return api.patch(`/equipment/${f.id}`, body);
+      return api.post("/equipment", body);
+    },
+    onSuccess: () => {
+      toast("ok", "Equipamento salvo");
+      setForm(null);
+      invalidate();
+    },
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+  });
+
+  const remove = useMutation({
+    mutationFn: (eq: Equipment) => api.del(`/equipment/${eq.id}`),
+    onSuccess: () => {
+      toast("ok", "Equipamento removido");
+      invalidate();
+    },
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+  });
+
+  const orderedManufacturers = [...(manufacturers.data ?? [])].sort((a, b) =>
+    a.display_name.localeCompare(b.display_name),
+  );
+
+  const selectedManufacturer =
+    form && form.manufacturer_id !== ""
+      ? manufacturers.data?.find((m) => m.id === form.manufacturer_id)
+      : undefined;
+  const secretRequired =
+    !!form && !form.id && !form.inherit_secret && !selectedManufacturer?.has_secret;
+
+  return (
+    <div>
+      <PageHeader
+        title="Equipamentos"
+        subtitle="Clientes RADIUS (NAS)"
+        actions={
+          writable && (
+            <Button
+              onClick={() =>
+                setForm({
+                  ...empty,
+                  manufacturer_id:
+                    typeof manufacturerFilter === "number" ? manufacturerFilter : "",
+                })
+              }
+            >
+              Novo equipamento
+            </Button>
+          )
+        }
+      />
+
+      <Card className="mb-3 flex flex-wrap gap-2">
+        <input
+          className="input max-w-xs"
+          placeholder="Buscar por nome, IP, site…"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(1);
+          }}
+        />
+        <select
+          className="input max-w-[220px]"
+          value={manufacturerFilter}
+          onChange={(e) => {
+            const v = e.target.value;
+            setManufacturerFilter(v === "all" ? "all" : Number(v));
+            setPage(1);
+          }}
+        >
+          <option value="all">Todos os fabricantes</option>
+          {orderedManufacturers.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.display_name}
+            </option>
+          ))}
+        </select>
+      </Card>
+
+      <Card className="overflow-x-auto p-0">
+        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+          <thead className="bg-slate-50 dark:bg-slate-800/50">
+            <tr>
+              <th className="th">Nome</th>
+              <th className="th">IP de gerência</th>
+              <th className="th">Fabricante</th>
+              <th className="th">Segredo</th>
+              <th className="th">Site</th>
+              <th className="th">Estado</th>
+              <th className="th">Atualizado</th>
+              <th className="th" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {list.isLoading && (
+              <tr>
+                <td className="td" colSpan={8}>
+                  <Spinner className="h-5 w-5 text-brand-600" />
+                </td>
+              </tr>
+            )}
+            {list.data?.items.map((eq) => (
+              <tr key={eq.id}>
+                <td className="td font-medium">{eq.name}</td>
+                <td className="td font-mono text-xs">{eq.mgmt_ip}</td>
+                <td className="td">
+                  <Badge tone="blue">{eq.manufacturer_display}</Badge>
+                </td>
+                <td className="td">
+                  {eq.secret_source === "equipment" && <Badge tone="slate">próprio</Badge>}
+                  {eq.secret_source === "manufacturer" && (
+                    <Badge tone="green">herdado do fabricante</Badge>
+                  )}
+                  {eq.secret_source === "none" && <Badge tone="red">sem segredo</Badge>}
+                </td>
+                <td className="td">{eq.site || "—"}</td>
+                <td className="td">
+                  <Badge tone={STATUS_TONE[eq.status]}>{eq.status}</Badge>
+                </td>
+                <td className="td">{fmtDate(eq.updated_at)}</td>
+                <td className="td text-right">
+                  {writable && (
+                    <div className="flex justify-end gap-2">
+                      <button
+                        className="text-brand-600 hover:underline dark:text-brand-400"
+                        onClick={() =>
+                          setForm({
+                            id: eq.id,
+                            name: eq.name,
+                            mgmt_ip: eq.mgmt_ip,
+                            manufacturer_id: eq.manufacturer_id,
+                            model: eq.model ?? "",
+                            site: eq.site ?? "",
+                            shortname: eq.shortname,
+                            coa_port: eq.coa_port,
+                            status: eq.status,
+                            description: eq.description ?? "",
+                            radius_secret: "",
+                            inherit_secret: false,
+                          })
+                        }
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className="text-rose-600 hover:underline dark:text-rose-400"
+                        onClick={() => {
+                          if (confirm(`Remover ${eq.name}?`)) remove.mutate(eq);
+                        }}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {list.data?.items.length === 0 && (
+              <tr>
+                <td className="td text-slate-400 dark:text-slate-500" colSpan={8}>
+                  Nenhum equipamento neste grupo.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        {list.data && (
+          <Pagination
+            page={page}
+            pageSize={list.data.page_size}
+            total={list.data.total}
+            onPage={setPage}
+          />
+        )}
+      </Card>
+
+      <Modal
+        open={!!form}
+        onClose={() => setForm(null)}
+        title={form?.id ? "Editar equipamento" : "Novo equipamento"}
+        wide
+      >
+        {form && (
+          <form
+            className="grid grid-cols-2 gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              save.mutate(form);
+            }}
+          >
+            <Field label="Nome">
+              <input
+                className="input"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
+            </Field>
+            <Field label="IP de gerência" hint="Deve bater com o NAS-IP-Address do request">
+              <input
+                className="input font-mono"
+                value={form.mgmt_ip}
+                onChange={(e) => setForm({ ...form, mgmt_ip: e.target.value })}
+                required
+              />
+            </Field>
+            <Field
+              label="Fabricante"
+              hint={
+                selectedManufacturer
+                  ? selectedManufacturer.has_secret
+                    ? "tem segredo RADIUS padrão"
+                    : "sem segredo padrão — informe um abaixo"
+                  : undefined
+              }
+            >
+              <select
+                className="input"
+                value={form.manufacturer_id}
+                onChange={(e) => setForm({ ...form, manufacturer_id: Number(e.target.value) })}
+                required
+              >
+                <option value="" disabled>
+                  Selecione…
+                </option>
+                {orderedManufacturers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                    {m.has_secret ? "  ·  segredo padrão" : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Shortname (identificador RADIUS)">
+              <input
+                className="input"
+                value={form.shortname}
+                pattern="[a-zA-Z0-9._\-]+"
+                onChange={(e) => setForm({ ...form, shortname: e.target.value })}
+                required
+              />
+            </Field>
+            <Field label="Modelo">
+              <input
+                className="input"
+                value={form.model}
+                onChange={(e) => setForm({ ...form, model: e.target.value })}
+              />
+            </Field>
+            <Field label="Site / localização">
+              <input
+                className="input"
+                value={form.site}
+                onChange={(e) => setForm({ ...form, site: e.target.value })}
+              />
+            </Field>
+            <Field label="Porta CoA">
+              <input
+                className="input"
+                type="number"
+                value={form.coa_port}
+                onChange={(e) => setForm({ ...form, coa_port: Number(e.target.value) })}
+              />
+            </Field>
+            <Field label="Estado">
+              <select
+                className="input"
+                value={form.status}
+                onChange={(e) =>
+                  setForm({ ...form, status: e.target.value as Equipment["status"] })
+                }
+              >
+                <option value="active">active</option>
+                <option value="maintenance">maintenance</option>
+                <option value="disabled">disabled</option>
+              </select>
+            </Field>
+            <div className="col-span-2">
+              <Field
+                label="Segredo RADIUS"
+                hint={
+                  form.inherit_secret
+                    ? "vai herdar o segredo padrão do fabricante"
+                    : selectedManufacturer && !selectedManufacturer.has_secret
+                      ? "o fabricante não tem segredo padrão — este campo é obrigatório"
+                      : "em branco = herda o segredo padrão do fabricante. Guardado cifrado (Fernet)."
+                }
+              >
+                <input
+                  className="input font-mono"
+                  type="password"
+                  value={form.radius_secret}
+                  minLength={6}
+                  disabled={form.inherit_secret}
+                  onChange={(e) => setForm({ ...form, radius_secret: e.target.value })}
+                  required={secretRequired}
+                />
+              </Field>
+              {form.id && (
+                <label className="mt-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={form.inherit_secret}
+                    onChange={(e) =>
+                      setForm({ ...form, inherit_secret: e.target.checked, radius_secret: "" })
+                    }
+                  />
+                  Voltar a herdar o segredo do fabricante
+                </label>
+              )}
+            </div>
+            <div className="col-span-2">
+              <Field label="Descrição">
+                <input
+                  className="input"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
+              </Field>
+            </div>
+            <div className="col-span-2 flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setForm(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" loading={save.isPending}>
+                Salvar
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </div>
+  );
+}

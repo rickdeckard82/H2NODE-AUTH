@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────
+# policy vendor-authz
+#
+# O grupo `profile_<perfil>` em radgroupreply carrega os atributos de
+# TODOS os fabricantes. Aqui descobrimos o fabricante do NAS que originou
+# o request (via tabela app_equipment) e removemos da resposta os VSAs
+# que não pertencem a ele — mantendo o pacote limpo.
+# ─────────────────────────────────────────────────────────────
+
+vendor-authz {
+
+    update control {
+        &Tmp-String-1 := "%{sql:SELECT m.vendor_kind FROM app_equipment e JOIN app_manufacturer m ON m.id = e.manufacturer_id WHERE e.mgmt_ip = '%{Packet-Src-IP-Address}' LIMIT 1}"
+    }
+
+    switch &control:Tmp-String-1 {
+        case "huawei" {
+            update reply {
+                &Juniper-Local-User-Name !* ANY
+                &Mikrotik-Group !* ANY
+                &Datacom-Privilege-Level !* ANY
+            }
+        }
+        case "juniper" {
+            update reply {
+                &Huawei-Exec-Privilege !* ANY
+                &Mikrotik-Group !* ANY
+                &Datacom-Privilege-Level !* ANY
+            }
+        }
+        case "mikrotik" {
+            update reply {
+                &Huawei-Exec-Privilege !* ANY
+                &Juniper-Local-User-Name !* ANY
+                &Datacom-Privilege-Level !* ANY
+            }
+        }
+        case "datacom" {
+            update reply {
+                &Huawei-Exec-Privilege !* ANY
+                &Juniper-Local-User-Name !* ANY
+                &Mikrotik-Group !* ANY
+            }
+        }
+        case {
+            noop
+        }
+    }
+}

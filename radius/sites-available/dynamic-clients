@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────
+# Virtual server `dynamic_clients`
+#
+# Resolve, em tempo de request, um NAS que ainda não estava carregado
+# como cliente estático (ex.: equipamento cadastrado no painel após o
+# boot do FreeRADIUS). Consulta a tabela `nas` do MySQL e materializa
+# o cliente sem reiniciar o serviço.
+# ─────────────────────────────────────────────────────────────
+
+server dynamic_clients {
+
+authorize {
+    update control {
+        &FreeRADIUS-Client-IP-Address = "%{Packet-Src-IP-Address}"
+    }
+
+    if ("%{sql:SELECT nasname FROM nas WHERE nasname = '%{Packet-Src-IP-Address}' LIMIT 1}") {
+        update control {
+            &FreeRADIUS-Client-Shortname := "%{sql:SELECT COALESCE(NULLIF(shortname,''), nasname) FROM nas WHERE nasname = '%{Packet-Src-IP-Address}' LIMIT 1}"
+            &FreeRADIUS-Client-Secret    := "%{sql:SELECT secret FROM nas WHERE nasname = '%{Packet-Src-IP-Address}' LIMIT 1}"
+            &FreeRADIUS-Client-NAS-Type  := "%{sql:SELECT COALESCE(NULLIF(type,''),'other') FROM nas WHERE nasname = '%{Packet-Src-IP-Address}' LIMIT 1}"
+        }
+        ok
+    }
+    else {
+        reject
+    }
+}
+
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Pulse RADIUS">
+  <rect width="48" height="48" rx="12" fill="#1a4fd8"/>
+  <path d="M24 10l11 4v9c0 8-5 14-11 16-6-2-11-8-11-16v-9l11-4z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M15 25h4l3 7 4-14 3 7h4" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────
+# Dicionário local do Pulse RADIUS
+#
+# Huawei, Juniper e Mikrotik já vêm no dicionário padrão do FreeRADIUS.
+# Datacom (DmOS) nem sempre acompanha a distribuição — definimos aqui.
+#
+# IMPORTANTE: confirme o nome/numeração do atributo com o dicionário RADIUS
+# da SUA versão de DmOS (Command Reference / arquivo dictionary.datacom do
+# fornecedor). Ajuste os VALUE conforme os níveis reais (admin/config/audit).
+# O painel permite editar o atributo/valor por perfil sem tocar neste arquivo.
+# ─────────────────────────────────────────────────────────────
+
+VENDOR          Datacom                 3709
+
+BEGIN-VENDOR    Datacom
+
+ATTRIBUTE       Datacom-Privilege-Level         1       integer
+ATTRIBUTE       Datacom-User-Group              2       string
+
+VALUE   Datacom-Privilege-Level         audit           1
+VALUE   Datacom-Privilege-Level         config          10
+VALUE   Datacom-Privilege-Level         admin           15
+
+END-VENDOR      Datacom

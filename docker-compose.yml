@@ -1,0 +1,219 @@
+name: pulse-radius
+
+networks:
+  edge:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
+
+volumes:
+  db_data:
+  radius_logs:
+  db_backups:
+
+services:
+  # ─────────────────────────── MySQL ───────────────────────────
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-radius}
+      MYSQL_BACKEND_USER: ${MYSQL_BACKEND_USER:-backend_svc}
+      MYSQL_BACKEND_PASSWORD: ${MYSQL_BACKEND_PASSWORD:?set MYSQL_BACKEND_PASSWORD}
+      MYSQL_RADIUS_USER: ${MYSQL_RADIUS_USER:-radius_svc}
+      MYSQL_RADIUS_PASSWORD: ${MYSQL_RADIUS_PASSWORD:?set MYSQL_RADIUS_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      # Scripts em db/init rodam UMA vez, na criação do volume, em ordem alfabética.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+
+  # ───────────────────────── FreeRADIUS ────────────────────────
+  freeradius:
+    build:
+      context: ./radius
+    restart: unless-stopped
+    environment:
+      SQL_HOST: db
+      SQL_PORT: "3306"
+      SQL_DB: ${MYSQL_DATABASE:-radius}
+      SQL_USER: ${MYSQL_RADIUS_USER:-radius_svc}
+      SQL_PASSWORD: ${MYSQL_RADIUS_PASSWORD:?set MYSQL_RADIUS_PASSWORD}
+      RADIUS_TEST_SECRET: ${RADIUS_TEST_SECRET:-testing123}
+      # auto = exige Message-Authenticator dos NAS que já o enviam (BlastRADIUS).
+      # yes = exige de todos; troque só se todo o parque suportar.
+      RADIUS_REQUIRE_MA: ${RADIUS_REQUIRE_MA:-auto}
+    ports:
+      # RADIUS_BIND: fixe no IP da interface de gerência para não escutar em todas.
+      - "${RADIUS_BIND:-0.0.0.0}:1812:1812/udp"   # authentication
+      - "${RADIUS_BIND:-0.0.0.0}:1813:1813/udp"   # accounting
+    volumes:
+      - radius_logs:/var/log/radius
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "printf 'Message-Authenticator = 0x00\\n' | radclient -r 1 -t 3 127.0.0.1:1812 status \"$$RADIUS_TEST_SECRET\" >/dev/null 2>&1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+
+  # ──────────────── Redis (storage do rate-limit) ─────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >-
+      redis-server --save "" --appendonly no
+      --maxmemory 64mb --maxmemory-policy allkeys-lru
+      --requirepass "${REDIS_PASSWORD:?set REDIS_PASSWORD}"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─────────────────────────── Backend ─────────────────────────
+  backend:
+    build:
+      context: ./backend
+      args:
+        INSTALL_DEV: ${INSTALL_DEV:-false}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_BACKEND_USER:-backend_svc}:${MYSQL_BACKEND_PASSWORD}@db:3306/${MYSQL_DATABASE:-radius}
+      # Via .env (padrão) ou via arquivo com o overlay docker-compose.secrets.yml
+      # (JWT_SECRET_FILE / FERNET_KEY_FILE). A app valida a presença no boot.
+      JWT_SECRET: ${JWT_SECRET:-}
+      FERNET_KEY: ${FERNET_KEY:-}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      RADIUS_DB_USER: ${MYSQL_RADIUS_USER:-radius_svc}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://localhost}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # IPs de reverse proxies confiáveis (X-Forwarded-*). "*" = confia em qualquer
+      # upstream; em produção prefira o IP do proxy (ex.: do Nginx Proxy Manager).
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
+      ENABLE_DOCS: ${ENABLE_DOCS:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-admin}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?set BOOTSTRAP_ADMIN_PASSWORD}
+    networks:
+      - edge
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────── Frontend ────────────────────────
+  # Serve a SPA e encaminha /api -> backend. É o entrypoint HTTP da aplicação:
+  # coloque seu reverse proxy (Nginx Proxy Manager, Caddy, LB da nuvem) na frente
+  # apontando para  http://<IP-privado-do-servidor>:${WEB_PORT:-8080}
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      # WEB_BIND pode ser o IP privado do servidor para não expor em todas as interfaces.
+      - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-8080}:80"
+    networks:
+      - edge
+    depends_on:
+      - backend
+
+  # ───────────── Proxy TLS embutido (somente com: --profile tls-proxy) ─────────────
+  # Use apenas se NÃO houver um reverse proxy externo. Faz TLS (self-signed em dev
+  # ou cert montado) e também roteia /api. Ignore-o quando usar Nginx Proxy Manager.
+  proxy:
+    build:
+      context: ./proxy
+    restart: unless-stopped
+    profiles: ["tls-proxy"]
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Monte aqui server.crt / server.key reais em produção.
+      # Em dev, o container gera um self-signed se o diretório estiver vazio.
+      - ./proxy/tls:/etc/nginx/tls
+    networks:
+      - edge
+    depends_on:
+      - frontend
+      - backend
+
+  # ─────────── Backup do MySQL (somente com: --profile backup) ────────────
+  db-backup:
+    image: mysql:8.4
+    restart: unless-stopped
+    profiles: ["backup"]
+    environment:
+      MYSQL_PWD: ${MYSQL_ROOT_PASSWORD:?}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "[db-backup] intervalo=$${BACKUP_INTERVAL_SECONDS}s manter=$${BACKUP_KEEP}";
+        while true; do
+          ts=$$(date +%Y%m%d-%H%M%S);
+          mysqldump -h db -u root --single-transaction --routines --events radius \
+            > /backups/radius-$${ts}.sql && echo "[db-backup] radius-$${ts}.sql ok" || echo "[db-backup] FALHA";
+          ls -1t /backups/*.sql 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f;
+          sleep "$${BACKUP_INTERVAL_SECONDS}";
+        done
+    volumes:
+      - db_backups:/backups
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ─────────── Adminer (somente com: --profile dev) ────────────
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    profiles: ["dev"]
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "8081:8080"
+    networks:
+      - internal
+      - edge
+    depends_on:
+      - db

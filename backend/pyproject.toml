@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+[project]
+name = "pulse-radius-backend"
+version = "0.1.0"
+description = "API do painel Pulse RADIUS (AAA com FreeRADIUS + MySQL)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.118.0",
+    "uvicorn[standard]==0.34.0",
+    "gunicorn==23.0.0",
+    "sqlalchemy==2.0.36",
+    "pymysql==1.1.1",
+    "alembic==1.14.0",
+    "pydantic==2.10.4",
+    "pydantic-settings==2.7.0",
+    "python-multipart==0.0.20",
+    "pyjwt==2.10.1",
+    "argon2-cffi==23.1.0",
+    "cryptography==44.0.1",
+    "structlog==24.4.0",
+    "slowapi==0.1.9",
+    "redis==5.2.1",
+    "prometheus-fastapi-instrumentator==7.0.0",
+    "email-validator==2.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "httpx==0.28.1",
+    "ruff==0.8.4",
+    "mypy==1.14.0",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM"]
+# B008: `Depends(...)` em defaults é o idioma padrão do FastAPI.
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true

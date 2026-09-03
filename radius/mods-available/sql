@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────
+# Módulo SQL — backend MySQL do Pulse RADIUS
+# ─────────────────────────────────────────────────────────────
+sql {
+    dialect = "mysql"
+    driver  = "rlm_sql_${dialect}"
+
+    mysql {
+        # TLS para o MySQL pode ser habilitado aqui se necessário.
+        warnings = auto
+    }
+
+    server   = "$ENV{SQL_HOST}"
+    port     = 3306
+    login    = "$ENV{SQL_USER}"
+    password = "$ENV{SQL_PASSWORD}"
+    radius_db = "$ENV{SQL_DB}"
+
+    # Tabelas padrão
+    acct_table1   = "radacct"
+    acct_table2   = "radacct"
+    postauth_table = "radpostauth"
+    authcheck_table = "radcheck"
+    groupcheck_table = "radgroupcheck"
+    authreply_table  = "radreply"
+    groupreply_table = "radgroupreply"
+    usergroup_table  = "radusergroup"
+
+    # Lê os clientes (equipamentos) da tabela `nas` no boot.
+    # Alterações em tempo real são resolvidas pelo virtual server `dynamic_clients`.
+    read_clients = yes
+    client_table = "nas"
+
+    group_attribute = "SQL-Group"
+
+    # Fecha sessões órfãs no accounting quando um novo Start chega para o mesmo usuário.
+    delete_stale_sessions = yes
+
+    pool {
+        start    = 1
+        min      = 1
+        max      = 16
+        spare    = 4
+        uses     = 0
+        retry_delay = 5
+        lifetime = 0
+        idle_timeout = 300
+    }
+
+    # Consultas padrão do dialeto (schema oficial já criado em db/init).
+    $INCLUDE ${modconfdir}/${.:name}/main/${dialect}/queries.conf
+}
