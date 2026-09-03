@@ -1,5 +1,5 @@
 from app.models import Nas, RadCheck, RadGroupReply, RadUserGroup
-from app.services.password import verify_ssha512
+from app.services.password import make_nt_hash, verify_ssha512
 from tests.conftest import first_manufacturer_id
 
 
@@ -69,9 +69,12 @@ def test_create_auth_user_writes_radcheck_and_group(auth_client, seeded):
     })
     assert r.status_code == 201, r.text
 
-    chk = seeded.query(RadCheck).filter_by(username="noc.jdoe").one()
-    assert chk.attribute == "SSHA2-512-Password"
+    chk = seeded.query(RadCheck).filter_by(
+        username="noc.jdoe", attribute="SSHA2-512-Password").one()
     assert verify_ssha512("Str0ngPass!x12", chk.value)
+    nt = seeded.query(RadCheck).filter_by(
+        username="noc.jdoe", attribute="NT-Password").one()
+    assert nt.value == make_nt_hash("Str0ngPass!x12")
 
     grp = seeded.query(RadUserGroup).filter_by(username="noc.jdoe").one()
     assert grp.groupname.startswith("profile_")

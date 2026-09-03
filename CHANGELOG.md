@@ -16,6 +16,18 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
   (pymysql) — não exige `mysqldump` na imagem do backend. Endpoints
   `GET /api/backup/export` e `POST /api/backup/import`; ambos registrados na
   auditoria. `gunicorn --timeout 180` para acomodar restaurações grandes.
+- **Login administrativo MikroTik (MS-CHAPv2)**: o `radcheck` passa a receber
+  também um `NT-Password` (MD4, sem texto claro) além do `SSHA2-512-Password`, e o
+  virtual server `default` do FreeRADIUS ganhou `mschap` no authorize e
+  `Auth-Type MS-CHAP` no authenticate. Huawei/Juniper/Datacom seguem por PAP.
+  Usuários criados antes desta versão precisam de um **Redefinir senha** para
+  ganhar o `NT-Password`.
+
+### Corrigido
+
+- **FreeRADIUS não recebia RADIUS externo**: o serviço só participava da rede
+  `internal` (`internal: true`), então o Docker não entregava o tráfego publicado
+  (`1812/1813 udp`) ao container. Anexado também à rede `edge`.
 
 ## [0.1.0] — 2026-09-02
 

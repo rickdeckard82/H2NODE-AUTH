@@ -53,6 +53,11 @@ authorize {
     expiration
     logintime
 
+    # MikroTik (login Winbox/SSH/console) negocia MS-CHAPv2; se o request traz
+    # MS-CHAP-Challenge/Response, o módulo marca Auth-Type := MS-CHAP e valida
+    # contra NT-Password. Huawei/Juniper/Datacom seguem por PAP.
+    mschap
+
     # Se nenhum método foi escolhido e há uma senha conhecida, usa PAP.
     pap
 }
@@ -64,6 +69,9 @@ authenticate {
     }
     Auth-Type CHAP {
         chap
+    }
+    Auth-Type MS-CHAP {
+        mschap
     }
 }
 

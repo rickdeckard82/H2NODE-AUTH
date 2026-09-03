@@ -20,7 +20,12 @@ from app.models import (
     RadUserGroup,
     VendorKind,
 )
-from app.services.password import RADIUS_PASSWORD_ATTR, make_ssha512
+from app.services.password import (
+    RADIUS_NT_PASSWORD_ATTR,
+    RADIUS_PASSWORD_ATTR,
+    make_nt_hash,
+    make_ssha512,
+)
 
 # ─────────────────────────── usuários de auth ───────────────────────────
 
@@ -30,13 +35,20 @@ def sync_auth_user(db: Session, user: AuthUser, *, password: str | None = None) 
     if profile is None:
         raise ValueError("perfil de privilégio inexistente")
 
-    # radcheck: senha (só reescreve se veio senha nova)
+    # radcheck: senha (só reescreve se veio senha nova). Dois verificadores:
+    # SSHA2-512 p/ PAP (Huawei/Juniper/Datacom) e NT-Password p/ MS-CHAPv2
+    # (login administrativo do MikroTik). Nenhum é texto claro.
     if password is not None:
         db.execute(
             delete(RadCheck).where(
                 RadCheck.username == user.username,
                 RadCheck.attribute.in_(
-                    [RADIUS_PASSWORD_ATTR, "Cleartext-Password", "Crypt-Password"]
+                    [
+                        RADIUS_PASSWORD_ATTR,
+                        RADIUS_NT_PASSWORD_ATTR,
+                        "Cleartext-Password",
+                        "Crypt-Password",
+                    ]
                 ),
             )
         )
@@ -46,6 +58,14 @@ def sync_auth_user(db: Session, user: AuthUser, *, password: str | None = None) 
                 attribute=RADIUS_PASSWORD_ATTR,
                 op=":=",
                 value=make_ssha512(password),
+            )
+        )
+        db.add(
+            RadCheck(
+                username=user.username,
+                attribute=RADIUS_NT_PASSWORD_ATTR,
+                op=":=",
+                value=make_nt_hash(password),
             )
         )
 

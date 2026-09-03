@@ -14,6 +14,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       "Backup e restauração pelo painel (Configuração → Backup e restauração, só superadmin): baixa um .sql com esquema e dados de todas as tabelas, com opção de incluir ou não o histórico de accounting.",
       "Restauração recria o banco a partir do arquivo enviado, mediante confirmação explícita; a sessão pode cair e exigir novo login. Exportação e restauração ficam registradas na auditoria.",
+      "Login administrativo em MikroTik agora funciona: suporte a MS-CHAPv2 (o RouterOS não usa PAP). Usuários criados antes desta versão precisam de um “Redefinir senha” para autenticar em MikroTik.",
+      "Correção: o FreeRADIUS não recebia pacotes RADIUS externos por um problema de rede do container.",
     ],
   },
   {
