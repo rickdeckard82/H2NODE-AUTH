@@ -58,7 +58,7 @@ def create_user(
         raise HTTPException(status.HTTP_409_CONFLICT, "username ou e-mail já em uso")
     user = SystemUser(
         username=body.username, email=body.email, full_name=body.full_name,
-        role=body.role, is_active=body.is_active,
+        role=body.role, is_active=body.is_active, timezone=body.timezone,
         password_hash=hash_password(body.password),
     )
     db.add(user)
@@ -95,6 +95,8 @@ def update_user(
         user.role = body.role
     if body.is_active is not None:
         user.is_active = body.is_active
+    if body.timezone is not None:
+        user.timezone = body.timezone
     if body.password:
         user.password_hash = hash_password(body.password)
 

@@ -13,7 +13,7 @@ import {
 } from "../../components/ui";
 import { api, ApiError, type Page } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
-import { fmtDate } from "../../lib/format";
+import { DEFAULT_TZ, TIMEZONES, useFmtDate } from "../../lib/datetime";
 import type { SystemUser } from "../../lib/types";
 
 type Role = SystemUser["role"];
@@ -26,6 +26,7 @@ interface FormState {
   full_name: string;
   role: Role;
   is_active: boolean;
+  timezone: string;
   password: string;
 }
 
@@ -35,11 +36,13 @@ const empty: FormState = {
   full_name: "",
   role: "operator",
   is_active: true,
+  timezone: DEFAULT_TZ,
   password: "",
 };
 
 export default function SystemUsersPage() {
   const { user } = useAuth();
+  const fmtDate = useFmtDate();
   const qc = useQueryClient();
   const toast = useToast();
   const [q, setQ] = useState("");
@@ -60,6 +63,7 @@ export default function SystemUsersPage() {
           full_name: f.full_name,
           role: f.role,
           is_active: f.is_active,
+          timezone: f.timezone,
         };
         if (f.password) body.password = f.password;
         return api.patch(`/system-users/${f.id}`, body);
@@ -70,6 +74,7 @@ export default function SystemUsersPage() {
         full_name: f.full_name,
         role: f.role,
         is_active: f.is_active,
+        timezone: f.timezone,
         password: f.password,
       });
     },
@@ -158,6 +163,7 @@ export default function SystemUsersPage() {
                           full_name: u.full_name,
                           role: u.role,
                           is_active: u.is_active,
+                          timezone: u.timezone ?? DEFAULT_TZ,
                           password: "",
                         })
                       }
@@ -244,6 +250,22 @@ export default function SystemUsersPage() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
               />
+            </Field>
+            <Field label="Fuso horário" hint="Usado para exibir as datas no painel.">
+              <select
+                className="input"
+                value={form.timezone}
+                onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+              >
+                {(TIMEZONES.includes(form.timezone)
+                  ? TIMEZONES
+                  : [form.timezone, ...TIMEZONES]
+                ).map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field
               label={form.id ? "Nova senha (opcional)" : "Senha"}

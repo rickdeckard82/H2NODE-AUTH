@@ -46,7 +46,9 @@ const NAV: NavEntry[] = [
     label: "Relatórios",
     icon: "barChart",
     children: [
-      { to: "/accounting", label: "Accounting", icon: "activity" },
+      { to: "/auth-log", label: "Authentication", icon: "activity" },
+      { to: "/authz-log", label: "Authorization", icon: "shield" },
+      { to: "/accounting", label: "Accounting", icon: "barChart" },
       { to: "/audit", label: "Auditoria", icon: "clipboard" },
     ],
   },

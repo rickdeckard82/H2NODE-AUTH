@@ -4,6 +4,25 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [0.3.0] — 2026-09-03
+
+### Adicionado
+
+- **Relatórios divididos em três** no menu (antes só "Accounting"):
+  - **Authentication** — tentativas de login (`radpostauth`), Accept/Reject.
+  - **Authorization** — comandos executados nos equipamentos, com o IP de origem
+    de quem executou.
+  - **Accounting** — aba *Comandos* + aba *Sessões* (`radacct`, como antes).
+  Filtros por usuário / NAS / período e export CSV em cada uma.
+- **Contabilização de comandos** (`cmd_acct`, migração 0007): o site `default` do
+  FreeRADIUS grava o comando quando o Accounting-Request o traz num VSA. Cisco /
+  `shell:cmd=` funcionam direto; Huawei/Juniper/Datacom mapeiam o VSA real para
+  `Pulse-Command` (ver `docs/RUNBOOK.md`). O comando entra com escape `=XX`
+  (anti-injeção) e o backend reverte na leitura.
+- **Fuso horário por Utilizador do sistema** (campo no cadastro, padrão
+  `America/Sao_Paulo`). As datas da API passam a sair em UTC explícito e o painel
+  converte na exibição (corrige o "3h adiantado").
+
 ## [0.2.0] — 2026-09-03
 
 ### Adicionado

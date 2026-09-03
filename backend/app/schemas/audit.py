@@ -1,13 +1,13 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
+
+from app.schemas.common import UtcDatetime
 
 
 class AuditLogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    created_at: datetime
+    created_at: UtcDatetime
     actor_username: str | None
     action: str
     entity_type: str

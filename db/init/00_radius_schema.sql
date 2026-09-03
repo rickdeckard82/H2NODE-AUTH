@@ -131,3 +131,24 @@ CREATE TABLE IF NOT EXISTS nasreload (
   reloadtime   datetime NOT NULL,
   PRIMARY KEY (nasipaddress)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────────────
+-- cmd_acct — contabilização de comandos (NÃO é schema padrão do FreeRADIUS).
+-- Preenchida pelo site `default` (seção accounting) quando um Accounting-Request
+-- traz o comando executado num VSA de fabricante. Alimenta as telas
+-- Authorization e Accounting do painel. Ver também a migração Alembic 0007.
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS cmd_acct (
+  id               bigint(21)   NOT NULL AUTO_INCREMENT,
+  event_time       datetime     NOT NULL,
+  nasipaddress     varchar(15)  NOT NULL DEFAULT '',
+  username         varchar(64)  NOT NULL DEFAULT '',
+  callingstationid varchar(50)  NOT NULL DEFAULT '',
+  action           varchar(32)  NOT NULL DEFAULT '',
+  command          varchar(512) NOT NULL DEFAULT '',
+  acctsessionid    varchar(64)  NOT NULL DEFAULT '',
+  PRIMARY KEY (id),
+  KEY username (username(32)),
+  KEY event_time (event_time),
+  KEY nasipaddress (nasipaddress)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

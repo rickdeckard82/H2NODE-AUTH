@@ -28,6 +28,7 @@ mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL || { echo "[i
   GRANT SELECT, INSERT, UPDATE, DELETE ON \`${_pr_db}\`.radacct     TO '${MYSQL_RADIUS_USER}'@'%';
   GRANT SELECT, INSERT, UPDATE, DELETE ON \`${_pr_db}\`.radpostauth TO '${MYSQL_RADIUS_USER}'@'%';
   GRANT INSERT, UPDATE, DELETE         ON \`${_pr_db}\`.nasreload   TO '${MYSQL_RADIUS_USER}'@'%';
+  GRANT SELECT, INSERT                 ON \`${_pr_db}\`.cmd_acct    TO '${MYSQL_RADIUS_USER}'@'%';
 
   FLUSH PRIVILEGES;
 EOSQL

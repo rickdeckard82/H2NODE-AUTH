@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CompareBar, DonutChart } from "../../components/charts";
 import { Card, PageHeader, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
-import { fmtDate } from "../../lib/format";
+import { useFmtDate } from "../../lib/datetime";
 
 interface Stats {
   active_sessions: number;
@@ -29,6 +29,7 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: str
 }
 
 export default function DashboardPage() {
+  const fmtDate = useFmtDate();
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => api.get<Stats>("/accounting/stats") });
   const failures = useQuery({
     queryKey: ["recent-failures"],

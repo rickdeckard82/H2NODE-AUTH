@@ -10,6 +10,17 @@
 # O painel permite editar o atributo/valor por perfil sem tocar neste arquivo.
 # ─────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────
+# Atributos internos do Pulse (NUNCA vão no fio — só carregam valor entre
+# módulos). O site `default` grava cmd_acct quando `Pulse-Command` está
+# presente. Cisco/genérico (Cisco-AVPair = "cmd=...") já é tratado direto;
+# para Huawei / Juniper / Datacom, mapeie o VSA real do SEU firmware para
+# `Pulse-Command` num `update` (ver docs/device-config/*.md) depois de
+# confirmar o nome do atributo com `freeradius -X`.
+# ─────────────────────────────────────────────────────────────
+ATTRIBUTE       Pulse-Command                   3320    string
+ATTRIBUTE       Pulse-Command-Action            3321    string
+
 VENDOR          Datacom                 3709
 
 BEGIN-VENDOR    Datacom

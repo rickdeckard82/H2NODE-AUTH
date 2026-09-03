@@ -91,6 +91,38 @@ Itens críticos a guardar fora do host: os dumps **e** o `.env` (contém `FERNET
 sem ela os segredos cifrados são irrecuperáveis) e `JWT_SECRET`. O backup do painel
 **não** inclui esses segredos.
 
+## Relatórios (Authentication / Authorization / Accounting)
+
+- **Authentication** — tentativas de login (`radpostauth`): Access-Accept/Reject.
+- **Authorization** — comandos executados (`cmd_acct`), com o IP de origem de quem
+  executou.
+- **Accounting** — aba *Comandos* (`cmd_acct`, sem o IP de origem) + aba *Sessões*
+  (`radacct`: início/fim, bytes, duração).
+
+As datas na API saem em UTC explícito; o painel converte para o **fuso de cada
+Utilizador do sistema** (cadastro → *Fuso horário*, padrão `America/Sao_Paulo`).
+
+### Contabilização de comandos (`cmd_acct`)
+
+O site `default` (seção `accounting`) grava `cmd_acct` quando o Accounting-Request
+traz o comando executado:
+
+- **Cisco e a maioria dos gateways** (`Cisco-AVPair = "cmd=..."` / `"shell:cmd=..."`)
+  funcionam sem ajuste.
+- **Huawei / Juniper / Datacom**: confirme o VSA real do seu firmware com
+  `freeradius -X` num comando executado e mapeie-o para `Pulse-Command` logo no
+  início do bloco em `radius/sites-available/default`, por ex.:
+
+  ```
+  if (&Huawei-Exec-Command) {           # troque pelo atributo REAL do seu firmware
+      update control { &Pulse-Command := "%{Huawei-Exec-Command}" }
+  }
+  ```
+
+O comando é gravado com escape `=XX` (proteção contra injeção); o backend reverte
+na leitura. Grants: `radius_svc` tem `SELECT, INSERT` em `cmd_acct` (migração 0007
+e `db/init/01_db_users.sh`).
+
 ## Rotação de segredos
 
 - **`JWT_SECRET`**: trocar invalida todas as sessões do painel (todos re-logam). OK a qualquer momento.

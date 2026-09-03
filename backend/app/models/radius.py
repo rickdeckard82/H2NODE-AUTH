@@ -11,6 +11,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
+# SQLite só autoincrementa em INTEGER PRIMARY KEY; nos testes usamos essa variante.
+_BigPK = BigInteger().with_variant(Integer, "sqlite")
+
 
 class RadCheck(Base):
     __tablename__ = "radcheck"
@@ -83,12 +86,30 @@ class RadAcct(Base):
 
 class RadPostAuth(Base):
     __tablename__ = "radpostauth"
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(_BigPK, primary_key=True)
     username: Mapped[str] = mapped_column(String(64), default="")
     pass_: Mapped[str] = mapped_column("pass", String(64), default="")
     reply: Mapped[str] = mapped_column(String(64), default="")
     authdate: Mapped[datetime] = mapped_column(DateTime)
     class_: Mapped[str | None] = mapped_column("class", String(64))
+
+
+class CmdAcct(Base):
+    """Contabilização de comandos (não é schema padrão do FreeRADIUS).
+
+    Preenchida pelo site `default` quando um Accounting-Request traz o comando
+    executado num VSA de fabricante. Criada em db/init + migração 0007.
+    """
+
+    __tablename__ = "cmd_acct"
+    id: Mapped[int] = mapped_column(_BigPK, primary_key=True)
+    event_time: Mapped[datetime] = mapped_column(DateTime, index=True)
+    nasipaddress: Mapped[str] = mapped_column(String(15), default="", index=True)
+    username: Mapped[str] = mapped_column(String(64), default="", index=True)
+    callingstationid: Mapped[str] = mapped_column(String(50), default="")
+    action: Mapped[str] = mapped_column(String(32), default="")
+    command: Mapped[str] = mapped_column(String(512), default="")
+    acctsessionid: Mapped[str] = mapped_column(String(64), default="")
 
 
 class Nas(Base):

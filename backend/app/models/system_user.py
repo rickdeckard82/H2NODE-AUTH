@@ -26,6 +26,8 @@ class SystemUser(Base, TimestampMixin):
         Enum(SystemRole, native_enum=False, length=20), default=SystemRole.operator
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Fuso IANA para exibir datas no painel (conversão só na apresentação).
+    timezone: Mapped[str] = mapped_column(String(64), default="America/Sao_Paulo")
     mfa_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0)

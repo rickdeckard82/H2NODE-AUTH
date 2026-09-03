@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Badge, Card, Modal, PageHeader, Pagination, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
-import { fmtDate } from "../../lib/format";
+import { useFmtDate } from "../../lib/datetime";
 import type { AuditEntry } from "../../lib/types";
 
 const ACTION_TONE: Record<string, "green" | "amber" | "red" | "blue" | "slate"> = {
@@ -23,6 +23,7 @@ function pretty(json: string | null) {
 }
 
 export default function AuditPage() {
+  const fmtDate = useFmtDate();
   const [entityType, setEntityType] = useState("");
   const [action, setAction] = useState("");
   const [actor, setActor] = useState("");

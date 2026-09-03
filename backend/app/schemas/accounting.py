@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from app.schemas.common import UtcDatetime
 
 
 class SessionOut(BaseModel):
@@ -9,8 +9,8 @@ class SessionOut(BaseModel):
     nasipaddress: str
     nas_name: str | None = None
     acctsessionid: str
-    acctstarttime: datetime | None
-    acctstoptime: datetime | None
+    acctstarttime: UtcDatetime | None
+    acctstoptime: UtcDatetime | None
     acctsessiontime: int | None
     acctinputoctets: int | None
     acctoutputoctets: int | None
@@ -23,8 +23,20 @@ class AuthEventOut(BaseModel):
     id: int
     username: str
     reply: str
-    authdate: datetime
+    authdate: UtcDatetime
     accepted: bool
+
+
+class CommandEventOut(BaseModel):
+    id: int
+    event_time: UtcDatetime
+    nasipaddress: str
+    nas_name: str | None = None
+    username: str
+    callingstationid: str
+    action: str
+    command: str
+    acctsessionid: str
 
 
 class AccountingStats(BaseModel):

@@ -1,8 +1,17 @@
-from datetime import datetime
+from zoneinfo import available_timezones
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.system_user import SystemRole
+from app.schemas.common import UtcDatetime
+
+_TZS = available_timezones()
+
+
+def _check_tz(v: str | None) -> str | None:
+    if v is not None and v not in _TZS:
+        raise ValueError(f"fuso horário inválido: {v!r} (use um nome IANA, ex.: America/Sao_Paulo)")
+    return v
 
 
 class SystemUserBase(BaseModel):
@@ -11,6 +20,9 @@ class SystemUserBase(BaseModel):
     full_name: str = Field(min_length=1, max_length=190)
     role: SystemRole = SystemRole.operator
     is_active: bool = True
+    timezone: str = Field(default="America/Sao_Paulo", max_length=64)
+
+    _v_tz = field_validator("timezone")(_check_tz)
 
 
 class SystemUserCreate(SystemUserBase):
@@ -22,13 +34,16 @@ class SystemUserUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=1, max_length=190)
     role: SystemRole | None = None
     is_active: bool | None = None
+    timezone: str | None = Field(default=None, max_length=64)
     password: str | None = Field(default=None, min_length=10, max_length=128)
+
+    _v_tz = field_validator("timezone")(_check_tz)
 
 
 class SystemUserOut(SystemUserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    last_login_at: datetime | None
-    created_at: datetime
-    updated_at: datetime
+    last_login_at: UtcDatetime | None
+    created_at: UtcDatetime
+    updated_at: UtcDatetime

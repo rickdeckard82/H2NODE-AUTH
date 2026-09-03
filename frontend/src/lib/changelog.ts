@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.2.0";
+export const APP_VERSION = "0.3.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 /** Mais recente primeiro. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "0.3.0",
+    date: "2026-09-03",
+    changes: [
+      "Relatórios divididos em Authentication (logins), Authorization (comandos executados, com IP de origem) e Accounting (abas Comandos e Sessões). Filtros por usuário / NAS / período e export CSV.",
+      "Contabilização de comandos: o FreeRADIUS grava o comando quando o equipamento o envia via Accounting (Cisco/shell:cmd direto; demais fabricantes mapeiam o VSA — ver RUNBOOK).",
+      "Fuso horário por Utilizador do sistema (cadastro → Fuso horário, padrão America/Sao_Paulo). As datas do painel deixam de aparecer adiantadas.",
+    ],
+  },
   {
     version: "0.2.0",
     date: "2026-09-03",

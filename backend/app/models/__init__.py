@@ -6,6 +6,7 @@ from app.models.equipment import Equipment, EquipmentStatus
 from app.models.manufacturer import Manufacturer, VendorKind
 from app.models.privilege_profile import PrivilegeProfile, PrivilegeProfileAttr
 from app.models.radius import (
+    CmdAcct,
     Nas,
     RadAcct,
     RadCheck,
@@ -33,6 +34,7 @@ __all__ = [
     "RefreshToken",
     "SystemRole",
     "SystemUser",
+    "CmdAcct",
     "Nas",
     "RadAcct",
     "RadCheck",

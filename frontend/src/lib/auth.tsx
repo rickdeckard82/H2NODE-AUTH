@@ -18,6 +18,7 @@ export interface Me {
   full_name: string;
   role: Role;
   is_active: boolean;
+  timezone: string;
   last_login_at: string | null;
 }
 

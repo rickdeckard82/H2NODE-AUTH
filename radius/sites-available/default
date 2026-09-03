@@ -84,6 +84,34 @@ preacct {
 
 # ───────────────────────────── ACCOUNTING ────────────────────────────
 accounting {
+    # ── Contabilização de comandos (tabela cmd_acct) ────────────────────
+    # Alimenta as telas Authorization e Accounting do painel. A fonte é o
+    # comando executado que o equipamento manda num Accounting-Request.
+    #
+    # Cisco e a maioria dos gateways: Cisco-AVPair = "cmd=<comando>" (ou
+    # "shell:cmd=..."). Para Huawei / Juniper / Datacom, mapeie o VSA real
+    # do SEU firmware para Pulse-Command num `update` aqui em cima — confirme
+    # o nome com `freeradius -X` num comando real. Ver docs/device-config/.
+    if ("%{Cisco-AVPair}" =~ /(?:^|shell:)cmd=(.+)$/) {
+        update control { &Pulse-Command := "%{1}" }
+    }
+    if (&control:Pulse-Command) {
+        # %{sql:...} passa cada expansão %{} pela função de escape do driver
+        # (chars fora de safe_characters viram "=XX"); o backend reverte na
+        # leitura. Assim a string de comando nunca injeta SQL.
+        update control {
+            &Pulse-Command-Action := "%{%{Pulse-Command-Action}:-exec}"
+        }
+        "%{sql: \
+            INSERT INTO cmd_acct \
+              (event_time, nasipaddress, username, callingstationid, action, command, acctsessionid) \
+            VALUES ( \
+              FROM_UNIXTIME(%{%{integer:Event-Timestamp}:-%l}), \
+              '%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', '%{User-Name}', '%{Calling-Station-Id}', \
+              '%{control:Pulse-Command-Action}', '%{control:Pulse-Command}', '%{Acct-Session-Id}' \
+            )}"
+    }
+
     # Grava start / interim-update / stop em radacct.
     sql
     exec

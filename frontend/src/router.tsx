@@ -15,6 +15,8 @@ const PrivilegeProfilesPage = lazy(() => import("./features/privilege-profiles/P
 const SystemUsersPage = lazy(() => import("./features/system-users/SystemUsersPage"));
 const BackupPage = lazy(() => import("./features/backup/BackupPage"));
 const AccountingPage = lazy(() => import("./features/accounting/AccountingPage"));
+const AuthenticationPage = lazy(() => import("./features/reports/AuthenticationPage"));
+const AuthorizationPage = lazy(() => import("./features/reports/AuthorizationPage"));
 const AuditPage = lazy(() => import("./features/audit/AuditPage"));
 
 function Loader() {
@@ -88,6 +90,8 @@ export const router = createBrowserRouter([
           </Protected>
         ),
       },
+      { path: "auth-log", element: <AuthenticationPage /> },
+      { path: "authz-log", element: <AuthorizationPage /> },
       { path: "accounting", element: <AccountingPage /> },
       { path: "audit", element: <AuditPage /> },
       {

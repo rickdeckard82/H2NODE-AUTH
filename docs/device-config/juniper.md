@@ -32,3 +32,9 @@ Um usuário "template" local casa a classe:
 ```
 set system login user remote-radius class super-user
 ```
+
+## Contabilização de comandos
+
+O Junos não envia comandos por RADIUS accounting de forma padronizada. Se a sua
+versão suportar, mapeie o VSA correspondente para `Pulse-Command` no
+`radius/sites-available/default` (bloco `accounting`) — ver `docs/RUNBOOK.md`.

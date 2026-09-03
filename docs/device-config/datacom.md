@@ -30,3 +30,9 @@ com o dicionário da sua release e configure o perfil de privilégio no painel:
 Se a sua release usar outro atributo (ex.: `Service-Type`, ou um VSA nomeado
 diferente), basta editar a linha do fabricante Datacom no editor de perfis —
 nada no FreeRADIUS precisa mudar além do dicionário.
+
+## Contabilização de comandos
+
+Se o DmOS enviar o comando executado num Accounting-Request, mapeie o atributo
+para `Pulse-Command` no `radius/sites-available/default` (bloco `accounting`) —
+confirme o nome com `freeradius -X`. Ver `docs/RUNBOOK.md`.

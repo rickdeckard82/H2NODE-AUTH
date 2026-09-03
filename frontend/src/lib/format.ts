@@ -1,7 +1,12 @@
-export function fmtDate(v: string | null | undefined): string {
+export function fmtDate(v: string | null | undefined, tz?: string): string {
   if (!v) return "—";
   const d = new Date(v);
-  return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    ...(tz ? { timeZone: tz } : {}),
+  });
 }
 
 export function fmtDuration(seconds: number | null | undefined): string {

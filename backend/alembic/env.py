@@ -17,7 +17,7 @@ target_metadata = Base.metadata
 # Tabelas do FreeRADIUS são geridas por SQL de init; o Alembic as ignora.
 RADIUS_TABLES = {
     "radacct", "radcheck", "radreply", "radgroupcheck", "radgroupreply",
-    "radusergroup", "radpostauth", "nas", "nasreload",
+    "radusergroup", "radpostauth", "nas", "nasreload", "cmd_acct",
 }
 
 

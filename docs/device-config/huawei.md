@@ -40,3 +40,11 @@ equipamento envia precisa ser exatamente o `mgmt_ip` cadastrado — force com:
 radius-server template PULSE
  radius-attribute nas-ip-address 10.0.0.1
 ```
+
+## Contabilização de comandos
+
+Habilite o *command accounting* apontando para o Pulse e, no
+`radius/sites-available/default` (bloco `accounting`), mapeie o VSA de comando
+do seu firmware para `Pulse-Command` — confirme o nome exato com
+`freeradius -X` num comando real. Ver `docs/RUNBOOK.md` → "Contabilização de
+comandos".

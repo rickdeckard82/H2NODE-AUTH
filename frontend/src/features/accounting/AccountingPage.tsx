@@ -2,49 +2,51 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Badge, Button, Card, PageHeader, Pagination, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
-import { fmtBytes, fmtDate, fmtDuration } from "../../lib/format";
-import type { Session } from "../../lib/types";
+import { useFmtDate } from "../../lib/datetime";
+import { fmtBytes, fmtDuration } from "../../lib/format";
+import type { CommandEvent, Session } from "../../lib/types";
+import { emptyFilters, ReportFilters, toIso, type ReportFilterState } from "../reports/ReportFilters";
 
-interface AuthEvent {
-  id: number;
-  username: string;
-  reply: string;
-  authdate: string;
-  accepted: boolean;
-}
+type View = "commands" | "sessions";
 
 export default function AccountingPage() {
-  const [view, setView] = useState<"sessions" | "events">("sessions");
-  const [username, setUsername] = useState("");
-  const [nasIp, setNasIp] = useState("");
+  const fmt = useFmtDate();
+  const [view, setView] = useState<View>("commands");
+  const [filters, setFilters] = useState<ReportFilterState>(emptyFilters);
   const [active, setActive] = useState<"" | "true" | "false">("");
   const [page, setPage] = useState(1);
 
-  const params = { username, nas_ip: nasIp, active: active || undefined, page, page_size: 25 };
+  const range = { since: toIso(filters.since), until: toIso(filters.until) };
+  const cmdQuery = { username: filters.username, nas_ip: filters.nasIp, ...range };
+  const sessQuery = { username: filters.username, nas_ip: filters.nasIp, active: active || undefined, ...range };
+
+  const commands = useQuery({
+    queryKey: ["acct-commands", cmdQuery, page],
+    queryFn: () =>
+      api.get<Page<CommandEvent>>("/accounting/commands", { ...cmdQuery, page, page_size: 25 }),
+    enabled: view === "commands",
+  });
 
   const sessions = useQuery({
-    queryKey: ["sessions", params],
-    queryFn: () => api.get<Page<Session>>("/accounting/sessions", params),
+    queryKey: ["acct-sessions", sessQuery, page],
+    queryFn: () =>
+      api.get<Page<Session>>("/accounting/sessions", { ...sessQuery, page, page_size: 25 }),
     enabled: view === "sessions",
   });
 
-  const events = useQuery({
-    queryKey: ["auth-events", username, page],
-    queryFn: () =>
-      api.get<Page<AuthEvent>>("/accounting/auth-events", { username, page, page_size: 25 }),
-    enabled: view === "events",
-  });
+  function onFilters(next: ReportFilterState) {
+    setFilters(next);
+    setPage(1);
+  }
 
   async function downloadCsv() {
-    const blob = await api.blob("/accounting/sessions.csv", {
-      username,
-      nas_ip: nasIp,
-      active: active || undefined,
-    });
+    const path = view === "commands" ? "/accounting/commands.csv" : "/accounting/sessions.csv";
+    const q = view === "commands" ? cmdQuery : sessQuery;
+    const blob = await api.blob(path, q);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "sessions.csv";
+    a.download = view === "commands" ? "commands.csv" : "sessions.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -53,18 +55,16 @@ export default function AccountingPage() {
     <div>
       <PageHeader
         title="Accounting"
-        subtitle="Sessões (radacct) e eventos de autenticação (radpostauth)"
-        actions={
-          view === "sessions" && (
-            <Button variant="ghost" onClick={downloadCsv}>
-              Exportar CSV
-            </Button>
-          )
-        }
+        subtitle="Comandos executados nos equipamentos e sessões de login (radacct)"
       />
 
       <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
-        {(["sessions", "events"] as const).map((v) => (
+        {(
+          [
+            ["commands", "Comandos"],
+            ["sessions", "Sessões"],
+          ] as const
+        ).map(([v, label]) => (
           <button
             key={v}
             onClick={() => {
@@ -77,49 +77,97 @@ export default function AccountingPage() {
                 : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
             }`}
           >
-            {v === "sessions" ? "Sessões" : "Eventos de auth"}
+            {label}
           </button>
         ))}
       </div>
 
-      <Card className="mb-3 flex flex-wrap gap-2">
-        <input
-          className="input max-w-[180px]"
-          placeholder="Usuário"
-          value={username}
-          onChange={(e) => {
-            setUsername(e.target.value);
-            setPage(1);
-          }}
-        />
-        {view === "sessions" && (
+      <ReportFilters
+        value={filters}
+        onChange={onFilters}
+        showNas
+        right={
           <>
-            <input
-              className="input max-w-[160px]"
-              placeholder="IP do NAS"
-              value={nasIp}
-              onChange={(e) => {
-                setNasIp(e.target.value);
-                setPage(1);
-              }}
-            />
-            <select
-              className="input max-w-[160px]"
-              value={active}
-              onChange={(e) => {
-                setActive(e.target.value as "" | "true" | "false");
-                setPage(1);
-              }}
-            >
-              <option value="">Todas</option>
-              <option value="true">Ativas</option>
-              <option value="false">Encerradas</option>
-            </select>
+            {view === "sessions" && (
+              <label className="block">
+                <span className="label">Estado</span>
+                <select
+                  className="input max-w-[150px]"
+                  value={active}
+                  onChange={(e) => {
+                    setActive(e.target.value as "" | "true" | "false");
+                    setPage(1);
+                  }}
+                >
+                  <option value="">Todas</option>
+                  <option value="true">Ativas</option>
+                  <option value="false">Encerradas</option>
+                </select>
+              </label>
+            )}
+            <Button variant="ghost" onClick={downloadCsv}>
+              Exportar CSV
+            </Button>
           </>
-        )}
-      </Card>
+        }
+      />
 
-      {view === "sessions" ? (
+      {view === "commands" ? (
+        <Card className="overflow-x-auto p-0">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+            <thead className="bg-slate-50 dark:bg-slate-800/50">
+              <tr>
+                <th className="th">Data</th>
+                <th className="th">NAS</th>
+                <th className="th">Usuário</th>
+                <th className="th">Ação</th>
+                <th className="th">Comando</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {commands.isLoading && (
+                <tr>
+                  <td className="td" colSpan={5}>
+                    <Spinner className="h-5 w-5 text-brand-600" />
+                  </td>
+                </tr>
+              )}
+              {commands.data?.items.map((c) => (
+                <tr key={c.id}>
+                  <td className="td whitespace-nowrap">{fmt(c.event_time)}</td>
+                  <td className="td">
+                    <span className="font-mono text-xs">{c.nasipaddress}</span>
+                    {c.nas_name && (
+                      <div className="text-xs text-slate-400 dark:text-slate-500">{c.nas_name}</div>
+                    )}
+                  </td>
+                  <td className="td font-medium">{c.username || "—"}</td>
+                  <td className="td text-xs">{c.action || "—"}</td>
+                  <td className="td">
+                    <code className="text-xs">{c.command || "—"}</code>
+                  </td>
+                </tr>
+              ))}
+              {commands.data?.items.length === 0 && (
+                <tr>
+                  <td className="td text-slate-400 dark:text-slate-500" colSpan={5}>
+                    Nenhum comando registrado. Os equipamentos precisam enviar o comando via
+                    Accounting (ver docs/device-config).
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          {commands.data && (
+            <Pagination
+              page={page}
+              pageSize={commands.data.page_size}
+              total={commands.data.total}
+              onPage={setPage}
+            />
+          )}
+        </Card>
+      ) : (
         <Card className="overflow-x-auto p-0">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-800/50">
@@ -147,11 +195,13 @@ export default function AccountingPage() {
                   <td className="td font-medium">{s.username}</td>
                   <td className="td">
                     <span className="font-mono text-xs">{s.nasipaddress}</span>
-                    {s.nas_name && <div className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{s.nas_name}</div>}
+                    {s.nas_name && (
+                      <div className="text-xs text-slate-400 dark:text-slate-500">{s.nas_name}</div>
+                    )}
                   </td>
-                  <td className="td">{fmtDate(s.acctstarttime)}</td>
-                  <td className="td">
-                    {s.active ? <Badge tone="green">ativa</Badge> : fmtDate(s.acctstoptime)}
+                  <td className="td whitespace-nowrap">{fmt(s.acctstarttime)}</td>
+                  <td className="td whitespace-nowrap">
+                    {s.active ? <Badge tone="green">ativa</Badge> : fmt(s.acctstoptime)}
                   </td>
                   <td className="td font-mono text-xs">{fmtDuration(s.acctsessiontime)}</td>
                   <td className="td text-xs">
@@ -163,7 +213,7 @@ export default function AccountingPage() {
               ))}
               {sessions.data?.items.length === 0 && (
                 <tr>
-                  <td className="td text-slate-400 dark:text-slate-500 dark:text-slate-400" colSpan={8}>
+                  <td className="td text-slate-400 dark:text-slate-500" colSpan={8}>
                     Sem sessões para o filtro.
                   </td>
                 </tr>
@@ -175,48 +225,6 @@ export default function AccountingPage() {
               page={page}
               pageSize={sessions.data.page_size}
               total={sessions.data.total}
-              onPage={setPage}
-            />
-          )}
-        </Card>
-      ) : (
-        <Card className="overflow-x-auto p-0">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-            <thead className="bg-slate-50 dark:bg-slate-800/50">
-              <tr>
-                <th className="th">Data</th>
-                <th className="th">Usuário</th>
-                <th className="th">Resultado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {events.isLoading && (
-                <tr>
-                  <td className="td" colSpan={3}>
-                    <Spinner className="h-5 w-5 text-brand-600" />
-                  </td>
-                </tr>
-              )}
-              {events.data?.items.map((e) => (
-                <tr key={e.id}>
-                  <td className="td">{fmtDate(e.authdate)}</td>
-                  <td className="td font-medium">{e.username || "—"}</td>
-                  <td className="td">
-                    {e.accepted ? (
-                      <Badge tone="green">{e.reply || "Access-Accept"}</Badge>
-                    ) : (
-                      <Badge tone="red">{e.reply || "Access-Reject"}</Badge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {events.data && (
-            <Pagination
-              page={page}
-              pageSize={events.data.page_size}
-              total={events.data.total}
               onPage={setPage}
             />
           )}

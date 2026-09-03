@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
 
 from app.models.system_user import SystemRole
+from app.schemas.common import UtcDatetime
 
 
 class LoginIn(BaseModel):
@@ -19,7 +18,8 @@ class MeOut(BaseModel):
     full_name: str
     role: SystemRole
     is_active: bool
-    last_login_at: datetime | None
+    timezone: str
+    last_login_at: UtcDatetime | None
 
 
 class SessionOut(BaseModel):

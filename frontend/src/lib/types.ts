@@ -101,9 +101,30 @@ export interface SystemUser {
   full_name: string;
   role: "superadmin" | "admin" | "operator" | "auditor";
   is_active: boolean;
+  timezone: string;
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface AuthEvent {
+  id: number;
+  username: string;
+  reply: string;
+  authdate: string;
+  accepted: boolean;
+}
+
+export interface CommandEvent {
+  id: number;
+  event_time: string;
+  nasipaddress: string;
+  nas_name: string | null;
+  username: string;
+  callingstationid: string;
+  action: string;
+  command: string;
+  acctsessionid: string;
 }
 
 export interface Session {
