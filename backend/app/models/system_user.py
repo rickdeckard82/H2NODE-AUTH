@@ -29,10 +29,16 @@ class SystemUser(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Fuso IANA para exibir datas no painel (conversão só na apresentação).
     timezone: Mapped[str] = mapped_column(String(64), default="America/Sao_Paulo")
+    # Fernet. NULL => 2FA não configurado. `mfa_enabled=False` com secret != NULL
+    # é um setup pendente de confirmação (ver /auth/mfa/enable).
     mfa_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Nº de bloqueios consecutivos já aplicados — cresce a duração do próximo
+    # (backoff exponencial); zera no primeiro login bem-sucedido.
+    lockout_strikes: Mapped[int] = mapped_column(Integer, default=0)
 
     @property
     def has_password(self) -> bool:

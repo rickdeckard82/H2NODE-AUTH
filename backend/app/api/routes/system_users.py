@@ -109,6 +109,25 @@ def resend_invite(
     return Message(detail=f"convite reenviado para {user.email}")
 
 
+@router.post("/{user_id}/reset-mfa", response_model=Message)
+def reset_mfa(
+    user_id: int, request: Request,
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_superadmin),
+) -> Message:
+    """Recovery: desativa o 2FA de outro utilizador (perda do dispositivo TOTP)."""
+    user = db.get(SystemUser, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
+    if not user.mfa_enabled:
+        raise HTTPException(status.HTTP_409_CONFLICT, "2FA não está ativo para este utilizador")
+    user.mfa_enabled = False
+    user.mfa_secret = None
+    audit.record(db, action="reset_mfa", entity_type="system_user", entity_id=user.id,
+                 actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
+    db.commit()
+    return Message(detail=f"2FA de {user.username} foi desativado")
+
+
 @router.patch("/{user_id}", response_model=SystemUserOut)
 def update_user(
     user_id: int, body: SystemUserUpdate, request: Request,

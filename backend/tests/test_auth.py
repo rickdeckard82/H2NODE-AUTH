@@ -50,3 +50,18 @@ def test_login_unknown_user_is_401_not_429(client):
     for _ in range(6):
         r = client.post("/api/auth/login", json={"username": "ghost", "password": "whatever12345"})
         assert r.status_code == 401
+
+
+def test_hsts_follows_cookie_secure(client):
+    import app.main as main_module
+
+    # testes rodam com COOKIE_SECURE=false (ver conftest) — sem HSTS
+    r = client.get("/api/health")
+    assert "strict-transport-security" not in {k.lower() for k in r.headers}
+
+    main_module.settings.cookie_secure = True
+    try:
+        r = client.get("/api/health")
+        assert r.headers["strict-transport-security"] == "max-age=63072000; includeSubDomains"
+    finally:
+        main_module.settings.cookie_secure = False

@@ -13,13 +13,20 @@ Só funciona em MySQL/MariaDB. Não inclui os segredos do `.env`
 from __future__ import annotations
 
 import datetime as _dt
+import struct
 from collections.abc import Iterator
 
 import pymysql.cursors
 from sqlalchemy.engine import Engine
 
+from app.core.crypto import decrypt, encrypt
+
 # Primeira linha do arquivo — usada para validar o upload na restauração.
 MARKER = "-- Pulse RADIUS backup v1"
+
+# Cabeçalho do formato cifrado (ver encrypt_stream/decrypt_to_text). Nunca
+# colide com MARKER: dumps em claro sempre começam com "--".
+ENC_MAGIC = b"PULSEENC1\n"
 
 # Separador de instruções. Os literais gerados pelo pymysql nunca contêm
 # quebra de linha crua (\n vira \\n), então este sentinela só aparece nos
@@ -173,3 +180,43 @@ def restore_sql(engine: Engine, sql_text: str, *, current_version: str | None = 
             f"em {current_version}. Rode as migrações (alembic upgrade head) após restaurar."
         )
     return result
+
+
+def encrypt_stream(chunks: Iterator[str]) -> Iterator[bytes]:
+    """Cifra o dump em blocos com a FERNET_KEY do servidor (streaming, sem
+    carregar o arquivo inteiro em memória). Formato: ENC_MAGIC + repetição de
+    (uint32 big-endian com o tamanho do token, token Fernet)."""
+    yield ENC_MAGIC
+    for chunk in chunks:
+        if not chunk:
+            continue
+        token = encrypt(chunk).encode("ascii")
+        yield struct.pack(">I", len(token)) + token
+
+
+def is_encrypted(data: bytes) -> bool:
+    return data.startswith(ENC_MAGIC)
+
+
+def decrypt_to_text(data: bytes) -> str:
+    if not data.startswith(ENC_MAGIC):
+        raise BackupError("arquivo não está no formato cifrado esperado")
+    buf = data[len(ENC_MAGIC):]
+    parts: list[str] = []
+    pos = 0
+    while pos < len(buf):
+        if pos + 4 > len(buf):
+            raise BackupError("backup cifrado corrompido (cabeçalho de bloco incompleto)")
+        (length,) = struct.unpack(">I", buf[pos:pos + 4])
+        pos += 4
+        token = buf[pos:pos + length]
+        if len(token) != length:
+            raise BackupError("backup cifrado corrompido (bloco truncado)")
+        pos += length
+        try:
+            parts.append(decrypt(token.decode("ascii")))
+        except Exception as exc:  # noqa: BLE001 - Fernet levanta InvalidToken/etc.
+            raise BackupError(
+                "não foi possível decifrar o backup — FERNET_KEY diferente da usada no export?"
+            ) from exc
+    return "".join(parts)

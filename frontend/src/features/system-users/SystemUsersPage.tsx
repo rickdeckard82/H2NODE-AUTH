@@ -103,6 +103,15 @@ export default function SystemUsersPage() {
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao reenviar convite"),
   });
 
+  const resetMfa = useMutation({
+    mutationFn: (u: SystemUser) => api.post<{ detail: string }>(`/system-users/${u.id}/reset-mfa`),
+    onSuccess: (r) => {
+      toast("ok", r.detail);
+      invalidate();
+    },
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao resetar 2FA"),
+  });
+
   return (
     <div>
       <PageHeader
@@ -159,6 +168,7 @@ export default function SystemUsersPage() {
                   <div className="flex flex-wrap gap-1">
                     {u.is_active ? <Badge tone="green">ativo</Badge> : <Badge tone="red">inativo</Badge>}
                     {!u.has_password && <Badge tone="amber">convite pendente</Badge>}
+                    {u.mfa_enabled && <Badge tone="blue">2FA</Badge>}
                   </div>
                 </td>
                 <td className="td">{fmtDate(u.last_login_at)}</td>
@@ -188,6 +198,17 @@ export default function SystemUsersPage() {
                         onClick={() => resendInvite.mutate(u)}
                       >
                         Reenviar convite
+                      </button>
+                    )}
+                    {u.mfa_enabled && u.id !== user?.id && (
+                      <button
+                        className="text-amber-600 hover:underline dark:text-amber-400"
+                        onClick={() => {
+                          if (confirm(`Resetar o 2FA de ${u.username}? Ele(a) terá que configurar de novo.`))
+                            resetMfa.mutate(u);
+                        }}
+                      >
+                        Resetar 2FA
                       </button>
                     )}
                     {u.id !== user?.id && (

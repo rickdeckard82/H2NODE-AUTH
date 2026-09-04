@@ -11,7 +11,7 @@ version = "0.1.0"
 description = "API do painel Pulse RADIUS (AAA com FreeRADIUS + MySQL)"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi==0.118.0",
+    "fastapi==0.141.1",
     "uvicorn[standard]==0.34.0",
     "gunicorn==23.0.0",
     "sqlalchemy==2.0.36",
@@ -19,14 +19,15 @@ dependencies = [
     "alembic==1.14.0",
     "pydantic==2.10.4",
     "pydantic-settings==2.7.0",
-    "python-multipart==0.0.20",
-    "pyjwt==2.10.1",
+    "python-multipart==0.0.32",
+    "pyjwt==2.13.0",
     "argon2-cffi==23.1.0",
-    "cryptography==44.0.1",
+    "cryptography==50.0.1",
+    "pyotp==2.10.0",
     "structlog==24.4.0",
     "slowapi==0.1.9",
     "redis==5.2.1",
-    "prometheus-fastapi-instrumentator==7.0.0",
+    "prometheus-fastapi-instrumentator==8.1.0",
     "email-validator==2.2.0",
 ]
 

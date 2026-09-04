@@ -4,6 +4,7 @@ import { AppFooter } from "../components/AppFooter";
 import { ChangePasswordModal } from "../components/ChangePasswordModal";
 import { ICONS, type IconName } from "../components/icons";
 import { Logo } from "../components/Logo";
+import { TwoFactorModal } from "../components/TwoFactorModal";
 import { Button } from "../components/ui";
 import { useAuth, type Role } from "../lib/auth";
 
@@ -78,6 +79,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [changePassword, setChangePassword] = useState(false);
+  const [twoFactor, setTwoFactor] = useState(false);
+  const needsMfaNudge = !!user && (user.role === "superadmin" || user.role === "admin") && !user.mfa_enabled;
 
   const canSee = (roles?: Role[]) => !roles || can(...roles);
 
@@ -202,6 +205,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 >
                   Alterar senha
                 </button>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setTwoFactor(true);
+                  }}
+                >
+                  {user?.mfa_enabled ? "2FA (ativo)" : "Ativar 2FA"}
+                </button>
               </div>
             )}
             <Button variant="ghost" onClick={doLogout}>
@@ -209,7 +222,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
           <ChangePasswordModal open={changePassword} onClose={() => setChangePassword(false)} />
+          <TwoFactorModal open={twoFactor} onClose={() => setTwoFactor(false)} />
         </header>
+        {needsMfaNudge && (
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+            Sua conta tem privilégios de {user?.role} e ainda não tem 2FA ativo.{" "}
+            <button
+              type="button"
+              className="font-semibold underline underline-offset-2"
+              onClick={() => setTwoFactor(true)}
+            >
+              Ativar agora
+            </button>
+          </div>
+        )}
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>

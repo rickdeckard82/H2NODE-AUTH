@@ -19,13 +19,27 @@ export interface Me {
   role: Role;
   is_active: boolean;
   timezone: string;
+  mfa_enabled: boolean;
   last_login_at: string | null;
+}
+
+export interface LoginResult {
+  mfaRequired: boolean;
+  mfaToken?: string;
+}
+
+interface SessionResponse {
+  user: Me | null;
+  csrf_token: string | null;
+  mfa_required: boolean;
+  mfa_token: string | null;
 }
 
 interface AuthCtx {
   user: Me | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  verifyMfa: (mfaToken: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   can: (...roles: Role[]) => boolean;
@@ -47,8 +61,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback(async (username: string, password: string) => {
-    const res = await api.post<{ user: Me }>("/auth/login", { username, password });
+  const login = useCallback(async (username: string, password: string): Promise<LoginResult> => {
+    const res = await api.post<SessionResponse>("/auth/login", { username, password });
+    if (res.mfa_required) return { mfaRequired: true, mfaToken: res.mfa_token ?? undefined };
+    setUser(res.user);
+    return { mfaRequired: false };
+  }, []);
+
+  const verifyMfa = useCallback(async (mfaToken: string, code: string) => {
+    const res = await api.post<SessionResponse>("/auth/mfa/verify", {
+      mfa_token: mfaToken,
+      code,
+    });
     setUser(res.user);
   }, []);
 
@@ -73,8 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, refresh, can }),
-    [user, loading, login, logout, refresh, can],
+    () => ({ user, loading, login, verifyMfa, logout, refresh, can }),
+    [user, loading, login, verifyMfa, logout, refresh, can],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

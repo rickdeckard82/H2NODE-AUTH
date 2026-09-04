@@ -219,25 +219,49 @@ services:
       - frontend
       - backend
 
-  # ─────────── Backup do MySQL (somente com: --profile backup) ────────────
+  # ─────────── Backup automático do MySQL (ativo por padrão) ────────────
+  # mysqldump periódico, cifrado com BACKUP_ENCRYPTION_KEY (AES-256 via openssl)
+  # sempre que essa variável estiver definida — o dump contém hashes de senha e
+  # os shared secrets RADIUS em claro, então cifrar é o padrão recomendado.
+  # Restaurar um .sql.enc manualmente:
+  #   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in x.sql.enc -out x.sql -pass env:BACKUP_ENCRYPTION_KEY
+  # Para desligar (ex.: dev), suba com: docker compose up -d --scale db-backup=0
   db-backup:
     image: mysql:8.4
     restart: unless-stopped
-    profiles: ["backup"]
     environment:
       MYSQL_PWD: ${MYSQL_ROOT_PASSWORD:?}
       BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
       BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
     entrypoint:
       - sh
       - -c
       - |
+        if [ -z "$$BACKUP_ENCRYPTION_KEY" ]; then
+          echo "[db-backup] AVISO: BACKUP_ENCRYPTION_KEY vazio — dumps ficarão em texto claro (senhas + segredos RADIUS). Defina BACKUP_ENCRYPTION_KEY no .env (openssl rand -base64 32).";
+        fi
         echo "[db-backup] intervalo=$${BACKUP_INTERVAL_SECONDS}s manter=$${BACKUP_KEEP}";
         while true; do
           ts=$$(date +%Y%m%d-%H%M%S);
-          mysqldump -h db -u root --single-transaction --routines --events radius \
-            > /backups/radius-$${ts}.sql && echo "[db-backup] radius-$${ts}.sql ok" || echo "[db-backup] FALHA";
-          ls -1t /backups/*.sql 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f;
+          if [ -n "$$BACKUP_ENCRYPTION_KEY" ]; then
+            out="/backups/radius-$${ts}.sql.enc";
+            if mysqldump -h db -u root --single-transaction --routines --events radius \
+                 | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+                     -pass env:BACKUP_ENCRYPTION_KEY -out "$$out"; then
+              echo "[db-backup] $${out} ok (cifrado)";
+            else
+              echo "[db-backup] FALHA"; rm -f "$$out";
+            fi
+          else
+            out="/backups/radius-$${ts}.sql";
+            if mysqldump -h db -u root --single-transaction --routines --events radius > "$$out"; then
+              echo "[db-backup] $${out} ok (SEM cifra)";
+            else
+              echo "[db-backup] FALHA"; rm -f "$$out";
+            fi
+          fi
+          ls -1t /backups/*.sql /backups/*.sql.enc 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f;
           sleep "$${BACKUP_INTERVAL_SECONDS}";
         done
     volumes:

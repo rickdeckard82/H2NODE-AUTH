@@ -14,6 +14,7 @@ interface RestoreResult {
 export default function BackupPage() {
   const toast = useToast();
   const [includeAccounting, setIncludeAccounting] = useState(true);
+  const [encryptExport, setEncryptExport] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [confirm, setConfirm] = useState("");
   const [result, setResult] = useState<RestoreResult | null>(null);
@@ -21,14 +22,17 @@ export default function BackupPage() {
 
   const download = useMutation({
     mutationFn: async () => {
-      const blob = await api.blob("/backup/export", { include_accounting: includeAccounting });
+      const blob = await api.blob("/backup/export", {
+        include_accounting: includeAccounting,
+        encrypted: encryptExport,
+      });
       const d = new Date();
       const p = (n: number) => String(n).padStart(2, "0");
       const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `pulse-radius-backup-${stamp}.sql`;
+      a.download = `pulse-radius-backup-${stamp}.sql${encryptExport ? ".enc" : ""}`;
       a.click();
       URL.revokeObjectURL(url);
     },
@@ -77,9 +81,18 @@ export default function BackupPage() {
           />
           Incluir histórico de accounting (<code>radacct</code> / <code>radpostauth</code>) — pode ser grande
         </label>
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={encryptExport}
+            onChange={(e) => setEncryptExport(e.target.checked)}
+          />
+          Cifrar o arquivo com o <code>FERNET_KEY</code> do servidor (recomendado — o dump contém
+          senhas e segredos RADIUS em claro)
+        </label>
         <div className="mt-4">
           <Button onClick={() => download.mutate()} loading={download.isPending}>
-            Baixar backup (.sql)
+            Baixar backup {encryptExport ? "(.sql.enc)" : "(.sql)"}
           </Button>
         </div>
       </Card>
@@ -101,11 +114,11 @@ export default function BackupPage() {
         </div>
 
         <div className="mt-3 space-y-3">
-          <Field label="Arquivo de backup (.sql)">
+          <Field label="Arquivo de backup (.sql ou .sql.enc)">
             <input
               ref={fileRef}
               type="file"
-              accept=".sql,application/sql,text/plain"
+              accept=".sql,.enc,application/sql,application/octet-stream,text/plain"
               className="input"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />

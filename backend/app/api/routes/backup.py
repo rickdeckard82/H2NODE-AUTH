@@ -32,6 +32,7 @@ def _schema_version(db: Session) -> str | None:
 def export_backup(
     request: Request,
     include_accounting: bool = True,
+    encrypted: bool = True,
     db: Session = Depends(get_db),
     actor: SystemUser = Depends(require_superadmin),
 ) -> StreamingResponse:
@@ -42,18 +43,28 @@ def export_backup(
     audit.record(
         db, action="export", entity_type="backup",
         actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
-        after={"include_accounting": include_accounting, "schema_version": version},
+        after={"include_accounting": include_accounting, "schema_version": version,
+               "encrypted": encrypted},
     )
     db.commit()
 
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-    filename = f"pulse-radius-backup-{stamp}.sql"
-    stream = backup.dump_sql(engine, include_accounting=include_accounting, schema_version=version)
-    return StreamingResponse(
-        stream,
-        media_type="application/sql",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+    dump = backup.dump_sql(engine, include_accounting=include_accounting, schema_version=version)
+    if encrypted:
+        filename = f"pulse-radius-backup-{stamp}.sql.enc"
+        stream: StreamingResponse = StreamingResponse(
+            backup.encrypt_stream(dump),
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    else:
+        filename = f"pulse-radius-backup-{stamp}.sql"
+        stream = StreamingResponse(
+            dump,
+            media_type="application/sql",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    return stream
 
 
 @router.post("/import")
@@ -72,10 +83,16 @@ async def import_backup(
     raw = await file.read()
     if len(raw) > _MAX_UPLOAD:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "arquivo maior que 200 MB")
-    try:
-        sql_text = raw.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "arquivo não é um backup válido") from exc
+    if backup.is_encrypted(raw):
+        try:
+            sql_text = backup.decrypt_to_text(raw)
+        except backup.BackupError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    else:
+        try:
+            sql_text = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "arquivo não é um backup válido") from exc
 
     current = _schema_version(db)
     # Libera a conexão/transação desta sessão ANTES do DDL: o DROP TABLE bloqueia

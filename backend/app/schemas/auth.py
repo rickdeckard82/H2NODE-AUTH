@@ -35,9 +35,33 @@ class MeOut(BaseModel):
     role: SystemRole
     is_active: bool
     timezone: str
+    mfa_enabled: bool
     last_login_at: UtcDatetime | None
 
 
 class SessionOut(BaseModel):
-    user: MeOut
-    csrf_token: str
+    # Login concluído.
+    user: MeOut | None = None
+    csrf_token: str | None = None
+    # 2ª etapa exigida: enviar `mfa_token` + código para /auth/mfa/verify.
+    mfa_required: bool = False
+    mfa_token: str | None = None
+
+
+class MfaVerifyIn(BaseModel):
+    mfa_token: str
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class MfaSetupOut(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class MfaCodeIn(BaseModel):
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class MfaDisableIn(BaseModel):
+    password: str
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")

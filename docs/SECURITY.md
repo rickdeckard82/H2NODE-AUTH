@@ -9,9 +9,16 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
 - **Sessão**: JWT access (15 min) + refresh (7 d) com **rotação e detecção de reuso**
   (um refresh token reutilizado revoga toda a árvore de sessões do usuário).
   Cookies `HttpOnly` `Secure` `SameSite=Strict`.
-- **Login**: rate-limit por IP (10/min) **+ bloqueio da conta por 15 min após 5
-  tentativas malsucedidas**; verificação de senha em tempo constante (hash
-  descartável) para não vazar a existência de contas por timing.
+- **Login**: rate-limit por IP (10/min) **+ bloqueio da conta com backoff
+  exponencial** após 5 tentativas malsucedidas (15min, 30min, 60min... até um
+  teto de 24h — cresce a cada nova ofensa, zera no primeiro login correto);
+  verificação de senha em tempo constante (hash descartável) para não vazar a
+  existência de contas por timing. `POST /auth/invite/accept`,
+  `POST /auth/mfa/verify` e `PATCH /auth/me/password` também têm rate-limit.
+- **2FA (TOTP)**: opcional e self-service para qualquer utilizador do painel
+  (`POST /auth/mfa/setup|enable|disable`); o painel avisa `admin`/`superadmin`
+  sem 2FA ativo. Recovery: um `superadmin` pode resetar o 2FA de outro
+  utilizador (`POST /system-users/{id}/reset-mfa`) se ele perder o dispositivo.
 - **CSRF**: double-submit (`X-CSRF-Token`) em todas as rotas de escrita, além de
   `SameSite=Strict`.
 - **RBAC**: `superadmin > admin > operator > auditor`, checado contra o banco a
@@ -29,8 +36,17 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
   sem porta publicada (só acessível via `frontend`).
 - **Containers**: backend roda como usuário não-root; imagem do frontend com
   `npm ci` (build reprodutível a partir do lockfile).
-- **Dependências**: `npm audit` = 0 vulnerabilidades; `react-router` 7, FastAPI
-  0.118 (Starlette com patch de upload), `cryptography` 44.0.1.
+- **Dependências**: `npm audit` = 0 vulnerabilidades; `pip-audit` = 0
+  vulnerabilidades conhecidas (`cryptography` 50.x, `pyjwt` 2.13, `python-multipart`
+  0.0.32, FastAPI 0.141 / Starlette 1.x). Reaudite antes de cada release — versões
+  fixadas envelhecem.
+- **Backups cifrados**: o `db-backup` automático cifra cada dump com
+  `BACKUP_ENCRYPTION_KEY` (AES-256, `openssl enc`) quando ela está definida
+  (`make init` já gera). O export manual do painel (`GET /backup/export`) cifra
+  com a `FERNET_KEY` do backend por padrão (pode ser desligado na UI).
+  `./scripts/restore_drill.sh` (ou `make restore-drill`) prova de verdade que o
+  último backup restaura — sobe um MySQL efêmero, aplica o dump e valida com
+  queries de sanidade; agende no cron.
 - **Rate-limit compartilhado**: com `REDIS_URL` (padrão no compose), o limite de
   login é único entre todos os workers e sobrevive a reinícios.
 - **Poda de tokens**: refresh tokens expirados/revogados são limpos no login.
@@ -57,9 +73,21 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
    `FERNET_KEY` e `JWT_SECRET` em local seguro (sem `FERNET_KEY` os segredos
    cifrados são irrecuperáveis). Rotacione o primeiro admin após o bootstrap.
 4. **Backups do MySQL.** Os dumps contêm hashes de senha e os *shared secrets*
-   RADIUS em claro (coluna `nas.secret`) — cifre os backups em repouso.
+   RADIUS em claro (coluna `nas.secret`). O `db-backup` automático já cifra
+   sozinho se `BACKUP_ENCRYPTION_KEY` estiver definida (item resolvido pelo
+   repositório) — garanta que ela está no `.env` de produção.
 5. **TLS.** Certificado válido no proxy (Let's Encrypt no NPM); nunca sirva o
-   painel em HTTP puro fora de `localhost`.
+   painel em HTTP puro fora de `localhost`. Confirme que a borda manda
+   `Strict-Transport-Security` — nem o `backend` nem o `frontend` deste stack
+   enviam HSTS por conta própria fora do profile `tls-proxy`.
+6. **SSH e firewall do host.** `PasswordAuthentication no` + `PermitRootLogin no`
+   no `sshd_config`; `ufw`/`nftables` liberando só as portas da tabela em
+   `docs/deploy-behind-npm.md`. Isso é do sistema operacional, fora do repo —
+   comandos prontos em `docs/host-hardening.md`.
+7. **Disco cifrado em repouso.** O MySQL deste stack não faz encryption-at-rest
+   (sem keyring plugin/TDE); se precisar disso, cifre o disco do host
+   (LUKS/dm-crypt) ou use um disco já cifrado do provedor de nuvem — ver
+   `docs/host-hardening.md`.
 
 ## Itens que continuam em aberto
 

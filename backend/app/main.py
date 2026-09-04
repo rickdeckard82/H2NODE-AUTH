@@ -67,6 +67,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault(
             "Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"
         )
+        # COOKIE_SECURE=true é o próprio operador afirmando que o tráfego chega
+        # via HTTPS (mesmo com TLS terminado num proxy externo) — reforça isso
+        # ao navegador mesmo sem o profile tls-proxy, que já manda HSTS por si.
+        if settings.cookie_secure:
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         return response
 
 

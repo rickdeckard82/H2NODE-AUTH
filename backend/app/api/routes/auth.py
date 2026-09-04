@@ -7,11 +7,13 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import client_ip, enforce_csrf, get_current_user
 from app.core.config import settings
+from app.core.crypto import decrypt, encrypt
 from app.core.db import get_db
 from app.core.ratelimit import limiter
 from app.core.security import (
     DUMMY_PASSWORD_HASH,
     create_access_token,
+    create_mfa_token,
     create_refresh_token,
     decode_token,
     hash_password,
@@ -27,16 +29,26 @@ from app.schemas.auth import (
     InviteOut,
     LoginIn,
     MeOut,
+    MfaCodeIn,
+    MfaDisableIn,
+    MfaSetupOut,
+    MfaVerifyIn,
     SessionOut,
 )
 from app.schemas.common import Message
-from app.services import audit, invites
+from app.services import audit, invites, twofactor
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _MAX_FAILED_LOGINS = 5
-_LOCKOUT_MINUTES = 15
+# Backoff exponencial: 15min, 30min, 60min, 2h, 4h... até o teto de 24h.
+_LOCKOUT_BASE_MINUTES = 15
+_LOCKOUT_CAP_MINUTES = 24 * 60
 _TOKEN_GC_KEEP_DAYS = 1  # remove tokens expirados/revogados há mais de 1 dia
+
+
+def _lockout_minutes(strikes: int) -> int:
+    return min(_LOCKOUT_BASE_MINUTES * (2 ** max(strikes - 1, 0)), _LOCKOUT_CAP_MINUTES)
 
 
 def _gc_refresh_tokens(db: Session) -> None:
@@ -100,6 +112,25 @@ def _issue_session(db: Session, resp: Response, user: SystemUser, request: Reque
     return csrf
 
 
+def _complete_login(
+    db: Session, response: Response, user: SystemUser, request: Request
+) -> SessionOut:
+    """Fecha o login (sem 2FA pendente): reseta contadores, abre sessão, audita."""
+    user.failed_login_count = 0
+    user.lockout_strikes = 0
+    user.locked_until = None
+    user.last_login_at = utcnow()
+    _gc_refresh_tokens(db)
+    csrf = _issue_session(db, response, user, request)
+    audit.record(
+        db, action="login", entity_type="system_user", entity_id=user.id,
+        actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    return SessionOut(user=MeOut.model_validate(user), csrf_token=csrf)
+
+
 @router.post("/login", response_model=SessionOut)
 @limiter.limit("10/minute")
 def login(
@@ -126,7 +157,10 @@ def login(
         if user is not None:
             user.failed_login_count += 1
             if user.failed_login_count >= _MAX_FAILED_LOGINS:
-                user.locked_until = utcnow() + timedelta(minutes=_LOCKOUT_MINUTES)
+                user.lockout_strikes += 1
+                user.locked_until = utcnow() + timedelta(
+                    minutes=_lockout_minutes(user.lockout_strikes)
+                )
                 user.failed_login_count = 0
             db.commit()
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "credenciais inválidas")
@@ -136,18 +170,30 @@ def login(
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(body.password)
 
-    user.failed_login_count = 0
-    user.locked_until = None
-    user.last_login_at = utcnow()
-    _gc_refresh_tokens(db)
-    csrf = _issue_session(db, response, user, request)
-    audit.record(
-        db, action="login", entity_type="system_user", entity_id=user.id,
-        actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
-        user_agent=request.headers.get("user-agent"),
-    )
-    db.commit()
-    return SessionOut(user=MeOut.model_validate(user), csrf_token=csrf)
+    if user.mfa_enabled:
+        db.commit()  # persiste o rehash de senha, se houve, antes de sair sem sessão
+        return SessionOut(mfa_required=True, mfa_token=create_mfa_token(str(user.id)))
+
+    return _complete_login(db, response, user, request)
+
+
+@router.post("/mfa/verify", response_model=SessionOut)
+@limiter.limit("10/minute")
+def verify_mfa(
+    body: MfaVerifyIn, request: Request, response: Response, db: Session = Depends(get_db)
+) -> SessionOut:
+    try:
+        payload = decode_token(body.mfa_token, expected_type="mfa")
+    except jwt.InvalidTokenError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "sessão de 2FA expirada") from exc
+
+    user = db.get(SystemUser, int(payload["sub"]))
+    if user is None or not user.is_active or not user.mfa_enabled or not user.mfa_secret:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "sessão de 2FA inválida")
+    if not twofactor.verify_code(decrypt(user.mfa_secret), body.code):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
+
+    return _complete_login(db, response, user, request)
 
 
 @router.post("/refresh", response_model=SessionOut)
@@ -205,6 +251,7 @@ def me(user: SystemUser = Depends(get_current_user)) -> MeOut:
 
 
 @router.patch("/me/password", response_model=Message, dependencies=[Depends(enforce_csrf)])
+@limiter.limit("10/minute")
 def change_my_password(
     body: ChangePasswordIn, request: Request,
     db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
@@ -220,8 +267,63 @@ def change_my_password(
     return Message(detail="senha alterada com sucesso")
 
 
+@router.get("/mfa/status", response_model=Message)
+def mfa_status(user: SystemUser = Depends(get_current_user)) -> Message:
+    return Message(detail="enabled" if user.mfa_enabled else "disabled")
+
+
+@router.post("/mfa/setup", response_model=MfaSetupOut, dependencies=[Depends(enforce_csrf)])
+def setup_mfa(
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user)
+) -> MfaSetupOut:
+    if user.mfa_enabled:
+        raise HTTPException(status.HTTP_409_CONFLICT, "2FA já está ativo — desative antes de reconfigurar")
+    secret = twofactor.generate_secret()
+    user.mfa_secret = encrypt(secret)  # pendente até /mfa/enable confirmar o código
+    db.commit()
+    return MfaSetupOut(secret=secret, otpauth_uri=twofactor.provisioning_uri(secret, username=user.username))
+
+
+@router.post("/mfa/enable", response_model=Message, dependencies=[Depends(enforce_csrf)])
+def enable_mfa(
+    body: MfaCodeIn, request: Request,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> Message:
+    if user.mfa_enabled:
+        raise HTTPException(status.HTTP_409_CONFLICT, "2FA já está ativo")
+    if not user.mfa_secret:
+        raise HTTPException(status.HTTP_409_CONFLICT, "inicie o setup em /auth/mfa/setup primeiro")
+    if not twofactor.verify_code(decrypt(user.mfa_secret), body.code):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
+    user.mfa_enabled = True
+    audit.record(db, action="enable_mfa", entity_type="system_user", entity_id=user.id,
+                 actor_id=user.id, actor_username=user.username, ip_address=client_ip(request))
+    db.commit()
+    return Message(detail="2FA ativado")
+
+
+@router.post("/mfa/disable", response_model=Message, dependencies=[Depends(enforce_csrf)])
+def disable_mfa(
+    body: MfaDisableIn, request: Request,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> Message:
+    if not user.mfa_enabled or not user.mfa_secret:
+        raise HTTPException(status.HTTP_409_CONFLICT, "2FA não está ativo")
+    if not user.password_hash or not verify_password(body.password, user.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "senha incorreta")
+    if not twofactor.verify_code(decrypt(user.mfa_secret), body.code):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
+    user.mfa_enabled = False
+    user.mfa_secret = None
+    audit.record(db, action="disable_mfa", entity_type="system_user", entity_id=user.id,
+                 actor_id=user.id, actor_username=user.username, ip_address=client_ip(request))
+    db.commit()
+    return Message(detail="2FA desativado")
+
+
 @router.get("/invite/{token}", response_model=InviteOut)
-def get_invite(token: str, db: Session = Depends(get_db)) -> InviteOut:
+@limiter.limit("20/minute")
+def get_invite(request: Request, token: str, db: Session = Depends(get_db)) -> InviteOut:
     invite = invites.resolve_invite(db, token)
     if invite is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
@@ -232,6 +334,7 @@ def get_invite(token: str, db: Session = Depends(get_db)) -> InviteOut:
 
 
 @router.post("/invite/accept", response_model=SessionOut)
+@limiter.limit("10/minute")
 def accept_invite(
     body: AcceptInviteIn, request: Request, response: Response, db: Session = Depends(get_db)
 ) -> SessionOut:

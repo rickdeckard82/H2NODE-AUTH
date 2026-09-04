@@ -47,6 +47,7 @@ class SystemUserOut(SystemUserBase):
 
     id: int
     has_password: bool
+    mfa_enabled: bool
     last_login_at: UtcDatetime | None
     created_at: UtcDatetime
     updated_at: UtcDatetime

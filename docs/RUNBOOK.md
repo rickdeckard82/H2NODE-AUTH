@@ -84,12 +84,38 @@ docker compose exec db sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single
 cat backup-YYYY-MM-DD.sql | docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" radius'
 ```
 
-Perfil `backup` (`docker compose --profile backup up -d`) sobe um sidecar que faz
-dump periódico no volume `db_backups`.
+O serviço `db-backup` sobe **por padrão** (não precisa de `--profile`) e faz dump
+periódico (`BACKUP_INTERVAL_SECONDS`, padrão 1 dia) no volume `db_backups`,
+mantendo os últimos `BACKUP_KEEP` (padrão 14). Se `BACKUP_ENCRYPTION_KEY` estiver
+definida no `.env` (gerada automaticamente por `make init`), cada dump sai cifrado
+(`AES-256-CBC` via `openssl`) como `radius-<timestamp>.sql.enc`; sem a chave, sai em
+texto claro e o log do serviço avisa a cada rodada. Para desligar em dev:
+`docker compose up -d --scale db-backup=0`.
+
+Restaurar um `.sql.enc` manualmente:
+
+```bash
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+  -in radius-YYYYMMDD-HHMMSS.sql.enc -out radius.sql -pass env:BACKUP_ENCRYPTION_KEY
+```
+
+**Restore drill** (prova de verdade que o backup restaura, não só que ele existe):
+`make restore-drill` (ou `./scripts/restore_drill.sh`) sobe um MySQL efêmero e
+isolado, aplica o backup mais recente do volume `db_backups`, roda queries de
+sanidade (contagem de tabelas, `app_system_user`, `app_manufacturer`, `radcheck`,
+`nas`) e sai com código de erro se algo falhar — nunca toca no `db` real. Agende
+isso num cron do host (ex.: mensal) e alerte se o exit code for != 0:
+
+```cron
+0 4 1 * * cd /opt/pulse-radius && ./scripts/restore_drill.sh >> /var/log/pulse-radius-restore-drill.log 2>&1
+```
 
 Itens críticos a guardar fora do host: os dumps **e** o `.env` (contém `FERNET_KEY` —
-sem ela os segredos cifrados são irrecuperáveis) e `JWT_SECRET`. O backup do painel
-**não** inclui esses segredos.
+sem ela os segredos cifrados são irrecuperáveis — e `BACKUP_ENCRYPTION_KEY`, sem a
+qual os `.sql.enc` são irrecuperáveis) e `JWT_SECRET`. O backup do painel (via UI)
+também pode ser cifrado (opção marcada por padrão) com a mesma `FERNET_KEY` do
+backend — mas por ser gerado sob demanda pela UI, **não substitui** o `db-backup`
+automático.
 
 ## Relatórios (Authentication / Authorization / Accounting)
 
@@ -163,9 +189,28 @@ docker compose exec tacacs sh -c \
 
 ## Produção — checklist
 
-- [ ] `.env` com senhas fortes e únicas; `COOKIE_SECURE=true`; `PUBLIC_HOST` real.
+### Aplicação (coberto pelo repositório)
+
+- [ ] `.env` com senhas fortes e únicas (`make init` gera); `COOKIE_SECURE=true`; `PUBLIC_HOST` real.
 - [ ] `FRONTEND_ORIGIN` = URL pública (https).
-- [ ] Certificado TLS real em `proxy/tls/server.{crt,key}`.
-- [ ] Backup automatizado do MySQL (cron/sidecar) + teste de restore.
-- [ ] Firewall: expor só 443 ao público; 1812/1813/udp restrito à rede de gerência.
+- [ ] `BACKUP_ENCRYPTION_KEY` definida (`make init` já gera) — sem ela o `db-backup` grava em texto claro.
+- [ ] `make restore-drill` agendado no cron do host e alertando em caso de falha (ver "Backup / restore" acima).
+- [ ] Ativar 2FA em toda conta `superadmin`/`admin` (menu do usuário → "Ativar 2FA"); o painel avisa quem ainda não ativou.
+- [ ] `pip-audit` / `npm audit` sem vulnerabilidades abertas antes de cada release (ver `pyproject.toml` / `package.json`).
+
+### Infraestrutura (fora do código — responsabilidade de quem opera o servidor)
+
+- [ ] Certificado TLS real na borda (Nginx Proxy Manager/Caddy com Let's Encrypt, ou
+      `proxy/tls/server.{crt,key}` reais se usar o profile `tls-proxy`); nunca sirva o
+      painel em HTTP puro fora de `localhost`. Com `COOKIE_SECURE=true` o backend já
+      manda `Strict-Transport-Security` sozinho; o profile `tls-proxy` também manda.
+- [ ] SSH do servidor: `PasswordAuthentication no`, `PermitRootLogin no`, só chave —
+      passo a passo em `docs/host-hardening.md`.
+- [ ] Firewall do host (`ufw`/`nftables`): expor só a porta do proxy (443 ou `WEB_PORT`
+      restrito ao IP do NPM) e `1812-1813/udp`/`49/tcp` restritos à rede de gerência dos
+      equipamentos — comandos prontos em `docs/host-hardening.md`.
+- [ ] Disco do host cifrado em repouso (LUKS/dm-crypt, ou já cifrado pelo provedor de
+      nuvem) — o MySQL deste stack não faz encryption-at-rest por si só; sem disco
+      cifrado, quem tiver acesso físico/aos discos lê `db_data` diretamente. Procedimento
+      em `docs/host-hardening.md`.
 - [ ] Monitorar `GET /api/metrics` e o `status` server do FreeRADIUS.

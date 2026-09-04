@@ -114,6 +114,7 @@ export interface SystemUser {
   is_active: boolean;
   timezone: string;
   has_password: boolean;
+  mfa_enabled: boolean;
   last_login_at: string | null;
   created_at: string;
   updated_at: string;

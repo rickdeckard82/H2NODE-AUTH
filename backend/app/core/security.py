@@ -69,6 +69,23 @@ def create_refresh_token(sub: str) -> tuple[str, str, datetime]:
     return token, jti, exp
 
 
+_MFA_TOKEN_TTL_MINUTES = 5
+
+
+def create_mfa_token(sub: str) -> str:
+    """Token curto emitido após validar usuário+senha quando o 2FA está ativo —
+    prova que a 1ª etapa passou, sem ainda abrir sessão (ver /auth/mfa/verify)."""
+    now = utcnow()
+    payload: dict[str, Any] = {
+        "sub": sub,
+        "type": "mfa",
+        "iat": now,
+        "exp": now + timedelta(minutes=_MFA_TOKEN_TTL_MINUTES),
+        "jti": uuid.uuid4().hex,
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
 def decode_token(token: str, expected_type: str) -> dict[str, Any]:
     payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     if payload.get("type") != expected_type:
