@@ -38,3 +38,21 @@ set system login user remote-radius class super-user
 O Junos não envia comandos por RADIUS accounting de forma padronizada. Se a sua
 versão suportar, mapeie o VSA correspondente para `Pulse-Command` no
 `radius/sites-available/default` (bloco `accounting`) — ver `docs/RUNBOOK.md`.
+
+## TACACS+ (alternativa ao RADIUS)
+
+No painel: grupo de equipamentos **Juniper** → *Protocolo AAA* = `tacacs` + *Chave
+TACACS+*. O equipamento herda (ou define a sua). Depois, no Junos:
+
+```
+set system tacplus-server 10.0.0.254 secret "<chave-cadastrada>"
+set system tacplus-server 10.0.0.254 source-address 10.0.0.1   ;# = mgmt_ip
+set system authentication-order [ tacplus password ]
+set system accounting events [ login change-log interactive-commands ]
+set system accounting destination tacplus
+```
+
+`priv-lvl` vem do perfil de privilégio; mapeie a classe local com
+`set system login user remote class super-user` (ou use `Juniper-Local-User-Name`
+nos AV pairs extra do perfil). Comandos executados vão para a tela
+**Authorization / Accounting**.

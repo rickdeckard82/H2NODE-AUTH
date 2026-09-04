@@ -11,6 +11,8 @@ volumes:
   db_data:
   radius_logs:
   db_backups:
+  tacacs_conf:
+  tacacs_logs:
 
 services:
   # ─────────────────────────── MySQL ───────────────────────────
@@ -80,6 +82,39 @@ services:
       retries: 3
       start_period: 25s
 
+  # ───────────────────────────── TACACS+ ──────────────────────────────
+  # tac_plus-ng com backend MySQL (MAVIS). Cobre Huawei / Juniper / Datacom
+  # que falam TACACS+ (o MikroTik não tem cliente TACACS+ e fica em RADIUS).
+  tacacs:
+    build:
+      context: .
+      dockerfile: tacacs/Dockerfile
+    restart: unless-stopped
+    environment:
+      SQL_HOST: db
+      SQL_PORT: "3306"
+      SQL_DB: ${MYSQL_DATABASE:-radius}
+      SQL_USER: ${MYSQL_RADIUS_USER:-radius_svc}
+      SQL_PASSWORD: ${MYSQL_RADIUS_PASSWORD:?set MYSQL_RADIUS_PASSWORD}
+    ports:
+      # TACACS_BIND: fixe no IP de gerência para não escutar em todas as interfaces.
+      - "${TACACS_BIND:-0.0.0.0}:49:49/tcp"
+    volumes:
+      - tacacs_conf:/etc/tacacs-shared
+      - tacacs_logs:/var/log/tac_plus-ng
+    networks:
+      - edge
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pidof tac_plus-ng >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
   # ──────────────── Redis (storage do rate-limit) ─────────────────
   redis:
     image: redis:7-alpine
@@ -123,14 +158,21 @@ services:
       BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-admin}
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?set BOOTSTRAP_ADMIN_PASSWORD}
+      # Arquivo de config do tac_plus-ng gerado pelo painel (volume compartilhado).
+      TACACS_HOSTS_PATH: /etc/tacacs-shared/pulse.cfg
     networks:
       - edge
       - internal
+    volumes:
+      - tacacs_conf:/etc/tacacs-shared
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # garante que o tacacs já ajustou as permissões do volume compartilhado
+      tacacs:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health').status==200 else 1)"]
       interval: 15s

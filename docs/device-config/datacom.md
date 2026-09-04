@@ -36,3 +36,18 @@ nada no FreeRADIUS precisa mudar além do dicionário.
 Se o DmOS enviar o comando executado num Accounting-Request, mapeie o atributo
 para `Pulse-Command` no `radius/sites-available/default` (bloco `accounting`) —
 confirme o nome com `freeradius -X`. Ver `docs/RUNBOOK.md`.
+
+## TACACS+ (alternativa ao RADIUS)
+
+No painel: grupo **Datacom** → *Protocolo AAA* = `tacacs` + *Chave TACACS+*. No
+DmOS:
+
+```
+tacacs-server host 10.0.0.254 key <chave-cadastrada>
+aaa authentication login default group tacacs local
+aaa authorization commands default group tacacs
+aaa accounting commands default start-stop group tacacs
+```
+
+O `priv-lvl` do perfil vira o nível de acesso; os comandos aparecem em
+**Authorization / Accounting** do painel.

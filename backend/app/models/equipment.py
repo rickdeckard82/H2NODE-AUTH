@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
-from app.models.manufacturer import Manufacturer
+from app.models.manufacturer import AaaProtocol, Manufacturer
 
 
 class EquipmentStatus(str, enum.Enum):
@@ -26,6 +26,12 @@ class Equipment(Base, TimestampMixin):
     shortname: Mapped[str] = mapped_column(String(32))
     # Fernet. NULL => herda o segredo do fabricante.
     radius_secret_enc: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # NULL => herda o protocolo do grupo (fabricante).
+    aaa_protocol: Mapped[AaaProtocol | None] = mapped_column(
+        Enum(AaaProtocol, native_enum=False, length=16), nullable=True
+    )
+    # Fernet. NULL => herda a chave TACACS+ do fabricante.
+    tacacs_key_enc: Mapped[str | None] = mapped_column(String(512), nullable=True)
     coa_port: Mapped[int] = mapped_column(Integer, default=3799)
     status: Mapped[EquipmentStatus] = mapped_column(
         Enum(EquipmentStatus, native_enum=False, length=16), default=EquipmentStatus.active

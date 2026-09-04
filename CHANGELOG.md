@@ -4,6 +4,25 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [0.4.0] — 2026-09-04
+
+### Adicionado
+
+- **Servidor TACACS+** (`tac_plus-ng`, serviço `tacacs`, porta `49/tcp`) ao lado
+  do RADIUS. Autenticação/autorização/accounting de usuário resolvidos em tempo de
+  request pelo **MAVIS** contra o mesmo MySQL (reusa `SSHA2-512-Password` e
+  `radius_svc`); equipamentos e perfis vão para um arquivo gerado pelo painel e o
+  daemon recarrega com `SIGHUP`.
+- **Protocolo por equipamento** — no grupo de equipamentos (padrão `radius`) e no
+  equipamento (em branco = herda): `radius` **ou** `tacacs`. **Chave TACACS+**
+  separada e herdável (cifrada Fernet), como o segredo RADIUS. MikroTik segue só
+  RADIUS (o RouterOS não tem cliente TACACS+); TACACS+ cobre Huawei/Juniper/Datacom.
+- **Perfil de privilégio** ganha `priv-lvl` (0–15) e AV pairs extra para TACACS+.
+- Accounting de comando do TACACS+ cai na tabela `cmd_acct` → aparece automático
+  nas telas **Authorization** e **Accounting**.
+- Migração `0008`; `docs/device-config/*` com trechos de config (Junos
+  `tacplus-server`, VRP `hwtacacs-server`, DmOS `tacacs-server`); firewall `49/tcp`.
+
 ## [0.3.0] — 2026-09-03
 
 ### Adicionado

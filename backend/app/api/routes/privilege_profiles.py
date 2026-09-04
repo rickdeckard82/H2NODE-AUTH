@@ -10,7 +10,7 @@ from app.schemas.privilege_profile import (
     PrivilegeProfileOut,
     PrivilegeProfileUpdate,
 )
-from app.services import audit, radius_sync
+from app.services import audit, radius_sync, tacacs_sync
 
 router = APIRouter(prefix="/privilege-profiles", tags=["privilege-profiles"])
 
@@ -24,6 +24,8 @@ def _to_out(p: PrivilegeProfile) -> PrivilegeProfileOut:
              "op": a.op, "value": a.value}
             for a in p.attrs
         ],
+        tacacs_priv_level=p.tacacs_priv_level,
+        tacacs_extra_avpairs=p.tacacs_extra_avpairs,
         created_at=p.created_at, updated_at=p.updated_at,
     )
 
@@ -56,7 +58,11 @@ def create_profile(
         raise HTTPException(status.HTTP_409_CONFLICT, "já existe perfil com esse nome")
     _validate_manufacturers(db, body.attrs)
 
-    profile = PrivilegeProfile(name=body.name, description=body.description)
+    profile = PrivilegeProfile(
+        name=body.name, description=body.description,
+        tacacs_priv_level=body.tacacs_priv_level,
+        tacacs_extra_avpairs=body.tacacs_extra_avpairs,
+    )
     profile.attrs = [
         PrivilegeProfileAttr(manufacturer_id=a.manufacturer_id, attribute=a.attribute,
                              op=a.op, value=a.value)
@@ -65,6 +71,7 @@ def create_profile(
     db.add(profile)
     db.flush()
     radius_sync.sync_profile_groupreply(db, profile)
+    tacacs_sync.regenerate(db)
     audit.record(db, action="create", entity_type="privilege_profile", entity_id=profile.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  after={"name": profile.name, "attrs": len(profile.attrs)})
@@ -92,6 +99,10 @@ def update_profile(
         profile.name = body.name
     if body.description is not None:
         profile.description = body.description
+    if body.tacacs_priv_level is not None:
+        profile.tacacs_priv_level = body.tacacs_priv_level
+    if body.tacacs_extra_avpairs is not None:
+        profile.tacacs_extra_avpairs = body.tacacs_extra_avpairs or None
     if body.attrs is not None:
         _validate_manufacturers(db, body.attrs)
         profile.attrs = [
@@ -104,6 +115,7 @@ def update_profile(
     if body.name and old_name != profile.name:
         radius_sync.rename_profile_group(db, old_name, profile.name)
     radius_sync.sync_profile_groupreply(db, profile)
+    tacacs_sync.regenerate(db)
 
     audit.record(db, action="update", entity_type="privilege_profile", entity_id=profile.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
@@ -135,7 +147,9 @@ def delete_profile(
 
     group = profile.group_name
     db.delete(profile)
+    db.flush()
     radius_sync.delete_profile_group(db, group)
+    tacacs_sync.regenerate(db)
     audit.record(db, action="delete", entity_type="privilege_profile", entity_id=profile_id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  before={"name": profile.name})

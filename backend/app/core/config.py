@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    # Arquivo de config gerado para o tac_plus-ng (hosts + profiles + ruleset).
+    # Vazio => sync do TACACS+ vira no-op (dev/tests sem o container tacacs).
+    tacacs_hosts_path: str | None = Field(default=None, alias="TACACS_HOSTS_PATH")
     # Expor /api/docs e /api/openapi.json. Desligado por padrão (produção).
     enable_docs: bool = Field(default=False, alias="ENABLE_DOCS")
 

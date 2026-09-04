@@ -1,5 +1,7 @@
 export type VendorKind = "huawei" | "juniper" | "datacom" | "mikrotik" | "generic";
 
+export type AaaProtocol = "radius" | "tacacs";
+
 export const VENDOR_KINDS: VendorKind[] = [
   "huawei",
   "juniper",
@@ -14,7 +16,9 @@ export interface Manufacturer {
   display_name: string;
   vendor_kind: VendorKind;
   radius_vendor_id: number | null;
+  aaa_protocol: AaaProtocol;
   has_secret: boolean;
+  has_tacacs_key: boolean;
   equipment_count: number;
   notes: string | null;
   created_at: string;
@@ -36,6 +40,8 @@ export interface PrivilegeProfile {
   is_builtin: boolean;
   group_name: string;
   attrs: ProfileAttr[];
+  tacacs_priv_level: number;
+  tacacs_extra_avpairs: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -87,8 +93,13 @@ export interface Equipment {
   coa_port: number;
   status: "active" | "maintenance" | "disabled";
   description: string | null;
+  aaa_protocol: AaaProtocol | null;
+  effective_protocol: AaaProtocol;
+  protocol_source: "equipment" | "manufacturer";
   has_own_secret: boolean;
   secret_source: "equipment" | "manufacturer" | "none";
+  has_own_tacacs_key: boolean;
+  tacacs_key_source: "equipment" | "manufacturer" | "none";
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;

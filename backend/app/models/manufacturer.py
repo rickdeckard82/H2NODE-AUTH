@@ -16,6 +16,13 @@ class VendorKind(str, enum.Enum):
     generic = "generic"  # não filtra VSA (equipamento ignora atributos alheios)
 
 
+class AaaProtocol(str, enum.Enum):
+    """Protocolo AAA do equipamento. MikroTik só fala RADIUS."""
+
+    radius = "radius"
+    tacacs = "tacacs"
+
+
 class Manufacturer(Base, TimestampMixin):
     __tablename__ = "app_manufacturer"
 
@@ -29,4 +36,10 @@ class Manufacturer(Base, TimestampMixin):
     # Segredo RADIUS padrão do fabricante (Fernet). Equipamentos sem segredo
     # próprio herdam este valor.
     radius_secret_enc: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Protocolo AAA padrão do grupo; equipamentos herdam se não definirem o seu.
+    aaa_protocol: Mapped[AaaProtocol] = mapped_column(
+        Enum(AaaProtocol, native_enum=False, length=16), default=AaaProtocol.radius
+    )
+    # Chave TACACS+ padrão do grupo (Fernet). Herdável, como o radius_secret.
+    tacacs_key_enc: Mapped[str | None] = mapped_column(String(512), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(255), nullable=True)

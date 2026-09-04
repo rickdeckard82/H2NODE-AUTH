@@ -60,6 +60,9 @@ PROFILES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
     ),
 }
 
+# priv-lvl TACACS+ (exec) equivalente de cada perfil interno.
+PROFILE_TACACS_LEVEL = {"admin-full": 15, "operator": 10, "read-only": 1}
+
 
 def seed_manufacturers(db: Session) -> dict[str, Manufacturer]:
     existing = {m.name: m for m in db.execute(select(Manufacturer)).scalars()}
@@ -80,7 +83,10 @@ def seed_profiles(db: Session, mfrs: dict[str, Manufacturer]) -> None:
             select(PrivilegeProfile).where(PrivilegeProfile.name == pname)
         ).scalar_one_or_none()
         if profile is None:
-            profile = PrivilegeProfile(name=pname, description=desc, is_builtin=True)
+            profile = PrivilegeProfile(
+                name=pname, description=desc, is_builtin=True,
+                tacacs_priv_level=PROFILE_TACACS_LEVEL.get(pname, 1),
+            )
             db.add(profile)
             db.flush()
         if not profile.attrs:

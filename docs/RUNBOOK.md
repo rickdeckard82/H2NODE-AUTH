@@ -123,6 +123,36 @@ O comando é gravado com escape `=XX` (proteção contra injeção); o backend r
 na leitura. Grants: `radius_svc` tem `SELECT, INSERT` em `cmd_acct` (migração 0007
 e `db/init/01_db_users.sh`).
 
+## TACACS+ (tac_plus-ng)
+
+Serviço `tacacs` (porta `49/tcp`). Cobre **Huawei / Juniper / Datacom** que falam
+TACACS+ — o **MikroTik não tem cliente TACACS+** e continua em RADIUS.
+
+- **Autenticação/autorização** (usuário, senha, grupo): resolvidas em tempo de
+  request pelo **MAVIS** (`tacacs/pulse_mavis.py`) contra o MySQL do painel
+  (reusa `SSHA2-512-Password` do `radcheck` e `radius_svc`). Trocar um usuário de
+  autenticação **não** exige reload.
+- **Equipamentos + perfis**: o painel gera `/etc/tacacs-shared/pulse.cfg` (volume
+  `tacacs_conf`, `include`d) e o container recarrega com `SIGHUP` ao detectar a
+  mudança. Regerado ao salvar equipamento / grupo de equipamentos / perfil.
+- **Accounting de comando**: o daemon grava
+  `/var/log/tac_plus-ng/acct.log`; `tacacs/acct_import.py` (no mesmo container)
+  segue o arquivo e insere em **`cmd_acct`** → aparece em *Authorization* e
+  *Accounting* do painel.
+- **Protocolo por equipamento**: no cadastro do grupo (padrão `radius`) e do
+  equipamento (em branco = herda). `radius` ⇒ vira cliente `nas`; `tacacs` ⇒ vira
+  `host` no `pulse.cfg`. Alternar remove de um lado e adiciona no outro.
+
+Debug ao vivo:
+
+```bash
+docker compose exec tacacs sh -c 'pkill tac_plus-ng; \
+  /opt/tacplus/sbin/tac_plus-ng -d 2047 -D -f /etc/tac_plus-ng/tac_plus-ng.cfg'
+# ou, testar só o MAVIS:
+docker compose exec tacacs sh -c \
+  'printf "0 TACPLUS\n4 <user>\n8 <senha>\n49 AUTH\n=\n" | python3 /opt/pulse/pulse_mavis.py'
+```
+
 ## Rotação de segredos
 
 - **`JWT_SECRET`**: trocar invalida todas as sessões do painel (todos re-logam). OK a qualquer momento.

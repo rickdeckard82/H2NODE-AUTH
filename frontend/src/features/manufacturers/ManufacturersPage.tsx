@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Badge, Button, Card, Field, Modal, PageHeader, Spinner, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { fmtDate } from "../../lib/format";
-import { VENDOR_KINDS, type Manufacturer, type VendorKind } from "../../lib/types";
+import { VENDOR_KINDS, type AaaProtocol, type Manufacturer, type VendorKind } from "../../lib/types";
 
 interface FormState {
   id?: number;
@@ -14,6 +14,9 @@ interface FormState {
   notes: string;
   radius_secret: string;
   clear_secret: boolean;
+  aaa_protocol: AaaProtocol;
+  tacacs_key: string;
+  clear_tacacs_key: boolean;
 }
 
 const empty: FormState = {
@@ -24,6 +27,9 @@ const empty: FormState = {
   notes: "",
   radius_secret: "",
   clear_secret: false,
+  aaa_protocol: "radius",
+  tacacs_key: "",
+  clear_tacacs_key: false,
 };
 
 const KIND_HINT: Record<VendorKind, string> = {
@@ -55,18 +61,22 @@ export default function ManufacturersPage() {
         display_name: f.display_name,
         vendor_kind: f.vendor_kind,
         radius_vendor_id: f.radius_vendor_id ? Number(f.radius_vendor_id) : null,
+        aaa_protocol: f.aaa_protocol,
         notes: f.notes || null,
       };
       if (f.id) {
         const body: Record<string, unknown> = { ...common };
         if (f.clear_secret) body.clear_secret = true;
         else if (f.radius_secret) body.radius_secret = f.radius_secret;
+        if (f.clear_tacacs_key) body.clear_tacacs_key = true;
+        else if (f.tacacs_key) body.tacacs_key = f.tacacs_key;
         return api.patch(`/manufacturers/${f.id}`, body);
       }
       return api.post("/manufacturers", {
         ...common,
         name: f.name,
         radius_secret: f.radius_secret || null,
+        tacacs_key: f.tacacs_key || null,
       });
     },
     onSuccess: () => {
@@ -141,10 +151,13 @@ export default function ManufacturersPage() {
                             name: m.name,
                             display_name: m.display_name,
                             vendor_kind: m.vendor_kind,
+                            aaa_protocol: m.aaa_protocol,
                             radius_vendor_id: m.radius_vendor_id?.toString() ?? "",
                             notes: m.notes ?? "",
                             radius_secret: "",
                             clear_secret: false,
+                            tacacs_key: "",
+                            clear_tacacs_key: false,
                           })
                         }
                       >
@@ -232,6 +245,21 @@ export default function ManufacturersPage() {
                   onChange={(e) => setForm({ ...form, radius_vendor_id: e.target.value })}
                 />
               </Field>
+              <Field
+                label="Protocolo AAA"
+                hint="MikroTik só fala RADIUS; Huawei/Juniper/Datacom podem falar TACACS+."
+              >
+                <select
+                  className="input"
+                  value={form.aaa_protocol}
+                  onChange={(e) =>
+                    setForm({ ...form, aaa_protocol: e.target.value as AaaProtocol })
+                  }
+                >
+                  <option value="radius">radius</option>
+                  <option value="tacacs">tacacs</option>
+                </select>
+              </Field>
             </div>
 
             <Field
@@ -260,6 +288,36 @@ export default function ManufacturersPage() {
                 />
                 Remover o segredo padrão deste fabricante
               </label>
+            )}
+
+            {form.aaa_protocol === "tacacs" && (
+              <>
+                <Field
+                  label={form.id ? "Chave TACACS+ padrão (em branco = manter)" : "Chave TACACS+ padrão"}
+                  hint="Chave herdada pelos equipamentos TACACS+ deste fabricante. Guardada cifrada."
+                >
+                  <input
+                    className="input font-mono"
+                    type="password"
+                    value={form.tacacs_key}
+                    minLength={6}
+                    disabled={form.clear_tacacs_key}
+                    onChange={(e) => setForm({ ...form, tacacs_key: e.target.value })}
+                  />
+                </Field>
+                {form.id && (
+                  <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={form.clear_tacacs_key}
+                      onChange={(e) =>
+                        setForm({ ...form, clear_tacacs_key: e.target.checked, tacacs_key: "" })
+                      }
+                    />
+                    Remover a chave TACACS+ padrão deste fabricante
+                  </label>
+                )}
+              </>
             )}
 
             <Field label="Notas">

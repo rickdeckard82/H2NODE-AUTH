@@ -57,6 +57,7 @@ docker compose ps        # frontend deve expor 0.0.0.0/<IP>:8080->80
 |---|---|---|
 | `8080/tcp` (WEB_PORT) | **só o IP do servidor do NPM** | painel + API |
 | `1812/udp`, `1813/udp` | rede de gerência dos equipamentos | RADIUS auth + accounting |
+| `49/tcp` | rede de gerência dos equipamentos | TACACS+ (Huawei/Juniper/Datacom) — omita se não usar |
 | `22/tcp` | administração | SSH |
 
 Tudo o mais fechado. `3306` (MySQL) e `8000` (backend) **não** são publicados no modo padrão.

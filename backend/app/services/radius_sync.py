@@ -20,6 +20,7 @@ from app.models import (
     RadUserGroup,
     VendorKind,
 )
+from app.models.manufacturer import AaaProtocol
 from app.services.password import (
     RADIUS_NT_PASSWORD_ATTR,
     RADIUS_PASSWORD_ATTR,
@@ -147,6 +148,11 @@ def resolve_secret(eq: Equipment, manufacturer: Manufacturer) -> str:
 
 
 def sync_equipment(db: Session, eq: Equipment, *, manufacturer: Manufacturer) -> None:
+    # Equipamento TACACS+ não é cliente RADIUS: garante que não fique em `nas`.
+    if (eq.aaa_protocol or manufacturer.aaa_protocol) == AaaProtocol.tacacs:
+        db.execute(delete(Nas).where(Nas.nasname == eq.mgmt_ip))
+        return
+
     secret = resolve_secret(eq, manufacturer)
     nas = _nas_by_name(db, eq.mgmt_ip)
     if nas is None:
@@ -163,15 +169,15 @@ def sync_equipment(db: Session, eq: Equipment, *, manufacturer: Manufacturer) ->
 
 
 def resync_manufacturer_equipment(db: Session, manufacturer: Manufacturer) -> int:
-    """Re-propaga o segredo do fabricante para os equipamentos que o herdam."""
+    """Re-sincroniza os equipamentos do grupo (segredo/protocolo herdados podem
+    ter mudado — inclui mover entre `nas` e TACACS+)."""
     count = 0
     rows = db.execute(
         select(Equipment).where(Equipment.manufacturer_id == manufacturer.id)
     ).scalars()
     for eq in rows:
-        if eq.radius_secret_enc is None:
-            sync_equipment(db, eq, manufacturer=manufacturer)
-            count += 1
+        sync_equipment(db, eq, manufacturer=manufacturer)
+        count += 1
     return count
 
 

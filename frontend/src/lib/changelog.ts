@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.3.0";
+export const APP_VERSION = "0.4.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 /** Mais recente primeiro. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "0.4.0",
+    date: "2026-09-04",
+    changes: [
+      "Servidor TACACS+ (tac_plus-ng) ao lado do RADIUS, usando os mesmos usuários, perfis e grupos via um backend MySQL (MAVIS).",
+      "Cada equipamento (ou o grupo de equipamentos) escolhe falar RADIUS ou TACACS+, com chave TACACS+ própria ou herdada. MikroTik continua só RADIUS; TACACS+ cobre Huawei/Juniper/Datacom.",
+      "Perfil de privilégio ganha priv-lvl (0–15) e AV pairs extra para TACACS+. Os comandos executados via TACACS+ aparecem nas telas Authorization e Accounting.",
+    ],
+  },
   {
     version: "0.3.0",
     date: "2026-09-03",

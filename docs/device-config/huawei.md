@@ -48,3 +48,26 @@ Habilite o *command accounting* apontando para o Pulse e, no
 do seu firmware para `Pulse-Command` — confirme o nome exato com
 `freeradius -X` num comando real. Ver `docs/RUNBOOK.md` → "Contabilização de
 comandos".
+
+## HWTACACS (alternativa ao RADIUS)
+
+O tac_plus-ng do Pulse atende HWTACACS (variante Huawei do TACACS+). No painel:
+grupo **Huawei** → *Protocolo AAA* = `tacacs` + *Chave TACACS+*. No VRP:
+
+```
+hwtacacs-server template PULSE
+ hwtacacs-server authentication 10.0.0.254
+ hwtacacs-server authorization 10.0.0.254
+ hwtacacs-server accounting 10.0.0.254
+ hwtacacs-server shared-key cipher <chave-cadastrada>
+ hwtacacs-server source-ip 10.0.0.1          # = mgmt_ip
+aaa
+ authentication-scheme sch-tac
+  authentication-mode hwtacacs
+ authorization-scheme sch-tac
+  authorization-mode hwtacacs
+ accounting-scheme acc-tac
+  accounting-mode hwtacacs
+```
+
+Nível de privilégio e comandos: ver a tela **Authorization / Accounting**.

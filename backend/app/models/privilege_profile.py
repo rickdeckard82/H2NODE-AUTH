@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -11,6 +11,10 @@ class PrivilegeProfile(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_builtin: Mapped[bool] = mapped_column(default=False)
+    # TACACS+: nível de privilégio de exec (0–15) e AV pairs extra (uma por linha,
+    # ex.: "shell:roles=network-admin"). Usados pelo MAVIS na autorização.
+    tacacs_priv_level: Mapped[int] = mapped_column(Integer, default=1)
+    tacacs_extra_avpairs: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     attrs: Mapped[list["PrivilegeProfileAttr"]] = relationship(
         back_populates="profile",

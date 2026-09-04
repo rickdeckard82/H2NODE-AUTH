@@ -6,9 +6,10 @@ from app.api.deps import client_ip, enforce_csrf, require_auditor, require_opera
 from app.core.crypto import encrypt
 from app.core.db import get_db
 from app.models import Equipment, Manufacturer, SystemUser
+from app.models.manufacturer import AaaProtocol
 from app.schemas.common import Page
 from app.schemas.equipment import EquipmentCreate, EquipmentOut, EquipmentUpdate
-from app.services import audit, radius_sync
+from app.services import audit, radius_sync, tacacs_sync
 
 router = APIRouter(prefix="/equipment", tags=["equipment"])
 
@@ -21,14 +22,29 @@ def _secret_source(eq: Equipment) -> str:
     return "none"
 
 
+def _tacacs_key_source(eq: Equipment) -> str:
+    if eq.tacacs_key_enc:
+        return "equipment"
+    if eq.manufacturer and eq.manufacturer.tacacs_key_enc:
+        return "manufacturer"
+    return "none"
+
+
+def _effective_protocol(eq: Equipment) -> AaaProtocol:
+    return eq.aaa_protocol or eq.manufacturer.aaa_protocol
+
+
 def _to_out(eq: Equipment) -> EquipmentOut:
     return EquipmentOut(
         id=eq.id, name=eq.name, mgmt_ip=eq.mgmt_ip, manufacturer_id=eq.manufacturer_id,
         model=eq.model, site=eq.site, shortname=eq.shortname, coa_port=eq.coa_port,
-        status=eq.status, description=eq.description,
+        status=eq.status, description=eq.description, aaa_protocol=eq.aaa_protocol,
         manufacturer_name=eq.manufacturer.name, manufacturer_display=eq.manufacturer.display_name,
         vendor_kind=eq.manufacturer.vendor_kind,
         has_own_secret=bool(eq.radius_secret_enc), secret_source=_secret_source(eq),
+        effective_protocol=_effective_protocol(eq),
+        protocol_source="equipment" if eq.aaa_protocol else "manufacturer",
+        has_own_tacacs_key=bool(eq.tacacs_key_enc), tacacs_key_source=_tacacs_key_source(eq),
         last_seen_at=eq.last_seen_at, created_at=eq.created_at, updated_at=eq.updated_at,
     )
 
@@ -79,23 +95,32 @@ def create_equipment(
     if db.execute(select(Equipment).where(Equipment.mgmt_ip == body.mgmt_ip)).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "já existe equipamento com esse IP de gerência")
     manufacturer = _get_manufacturer(db, body.manufacturer_id)
-    if not body.radius_secret and not manufacturer.radius_secret_enc:
+    protocol = body.aaa_protocol or manufacturer.aaa_protocol
+    if protocol == AaaProtocol.radius and not body.radius_secret and not manufacturer.radius_secret_enc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             f"informe o segredo RADIUS ou cadastre um segredo padrão no fabricante "
+            f"'{manufacturer.name}'",
+        )
+    if protocol == AaaProtocol.tacacs and not body.tacacs_key and not manufacturer.tacacs_key_enc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"informe a chave TACACS+ ou cadastre uma chave padrão no grupo "
             f"'{manufacturer.name}'",
         )
 
     eq = Equipment(
         name=body.name, mgmt_ip=body.mgmt_ip, manufacturer_id=body.manufacturer_id,
         model=body.model, site=body.site, shortname=body.shortname, coa_port=body.coa_port,
-        status=body.status, description=body.description,
+        status=body.status, description=body.description, aaa_protocol=body.aaa_protocol,
         radius_secret_enc=encrypt(body.radius_secret) if body.radius_secret else None,
+        tacacs_key_enc=encrypt(body.tacacs_key) if body.tacacs_key else None,
         created_by=actor.id,
     )
     db.add(eq)
     db.flush()
     radius_sync.sync_equipment(db, eq, manufacturer=manufacturer)
+    tacacs_sync.regenerate(db)
     audit.record(db, action="create", entity_type="equipment", entity_id=eq.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  after={"name": eq.name, "mgmt_ip": eq.mgmt_ip, "manufacturer": manufacturer.name,
@@ -133,11 +158,20 @@ def update_equipment(
         eq.radius_secret_enc = None
     elif body.radius_secret:
         eq.radius_secret_enc = encrypt(body.radius_secret)
+    if body.inherit_protocol:
+        eq.aaa_protocol = None
+    elif body.aaa_protocol is not None:
+        eq.aaa_protocol = body.aaa_protocol
+    if body.inherit_tacacs_key:
+        eq.tacacs_key_enc = None
+    elif body.tacacs_key:
+        eq.tacacs_key_enc = encrypt(body.tacacs_key)
     db.flush()
     db.refresh(eq)
 
     radius_sync.rename_equipment_nas(db, old_ip, eq.mgmt_ip)
     radius_sync.sync_equipment(db, eq, manufacturer=eq.manufacturer)
+    tacacs_sync.regenerate(db)
     audit.record(db, action="update", entity_type="equipment", entity_id=eq.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  before=before,
@@ -159,7 +193,9 @@ def delete_equipment(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
     ip, name = eq.mgmt_ip, eq.name
     db.delete(eq)
+    db.flush()
     radius_sync.delete_equipment_nas(db, ip)
+    tacacs_sync.regenerate(db)
     audit.record(db, action="delete", entity_type="equipment", entity_id=equipment_id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  before={"name": name, "mgmt_ip": ip})

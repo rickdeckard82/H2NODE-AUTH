@@ -1,0 +1,14 @@
+# Contexto de build da imagem `tacacs` (context = raiz do repo, para poder
+# COPY backend/app/services/password.py). Mantém o contexto enxuto.
+.git
+**/node_modules
+**/__pycache__
+**/.venv
+frontend/dist
+frontend/node_modules
+backend/build
+backend/*.egg-info
+docs
+proxy
+secrets
+*.md

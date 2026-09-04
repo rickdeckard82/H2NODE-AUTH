@@ -14,7 +14,7 @@ import {
 import { api, ApiError, type Page } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { fmtDate } from "../../lib/format";
-import type { Equipment, Manufacturer } from "../../lib/types";
+import type { AaaProtocol, Equipment, Manufacturer } from "../../lib/types";
 
 interface FormState {
   id?: number;
@@ -29,6 +29,9 @@ interface FormState {
   description: string;
   radius_secret: string;
   inherit_secret: boolean;
+  aaa_protocol: "" | AaaProtocol;
+  tacacs_key: string;
+  inherit_tacacs_key: boolean;
 }
 
 const empty: FormState = {
@@ -43,6 +46,9 @@ const empty: FormState = {
   description: "",
   radius_secret: "",
   inherit_secret: false,
+  aaa_protocol: "",
+  tacacs_key: "",
+  inherit_tacacs_key: false,
 };
 
 const STATUS_TONE: Record<Equipment["status"], "green" | "amber" | "red"> = {
@@ -98,6 +104,10 @@ export default function EquipmentPage() {
       };
       if (f.id && f.inherit_secret) body.inherit_secret = true;
       else if (f.radius_secret) body.radius_secret = f.radius_secret;
+      if (f.aaa_protocol) body.aaa_protocol = f.aaa_protocol;
+      else if (f.id) body.inherit_protocol = true;
+      if (f.id && f.inherit_tacacs_key) body.inherit_tacacs_key = true;
+      else if (f.tacacs_key) body.tacacs_key = f.tacacs_key;
       if (f.id) return api.patch(`/equipment/${f.id}`, body);
       return api.post("/equipment", body);
     },
@@ -126,8 +136,15 @@ export default function EquipmentPage() {
     form && form.manufacturer_id !== ""
       ? manufacturers.data?.find((m) => m.id === form.manufacturer_id)
       : undefined;
+  // protocolo efetivo já resolvida a herança do grupo
+  const effProto: AaaProtocol =
+    (form?.aaa_protocol as AaaProtocol) || selectedManufacturer?.aaa_protocol || "radius";
   const secretRequired =
-    !!form && !form.id && !form.inherit_secret && !selectedManufacturer?.has_secret;
+    !!form && !form.id && !form.inherit_secret && !selectedManufacturer?.has_secret &&
+    effProto === "radius";
+  const tacacsKeyRequired =
+    !!form && !form.id && !form.inherit_tacacs_key && !selectedManufacturer?.has_tacacs_key &&
+    effProto === "tacacs";
 
   return (
     <div>
@@ -186,6 +203,7 @@ export default function EquipmentPage() {
               <th className="th">Nome</th>
               <th className="th">IP de gerência</th>
               <th className="th">Fabricante</th>
+              <th className="th">AAA</th>
               <th className="th">Segredo</th>
               <th className="th">Site</th>
               <th className="th">Estado</th>
@@ -196,7 +214,7 @@ export default function EquipmentPage() {
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {list.isLoading && (
               <tr>
-                <td className="td" colSpan={8}>
+                <td className="td" colSpan={9}>
                   <Spinner className="h-5 w-5 text-brand-600" />
                 </td>
               </tr>
@@ -207,6 +225,11 @@ export default function EquipmentPage() {
                 <td className="td font-mono text-xs">{eq.mgmt_ip}</td>
                 <td className="td">
                   <Badge tone="blue">{eq.manufacturer_display}</Badge>
+                </td>
+                <td className="td">
+                  <Badge tone={eq.effective_protocol === "tacacs" ? "amber" : "slate"}>
+                    {eq.effective_protocol}
+                  </Badge>
                 </td>
                 <td className="td">
                   {eq.secret_source === "equipment" && <Badge tone="slate">próprio</Badge>}
@@ -239,6 +262,9 @@ export default function EquipmentPage() {
                             description: eq.description ?? "",
                             radius_secret: "",
                             inherit_secret: false,
+                            aaa_protocol: eq.aaa_protocol ?? "",
+                            tacacs_key: "",
+                            inherit_tacacs_key: false,
                           })
                         }
                       >
@@ -259,7 +285,7 @@ export default function EquipmentPage() {
             ))}
             {list.data?.items.length === 0 && (
               <tr>
-                <td className="td text-slate-400 dark:text-slate-500" colSpan={8}>
+                <td className="td text-slate-400 dark:text-slate-500" colSpan={9}>
                   Nenhum equipamento neste grupo.
                 </td>
               </tr>
@@ -377,6 +403,26 @@ export default function EquipmentPage() {
                 <option value="disabled">disabled</option>
               </select>
             </Field>
+            <Field
+              label="Protocolo AAA"
+              hint={
+                form.aaa_protocol
+                  ? undefined
+                  : `herda do grupo (${selectedManufacturer?.aaa_protocol ?? "radius"})`
+              }
+            >
+              <select
+                className="input"
+                value={form.aaa_protocol}
+                onChange={(e) =>
+                  setForm({ ...form, aaa_protocol: e.target.value as "" | AaaProtocol })
+                }
+              >
+                <option value="">herdar do grupo</option>
+                <option value="radius">radius</option>
+                <option value="tacacs">tacacs</option>
+              </select>
+            </Field>
             <div className="col-span-2">
               <Field
                 label="Segredo RADIUS"
@@ -411,6 +457,40 @@ export default function EquipmentPage() {
                 </label>
               )}
             </div>
+            {effProto === "tacacs" && (
+              <div className="col-span-2">
+                <Field
+                  label="Chave TACACS+"
+                  hint={
+                    form.inherit_tacacs_key
+                      ? "vai herdar a chave padrão do grupo"
+                      : "em branco = herda a chave padrão do grupo. Guardada cifrada (Fernet)."
+                  }
+                >
+                  <input
+                    className="input font-mono"
+                    type="password"
+                    value={form.tacacs_key}
+                    minLength={6}
+                    disabled={form.inherit_tacacs_key}
+                    onChange={(e) => setForm({ ...form, tacacs_key: e.target.value })}
+                    required={tacacsKeyRequired}
+                  />
+                </Field>
+                {form.id && (
+                  <label className="mt-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={form.inherit_tacacs_key}
+                      onChange={(e) =>
+                        setForm({ ...form, inherit_tacacs_key: e.target.checked, tacacs_key: "" })
+                      }
+                    />
+                    Voltar a herdar a chave do grupo
+                  </label>
+                )}
+              </div>
+            )}
             <div className="col-span-2">
               <Field label="Descrição">
                 <input

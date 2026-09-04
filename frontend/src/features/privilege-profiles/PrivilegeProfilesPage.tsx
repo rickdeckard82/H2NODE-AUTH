@@ -19,6 +19,8 @@ interface FormState {
   description: string;
   is_builtin: boolean;
   attrs: ProfileAttr[];
+  tacacs_priv_level: number;
+  tacacs_extra_avpairs: string;
 }
 
 export default function PrivilegeProfilesPage() {
@@ -41,9 +43,11 @@ export default function PrivilegeProfilesPage() {
 
   const save = useMutation({
     mutationFn: (f: FormState) => {
-      const body = {
+      const body: Record<string, unknown> = {
         name: f.name,
         description: f.description || null,
+        tacacs_priv_level: f.tacacs_priv_level,
+        tacacs_extra_avpairs: f.tacacs_extra_avpairs || null,
         attrs: f.attrs.map((a) => ({
           manufacturer_id: a.manufacturer_id,
           attribute: a.attribute,
@@ -93,7 +97,7 @@ export default function PrivilegeProfilesPage() {
         actions={
           <Button
             onClick={() =>
-              setForm({ name: "", description: "", is_builtin: false, attrs: [] })
+              setForm({ name: "", description: "", is_builtin: false, attrs: [], tacacs_priv_level: 1, tacacs_extra_avpairs: "" })
             }
           >
             Novo perfil
@@ -134,6 +138,8 @@ export default function PrivilegeProfilesPage() {
                       id: p.id,
                       name: p.name,
                       description: p.description ?? "",
+                      tacacs_priv_level: p.tacacs_priv_level,
+                      tacacs_extra_avpairs: p.tacacs_extra_avpairs ?? "",
                       is_builtin: p.is_builtin,
                       attrs: p.attrs.map((a) => ({ ...a })),
                     })
@@ -189,6 +195,34 @@ export default function PrivilegeProfilesPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </Field>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+              <div className="label mb-2">TACACS+ (Huawei / Juniper / Datacom)</div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="priv-lvl (exec)" hint="0–15">
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    max={15}
+                    value={form.tacacs_priv_level}
+                    onChange={(e) =>
+                      setForm({ ...form, tacacs_priv_level: Number(e.target.value) })
+                    }
+                  />
+                </Field>
+                <Field label="AV pairs extra" hint="um por linha, ex.: shell:roles=network-admin">
+                  <textarea
+                    className="input h-[38px] font-mono"
+                    rows={2}
+                    value={form.tacacs_extra_avpairs}
+                    onChange={(e) =>
+                      setForm({ ...form, tacacs_extra_avpairs: e.target.value })
+                    }
+                  />
+                </Field>
+              </div>
             </div>
 
             <div>
