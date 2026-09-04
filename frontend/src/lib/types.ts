@@ -113,8 +113,22 @@ export interface SystemUser {
   role: "superadmin" | "admin" | "operator" | "auditor";
   is_active: boolean;
   timezone: string;
+  has_password: boolean;
   last_login_at: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+export interface SmtpSettings {
+  id: number;
+  host: string;
+  port: number;
+  username: string | null;
+  has_password: boolean;
+  use_tls: boolean;
+  use_ssl: boolean;
+  from_email: string;
+  from_name: string | null;
   updated_at: string;
 }
 

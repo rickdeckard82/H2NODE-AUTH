@@ -6,15 +6,25 @@ from app.api.deps import client_ip, enforce_csrf, require_superadmin
 from app.core.db import get_db
 from app.core.security import hash_password
 from app.models import SystemRole, SystemUser
-from app.schemas.common import Page
+from app.schemas.common import Message, Page
 from app.schemas.system_user import SystemUserCreate, SystemUserOut, SystemUserUpdate
-from app.services import audit
+from app.services import audit, invites, mailer
 
 router = APIRouter(
     prefix="/system-users",
     tags=["system-users"],
     dependencies=[Depends(enforce_csrf)],
 )
+
+
+def _send_invite(db: Session, user: SystemUser) -> None:
+    token = invites.create_invite(db, user)
+    try:
+        invites.send_invite_email(db, user, token)
+    except mailer.SmtpNotConfigured as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except mailer.SmtpSendError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"falha ao enviar convite: {exc}") from exc
 
 
 def _count_active_superadmins(db: Session, exclude_id: int | None = None) -> int:
@@ -56,18 +66,47 @@ def create_user(
         or_(SystemUser.username == body.username, SystemUser.email == body.email)
     )).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "username ou e-mail já em uso")
+
+    if body.password is None and mailer.get_settings(db) is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "informe uma senha ou configure o SMTP em Configurações para enviar convite por e-mail",
+        )
+
     user = SystemUser(
         username=body.username, email=body.email, full_name=body.full_name,
         role=body.role, is_active=body.is_active, timezone=body.timezone,
-        password_hash=hash_password(body.password),
+        password_hash=hash_password(body.password) if body.password else None,
     )
     db.add(user)
     db.flush()
+
+    if body.password is None:
+        _send_invite(db, user)
+
     audit.record(db, action="create", entity_type="system_user", entity_id=user.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
-                 after={"username": user.username, "role": user.role.value})
+                 after={"username": user.username, "role": user.role.value,
+                        "invited_by_email": body.password is None})
     db.commit()
     return SystemUserOut.model_validate(user)
+
+
+@router.post("/{user_id}/resend-invite", response_model=Message)
+def resend_invite(
+    user_id: int, request: Request,
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_superadmin),
+) -> Message:
+    user = db.get(SystemUser, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
+    if user.has_password:
+        raise HTTPException(status.HTTP_409_CONFLICT, "utilizador já definiu a senha")
+    _send_invite(db, user)
+    audit.record(db, action="resend_invite", entity_type="system_user", entity_id=user.id,
+                 actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
+    db.commit()
+    return Message(detail=f"convite reenviado para {user.email}")
 
 
 @router.patch("/{user_id}", response_model=SystemUserOut)

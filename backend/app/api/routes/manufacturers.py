@@ -3,10 +3,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import client_ip, enforce_csrf, require_admin, require_auditor
-from app.core.crypto import encrypt
+from app.core.crypto import decrypt, encrypt
 from app.core.db import get_db
 from app.models import Equipment, Manufacturer, PrivilegeProfileAttr, SystemUser
-from app.schemas.manufacturer import ManufacturerCreate, ManufacturerOut, ManufacturerUpdate
+from app.schemas.manufacturer import (
+    ManufacturerCreate,
+    ManufacturerOut,
+    ManufacturerSecretOut,
+    ManufacturerUpdate,
+)
 from app.services import audit, radius_sync, tacacs_sync
 
 router = APIRouter(prefix="/manufacturers", tags=["manufacturers"])
@@ -34,6 +39,22 @@ def list_manufacturers(db: Session = Depends(get_db)) -> list[ManufacturerOut]:
     counts = _counts(db)
     rows = db.execute(select(Manufacturer).order_by(Manufacturer.display_name)).scalars()
     return [_to_out(m, counts.get(m.id, 0)) for m in rows]
+
+
+@router.get("/{manufacturer_id}/secret", response_model=ManufacturerSecretOut)
+def reveal_manufacturer_secret(
+    manufacturer_id: int, request: Request,
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_admin),
+) -> ManufacturerSecretOut:
+    m = db.get(Manufacturer, manufacturer_id)
+    if m is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
+    audit.record(db, action="reveal_secret", entity_type="manufacturer", entity_id=m.id,
+                 actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
+    db.commit()
+    return ManufacturerSecretOut(
+        radius_secret=decrypt(m.radius_secret_enc) if m.radius_secret_enc else None
+    )
 
 
 @router.post("", response_model=ManufacturerOut, status_code=status.HTTP_201_CREATED,

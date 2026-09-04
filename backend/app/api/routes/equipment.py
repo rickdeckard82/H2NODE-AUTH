@@ -3,12 +3,12 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import client_ip, enforce_csrf, require_auditor, require_operator
-from app.core.crypto import encrypt
+from app.core.crypto import decrypt, encrypt
 from app.core.db import get_db
 from app.models import Equipment, Manufacturer, SystemUser
 from app.models.manufacturer import AaaProtocol
 from app.schemas.common import Page
-from app.schemas.equipment import EquipmentCreate, EquipmentOut, EquipmentUpdate
+from app.schemas.equipment import EquipmentCreate, EquipmentOut, EquipmentSecretOut, EquipmentUpdate
 from app.services import audit, radius_sync, tacacs_sync
 
 router = APIRouter(prefix="/equipment", tags=["equipment"])
@@ -84,6 +84,23 @@ def get_equipment(equipment_id: int, db: Session = Depends(get_db)) -> Equipment
     if eq is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
     return _to_out(eq)
+
+
+@router.get("/{equipment_id}/secret", response_model=EquipmentSecretOut)
+def reveal_equipment_secret(
+    equipment_id: int, request: Request,
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_operator),
+) -> EquipmentSecretOut:
+    eq = db.get(Equipment, equipment_id)
+    if eq is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
+    enc = eq.radius_secret_enc or (eq.manufacturer.radius_secret_enc if eq.manufacturer else None)
+    audit.record(db, action="reveal_secret", entity_type="equipment", entity_id=eq.id,
+                 actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
+    db.commit()
+    return EquipmentSecretOut(
+        radius_secret=decrypt(enc) if enc else None, source=_secret_source(eq)
+    )
 
 
 @router.post("", response_model=EquipmentOut, status_code=status.HTTP_201_CREATED,

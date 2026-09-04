@@ -27,6 +27,7 @@ interface AuthCtx {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refresh: () => Promise<void>;
   can: (...roles: Role[]) => boolean;
 }
 
@@ -56,6 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const refresh = useCallback(async () => {
+    const me = await api.get<Me>("/auth/me").catch(() => null);
+    setUser(me);
+  }, []);
+
   const can = useCallback(
     (...roles: Role[]) => {
       if (!user) return false;
@@ -67,8 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, can }),
-    [user, loading, login, logout, can],
+    () => ({ user, loading, login, logout, refresh, can }),
+    [user, loading, login, logout, refresh, can],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

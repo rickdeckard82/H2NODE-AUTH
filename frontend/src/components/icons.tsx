@@ -105,6 +105,27 @@ export const UserCogIcon = (p: IconProps) => (
   </S>
 );
 
+export const EyeIcon = (p: IconProps) => (
+  <S {...p}>
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </S>
+);
+
+export const MailIcon = (p: IconProps) => (
+  <S {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m4 7 8 6 8-6" />
+  </S>
+);
+
+export const KeyIcon = (p: IconProps) => (
+  <S {...p}>
+    <circle cx="8" cy="15" r="4" />
+    <path d="m10.5 12.5 8-8M16 4l3 3M13 7l3 3" />
+  </S>
+);
+
 export const DatabaseIcon = (p: IconProps) => (
   <S {...p}>
     <ellipse cx="12" cy="5" rx="8" ry="3" />
@@ -126,6 +147,9 @@ export const ICONS = {
   clipboard: ClipboardIcon,
   settings: SettingsIcon,
   userCog: UserCogIcon,
+  eye: EyeIcon,
+  mail: MailIcon,
+  key: KeyIcon,
 } as const;
 
 export type IconName = keyof typeof ICONS;

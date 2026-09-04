@@ -21,7 +21,8 @@ class SystemUser(Base, TimestampMixin):
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(190), unique=True)
     full_name: Mapped[str] = mapped_column(String(190))
-    password_hash: Mapped[str] = mapped_column(String(255))
+    # NULL => convite de registo pendente (usuário ainda não criou a senha).
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[SystemRole] = mapped_column(
         Enum(SystemRole, native_enum=False, length=20), default=SystemRole.operator
     )
@@ -32,3 +33,7 @@ class SystemUser(Base, TimestampMixin):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    @property
+    def has_password(self) -> bool:
+        return self.password_hash is not None

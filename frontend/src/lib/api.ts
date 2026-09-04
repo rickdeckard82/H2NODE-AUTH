@@ -86,6 +86,7 @@ async function request<T>(path: string, opts: Options = {}, retry = true): Promi
 export const api = {
   get: <T,>(path: string, query?: Record<string, unknown>) => request<T>(path, { query }),
   post: <T,>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
+  put: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
   patch: <T,>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   del: <T,>(path: string) => request<T>(path, { method: "DELETE" }),
   blob: (path: string, query?: Record<string, unknown>) =>

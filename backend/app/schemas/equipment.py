@@ -77,3 +77,8 @@ class EquipmentOut(EquipmentBase):
     last_seen_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class EquipmentSecretOut(BaseModel):
+    radius_secret: str | None
+    source: str  # "equipment" | "manufacturer" | "none"

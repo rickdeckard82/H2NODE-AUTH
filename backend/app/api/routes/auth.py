@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, get_current_user
+from app.api.deps import client_ip, enforce_csrf, get_current_user
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.ratelimit import limiter
@@ -21,8 +21,16 @@ from app.core.security import (
     verify_password,
 )
 from app.models import RefreshToken, SystemUser
-from app.schemas.auth import LoginIn, MeOut, SessionOut
-from app.services import audit
+from app.schemas.auth import (
+    AcceptInviteIn,
+    ChangePasswordIn,
+    InviteOut,
+    LoginIn,
+    MeOut,
+    SessionOut,
+)
+from app.schemas.common import Message
+from app.services import audit, invites
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -108,10 +116,10 @@ def login(
             "conta temporariamente bloqueada por excesso de tentativas; tente mais tarde",
         )
 
-    # verify_password sempre executa (mesmo com user inexistente, contra um hash
-    # descartável) para não vazar a existência da conta por diferença de tempo.
+    # verify_password sempre executa (mesmo com user inexistente/sem senha ainda
+    # definida, contra um hash descartável) para não vazar isso por timing.
     password_ok = verify_password(
-        body.password, user.password_hash if user else DUMMY_PASSWORD_HASH
+        body.password, user.password_hash if user and user.password_hash else DUMMY_PASSWORD_HASH
     )
 
     if user is None or not password_ok:
@@ -194,3 +202,57 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
 @router.get("/me", response_model=MeOut)
 def me(user: SystemUser = Depends(get_current_user)) -> MeOut:
     return MeOut.model_validate(user)
+
+
+@router.patch("/me/password", response_model=Message, dependencies=[Depends(enforce_csrf)])
+def change_my_password(
+    body: ChangePasswordIn, request: Request,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> Message:
+    if not user.password_hash or not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "senha atual incorreta")
+    user.password_hash = hash_password(body.new_password)
+    audit.record(
+        db, action="change_password", entity_type="system_user", entity_id=user.id,
+        actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
+    )
+    db.commit()
+    return Message(detail="senha alterada com sucesso")
+
+
+@router.get("/invite/{token}", response_model=InviteOut)
+def get_invite(token: str, db: Session = Depends(get_db)) -> InviteOut:
+    invite = invites.resolve_invite(db, token)
+    if invite is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
+    user = db.get(SystemUser, invite.system_user_id)
+    if user is None or user.has_password:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
+    return InviteOut(username=user.username, email=user.email, full_name=user.full_name)
+
+
+@router.post("/invite/accept", response_model=SessionOut)
+def accept_invite(
+    body: AcceptInviteIn, request: Request, response: Response, db: Session = Depends(get_db)
+) -> SessionOut:
+    invite = invites.resolve_invite(db, body.token)
+    if invite is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
+    user = db.get(SystemUser, invite.system_user_id)
+    if user is None or user.has_password:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
+    if not user.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "conta desativada")
+
+    user.password_hash = hash_password(body.password)
+    invite.used_at = utcnow()
+    user.last_login_at = utcnow()
+    _gc_refresh_tokens(db)
+    csrf = _issue_session(db, response, user, request)
+    audit.record(
+        db, action="accept_invite", entity_type="system_user", entity_id=user.id,
+        actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    return SessionOut(user=MeOut.model_validate(user), csrf_token=csrf)

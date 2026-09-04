@@ -28,6 +28,7 @@ interface FormState {
   is_active: boolean;
   timezone: string;
   password: string;
+  sendInvite: boolean;
 }
 
 const empty: FormState = {
@@ -38,6 +39,7 @@ const empty: FormState = {
   is_active: true,
   timezone: DEFAULT_TZ,
   password: "",
+  sendInvite: true,
 };
 
 export default function SystemUsersPage() {
@@ -75,11 +77,11 @@ export default function SystemUsersPage() {
         role: f.role,
         is_active: f.is_active,
         timezone: f.timezone,
-        password: f.password,
+        password: f.sendInvite ? null : f.password,
       });
     },
-    onSuccess: () => {
-      toast("ok", "Utilizador salvo");
+    onSuccess: (_, f) => {
+      toast("ok", f.sendInvite && !f.id ? "Utilizador criado — convite enviado por e-mail" : "Utilizador salvo");
       setForm(null);
       invalidate();
     },
@@ -93,6 +95,12 @@ export default function SystemUsersPage() {
       invalidate();
     },
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+  });
+
+  const resendInvite = useMutation({
+    mutationFn: (u: SystemUser) => api.post<{ detail: string }>(`/system-users/${u.id}/resend-invite`),
+    onSuccess: (r) => toast("ok", r.detail),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao reenviar convite"),
   });
 
   return (
@@ -148,7 +156,10 @@ export default function SystemUsersPage() {
                   <Badge tone="blue">{u.role}</Badge>
                 </td>
                 <td className="td">
-                  {u.is_active ? <Badge tone="green">ativo</Badge> : <Badge tone="red">inativo</Badge>}
+                  <div className="flex flex-wrap gap-1">
+                    {u.is_active ? <Badge tone="green">ativo</Badge> : <Badge tone="red">inativo</Badge>}
+                    {!u.has_password && <Badge tone="amber">convite pendente</Badge>}
+                  </div>
                 </td>
                 <td className="td">{fmtDate(u.last_login_at)}</td>
                 <td className="td text-right">
@@ -165,11 +176,20 @@ export default function SystemUsersPage() {
                           is_active: u.is_active,
                           timezone: u.timezone ?? DEFAULT_TZ,
                           password: "",
+                          sendInvite: false,
                         })
                       }
                     >
                       Editar
                     </button>
+                    {!u.has_password && (
+                      <button
+                        className="text-brand-600 hover:underline dark:text-brand-400"
+                        onClick={() => resendInvite.mutate(u)}
+                      >
+                        Reenviar convite
+                      </button>
+                    )}
                     {u.id !== user?.id && (
                       <button
                         className="text-rose-600 hover:underline dark:text-rose-400"
@@ -267,19 +287,46 @@ export default function SystemUsersPage() {
                 ))}
               </select>
             </Field>
-            <Field
-              label={form.id ? "Nova senha (opcional)" : "Senha"}
-              hint="Mínimo 10 caracteres. Hash Argon2id."
-            >
-              <input
-                className="input"
-                type="password"
-                minLength={10}
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required={!form.id}
-              />
-            </Field>
+            {!form.id && (
+              <div className="flex gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={form.sendInvite}
+                    onChange={() => setForm({ ...form, sendInvite: true, password: "" })}
+                  />
+                  Enviar convite por e-mail
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={!form.sendInvite}
+                    onChange={() => setForm({ ...form, sendInvite: false })}
+                  />
+                  Definir senha agora
+                </label>
+              </div>
+            )}
+            {form.id || !form.sendInvite ? (
+              <Field
+                label={form.id ? "Nova senha (opcional)" : "Senha"}
+                hint="Mínimo 10 caracteres. Hash Argon2id."
+              >
+                <input
+                  className="input"
+                  type="password"
+                  minLength={10}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  required={!form.id}
+                />
+              </Field>
+            ) : (
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                O utilizador receberá um e-mail para criar a própria senha (requer SMTP
+                configurado em Configurações).
+              </p>
+            )}
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

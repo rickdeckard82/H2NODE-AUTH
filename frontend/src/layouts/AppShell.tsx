@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { AppFooter } from "../components/AppFooter";
+import { ChangePasswordModal } from "../components/ChangePasswordModal";
 import { ICONS, type IconName } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { Button } from "../components/ui";
@@ -57,6 +58,7 @@ const NAV: NavEntry[] = [
     icon: "settings",
     children: [
       { to: "/system-users", label: "Utilizadores do sistema", icon: "userCog", roles: ["superadmin"] },
+      { to: "/settings/smtp", label: "Servidor SMTP", icon: "mail", roles: ["superadmin"] },
       { to: "/backup", label: "Backup e restauração", icon: "database", roles: ["superadmin"] },
     ],
   },
@@ -74,6 +76,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [changePassword, setChangePassword] = useState(false);
 
   const canSee = (roles?: Role[]) => !roles || can(...roles);
 
@@ -174,15 +178,37 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             ☰
           </button>
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            <div className="text-right">
+          <div className="relative ml-auto flex items-center gap-3 text-sm">
+            {userMenuOpen && (
+              <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
+            )}
+            <button
+              type="button"
+              className="text-right"
+              onClick={() => setUserMenuOpen((v) => !v)}
+            >
               <div className="font-semibold text-slate-800 dark:text-slate-100">{user?.full_name}</div>
               <div className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{user?.role}</div>
-            </div>
+            </button>
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full z-20 mt-2 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setChangePassword(true);
+                  }}
+                >
+                  Alterar senha
+                </button>
+              </div>
+            )}
             <Button variant="ghost" onClick={doLogout}>
               Sair
             </Button>
           </div>
+          <ChangePasswordModal open={changePassword} onClose={() => setChangePassword(false)} />
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">{children}</main>
       </div>

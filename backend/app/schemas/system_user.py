@@ -26,7 +26,9 @@ class SystemUserBase(BaseModel):
 
 
 class SystemUserCreate(SystemUserBase):
-    password: str = Field(min_length=10, max_length=128)
+    # Em branco => envia convite por e-mail para o usuário criar a própria senha
+    # (requer SMTP configurado em Configurações).
+    password: str | None = Field(default=None, min_length=10, max_length=128)
 
 
 class SystemUserUpdate(BaseModel):
@@ -44,6 +46,7 @@ class SystemUserOut(SystemUserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    has_password: bool
     last_login_at: UtcDatetime | None
     created_at: UtcDatetime
     updated_at: UtcDatetime

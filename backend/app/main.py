@@ -25,6 +25,7 @@ from app.api.routes import (
     privilege_profiles,
     system_users,
 )
+from app.api.routes import settings as settings_routes
 from app.core.config import settings
 from app.core.logging import configure_logging, logger
 from app.core.ratelimit import limiter
@@ -75,7 +76,7 @@ app.add_middleware(
     allow_origins=[settings.frontend_origin],
     allow_credentials=True,
     # Lista explícita: com allow_credentials=True o navegador ignora curingas.
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-CSRF-Token", "X-Request-ID"],
     max_age=600,
 )
@@ -111,6 +112,7 @@ for r in (
     audit.router,
     system_users.router,
     backup.router,
+    settings_routes.router,
 ):
     app.include_router(r, prefix=_p)
 

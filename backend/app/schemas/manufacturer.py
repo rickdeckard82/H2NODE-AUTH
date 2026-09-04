@@ -42,3 +42,7 @@ class ManufacturerOut(ManufacturerBase):
     equipment_count: int = 0
     created_at: datetime
     updated_at: datetime
+
+
+class ManufacturerSecretOut(BaseModel):
+    radius_secret: str | None

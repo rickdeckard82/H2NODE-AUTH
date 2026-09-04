@@ -5,6 +5,7 @@ import { AppShell } from "./layouts/AppShell";
 import { useAuth, type Role } from "./lib/auth";
 
 const LoginPage = lazy(() => import("./features/auth/LoginPage"));
+const SetPasswordPage = lazy(() => import("./features/auth/SetPasswordPage"));
 const PrivacyPage = lazy(() => import("./features/legal/PrivacyPage"));
 const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
 const AuthUsersPage = lazy(() => import("./features/auth-users/AuthUsersPage"));
@@ -14,6 +15,7 @@ const ManufacturersPage = lazy(() => import("./features/manufacturers/Manufactur
 const PrivilegeProfilesPage = lazy(() => import("./features/privilege-profiles/PrivilegeProfilesPage"));
 const SystemUsersPage = lazy(() => import("./features/system-users/SystemUsersPage"));
 const BackupPage = lazy(() => import("./features/backup/BackupPage"));
+const SmtpSettingsPage = lazy(() => import("./features/settings/SmtpSettingsPage"));
 const AccountingPage = lazy(() => import("./features/accounting/AccountingPage"));
 const AuthenticationPage = lazy(() => import("./features/reports/AuthenticationPage"));
 const AuthorizationPage = lazy(() => import("./features/reports/AuthorizationPage"));
@@ -67,6 +69,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/set-password",
+    element: (
+      <Suspense fallback={<Loader />}>
+        <SetPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
     path: "/",
     element: <Shell />,
     children: [
@@ -107,6 +117,14 @@ export const router = createBrowserRouter([
         element: (
           <Protected roles={["superadmin"]}>
             <BackupPage />
+          </Protected>
+        ),
+      },
+      {
+        path: "settings/smtp",
+        element: (
+          <Protected roles={["superadmin"]}>
+            <SmtpSettingsPage />
           </Protected>
         ),
       },

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { RevealSecretButton } from "../../components/RevealSecret";
 import {
   Badge,
   Button,
@@ -246,6 +247,13 @@ export default function EquipmentPage() {
                 <td className="td text-right">
                   {writable && (
                     <div className="flex justify-end gap-2">
+                      {eq.secret_source !== "none" && (
+                        <RevealSecretButton
+                          title={`Segredo RADIUS — ${eq.name}`}
+                          hint="Esta consulta fica registrada na auditoria."
+                          load={() => api.get(`/equipment/${eq.id}/secret`)}
+                        />
+                      )}
                       <button
                         className="text-brand-600 hover:underline dark:text-brand-400"
                         onClick={() =>

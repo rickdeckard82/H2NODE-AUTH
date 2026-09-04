@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { RevealSecretButton } from "../../components/RevealSecret";
 import { Badge, Button, Card, Field, Modal, PageHeader, Spinner, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { fmtDate } from "../../lib/format";
@@ -143,6 +144,13 @@ export default function ManufacturersPage() {
                   <td className="td">{fmtDate(m.updated_at)}</td>
                   <td className="td text-right">
                     <div className="flex justify-end gap-2">
+                      {m.has_secret && (
+                        <RevealSecretButton
+                          title={`Segredo RADIUS — ${m.display_name}`}
+                          hint="Esta consulta fica registrada na auditoria."
+                          load={() => api.get(`/manufacturers/${m.id}/secret`)}
+                        />
+                      )}
                       <button
                         className="text-brand-600 hover:underline dark:text-brand-400"
                         onClick={() =>
