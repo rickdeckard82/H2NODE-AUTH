@@ -20,6 +20,15 @@ authorize {
             &FreeRADIUS-Client-Secret    := "%{sql:SELECT secret FROM nas WHERE nasname = '%{Packet-Src-IP-Address}' LIMIT 1}"
             &FreeRADIUS-Client-NAS-Type  := "%{sql:SELECT COALESCE(NULLIF(type,''),'other') FROM nas WHERE nasname = '%{Packet-Src-IP-Address}' LIMIT 1}"
         }
+        # Exceção por NAS (equipamento com firmware antigo, ex. RouterOS
+        # pré-BlastRADIUS): só sobrescreve quando explicitamente desligado no
+        # cadastro (nas.require_message_authenticator = 0); senão herda a
+        # política global (client `dynamic` em clients.conf / RADIUS_REQUIRE_MA).
+        if ("%{sql:SELECT require_message_authenticator FROM nas WHERE nasname = '%{Packet-Src-IP-Address}' LIMIT 1}" == "0") {
+            update control {
+                &FreeRADIUS-Client-Require-MA := no
+            }
+        }
         ok
     }
     else {

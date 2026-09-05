@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -37,6 +37,10 @@ class Equipment(Base, TimestampMixin):
         Enum(EquipmentStatus, native_enum=False, length=16), default=EquipmentStatus.active
     )
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # False => exceção pontual (equipamentos com firmware antigo que não enviam
+    # Message-Authenticator, ex. RouterOS pré-BlastRADIUS): desliga a exigência
+    # só para este NAS, sem afetar a política global (RADIUS_REQUIRE_MA).
+    radius_require_message_authenticator: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[int | None] = mapped_column(
         ForeignKey("app_system_user.id", ondelete="SET NULL"), nullable=True
     )

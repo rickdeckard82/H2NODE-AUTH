@@ -16,6 +16,28 @@ def test_create_equipment_creates_nas(auth_client, seeded):
     assert nas.type == "huawei"
 
 
+def test_require_message_authenticator_exception_propagates_to_nas(auth_client, seeded):
+    mid = first_manufacturer_id(seeded)
+    r = auth_client.post("/api/equipment", json={
+        "name": "mk-legacy", "mgmt_ip": "10.0.0.9", "manufacturer_id": mid,
+        "shortname": "mk-legacy", "radius_secret": "s3cr3t-shared",
+        "radius_require_message_authenticator": False,
+    })
+    assert r.status_code == 201, r.text
+    assert r.json()["radius_require_message_authenticator"] is False
+    nas = seeded.query(Nas).filter_by(nasname="10.0.0.9").one()
+    assert nas.require_message_authenticator is False
+
+    eq_id = r.json()["id"]
+    up = auth_client.patch(f"/api/equipment/{eq_id}", json={
+        "radius_require_message_authenticator": True,
+    })
+    assert up.status_code == 200, up.text
+    assert up.json()["radius_require_message_authenticator"] is True
+    seeded.refresh(nas)
+    assert nas.require_message_authenticator is True
+
+
 def test_equipment_inherits_manufacturer_secret(auth_client, seeded):
     mid = first_manufacturer_id(seeded)
     # define o segredo padrão no fabricante

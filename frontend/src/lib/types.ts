@@ -100,6 +100,7 @@ export interface Equipment {
   secret_source: "equipment" | "manufacturer" | "none";
   has_own_tacacs_key: boolean;
   tacacs_key_source: "equipment" | "manufacturer" | "none";
+  radius_require_message_authenticator: boolean;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;

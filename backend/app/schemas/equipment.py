@@ -19,6 +19,9 @@ class EquipmentBase(BaseModel):
     # None => herda o protocolo do grupo (fabricante).
     aaa_protocol: AaaProtocol | None = None
     description: str | None = Field(default=None, max_length=255)
+    # False => exceção para firmware antigo que não envia Message-Authenticator
+    # (ex.: RouterOS pré-BlastRADIUS). Mantenha True salvo necessidade comprovada.
+    radius_require_message_authenticator: bool = True
 
     @field_validator("mgmt_ip")
     @classmethod
@@ -51,6 +54,8 @@ class EquipmentUpdate(BaseModel):
     inherit_protocol: bool = False
     tacacs_key: str | None = Field(default=None, min_length=6, max_length=128)
     inherit_tacacs_key: bool = False
+    # None => não mexe.
+    radius_require_message_authenticator: bool | None = None
 
     @field_validator("mgmt_ip")
     @classmethod

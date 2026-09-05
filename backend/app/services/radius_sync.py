@@ -166,6 +166,7 @@ def sync_equipment(db: Session, eq: Equipment, *, manufacturer: Manufacturer) ->
         else "other"
     )
     nas.description = f"{eq.name} ({eq.model or manufacturer.display_name})"[:200]
+    nas.require_message_authenticator = eq.radius_require_message_authenticator
 
 
 def resync_manufacturer_equipment(db: Session, manufacturer: Manufacturer) -> int:

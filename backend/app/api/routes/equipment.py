@@ -39,6 +39,7 @@ def _to_out(eq: Equipment) -> EquipmentOut:
         id=eq.id, name=eq.name, mgmt_ip=eq.mgmt_ip, manufacturer_id=eq.manufacturer_id,
         model=eq.model, site=eq.site, shortname=eq.shortname, coa_port=eq.coa_port,
         status=eq.status, description=eq.description, aaa_protocol=eq.aaa_protocol,
+        radius_require_message_authenticator=eq.radius_require_message_authenticator,
         manufacturer_name=eq.manufacturer.name, manufacturer_display=eq.manufacturer.display_name,
         vendor_kind=eq.manufacturer.vendor_kind,
         has_own_secret=bool(eq.radius_secret_enc), secret_source=_secret_source(eq),
@@ -130,6 +131,7 @@ def create_equipment(
         name=body.name, mgmt_ip=body.mgmt_ip, manufacturer_id=body.manufacturer_id,
         model=body.model, site=body.site, shortname=body.shortname, coa_port=body.coa_port,
         status=body.status, description=body.description, aaa_protocol=body.aaa_protocol,
+        radius_require_message_authenticator=body.radius_require_message_authenticator,
         radius_secret_enc=encrypt(body.radius_secret) if body.radius_secret else None,
         tacacs_key_enc=encrypt(body.tacacs_key) if body.tacacs_key else None,
         created_by=actor.id,
@@ -164,7 +166,8 @@ def update_equipment(
         if db.execute(select(Equipment).where(Equipment.mgmt_ip == body.mgmt_ip)).first():
             raise HTTPException(status.HTTP_409_CONFLICT, "IP de gerência já em uso")
         eq.mgmt_ip = body.mgmt_ip
-    for field in ("name", "model", "site", "shortname", "coa_port", "status", "description"):
+    for field in ("name", "model", "site", "shortname", "coa_port", "status", "description",
+                  "radius_require_message_authenticator"):
         val = getattr(body, field)
         if val is not None:
             setattr(eq, field, val)

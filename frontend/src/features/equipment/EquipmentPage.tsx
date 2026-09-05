@@ -33,6 +33,7 @@ interface FormState {
   aaa_protocol: "" | AaaProtocol;
   tacacs_key: string;
   inherit_tacacs_key: boolean;
+  radius_require_message_authenticator: boolean;
 }
 
 const empty: FormState = {
@@ -50,6 +51,7 @@ const empty: FormState = {
   aaa_protocol: "",
   tacacs_key: "",
   inherit_tacacs_key: false,
+  radius_require_message_authenticator: true,
 };
 
 const STATUS_TONE: Record<Equipment["status"], "green" | "amber" | "red"> = {
@@ -102,6 +104,7 @@ export default function EquipmentPage() {
         coa_port: f.coa_port,
         status: f.status,
         description: f.description || null,
+        radius_require_message_authenticator: f.radius_require_message_authenticator,
       };
       if (f.id && f.inherit_secret) body.inherit_secret = true;
       else if (f.radius_secret) body.radius_secret = f.radius_secret;
@@ -228,9 +231,15 @@ export default function EquipmentPage() {
                   <Badge tone="blue">{eq.manufacturer_display}</Badge>
                 </td>
                 <td className="td">
-                  <Badge tone={eq.effective_protocol === "tacacs" ? "amber" : "slate"}>
-                    {eq.effective_protocol}
-                  </Badge>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge tone={eq.effective_protocol === "tacacs" ? "amber" : "slate"}>
+                      {eq.effective_protocol}
+                    </Badge>
+                    {eq.effective_protocol === "radius" &&
+                      !eq.radius_require_message_authenticator && (
+                        <Badge tone="amber">sem Message-Authenticator</Badge>
+                      )}
+                  </div>
                 </td>
                 <td className="td">
                   {eq.secret_source === "equipment" && <Badge tone="slate">próprio</Badge>}
@@ -273,6 +282,8 @@ export default function EquipmentPage() {
                             aaa_protocol: eq.aaa_protocol ?? "",
                             tacacs_key: "",
                             inherit_tacacs_key: false,
+                            radius_require_message_authenticator:
+                              eq.radius_require_message_authenticator,
                           })
                         }
                       >
@@ -465,6 +476,30 @@ export default function EquipmentPage() {
                 </label>
               )}
             </div>
+            {effProto === "radius" && (
+              <div className="col-span-2">
+                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={form.radius_require_message_authenticator}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        radius_require_message_authenticator: e.target.checked,
+                      })
+                    }
+                  />
+                  Exigir Message-Authenticator (proteção contra BlastRADIUS)
+                </label>
+                {!form.radius_require_message_authenticator && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    Desmarque só para equipamentos com firmware antigo que ainda não enviam esse
+                    atributo (ex.: RouterOS anterior aos patches de 2024) — reduz a proteção
+                    contra o ataque BlastRADIUS só para este NAS. Prefira atualizar o firmware.
+                  </p>
+                )}
+              </div>
+            )}
             {effProto === "tacacs" && (
               <div className="col-span-2">
                 <Field

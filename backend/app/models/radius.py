@@ -6,7 +6,7 @@ configurado (env.py: include_object) para NUNCA gerá-las ou alterá-las.
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Integer, String
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -123,3 +123,6 @@ class Nas(Base):
     server: Mapped[str | None] = mapped_column(String(64))
     community: Mapped[str | None] = mapped_column(String(50))
     description: Mapped[str | None] = mapped_column(String(200), default="RADIUS Client")
+    # Coluna própria do Pulse RADIUS (fora do schema padrão do FreeRADIUS):
+    # False => exceção por NAS, ver Equipment.radius_require_message_authenticator.
+    require_message_authenticator: Mapped[bool] = mapped_column(Boolean, default=True)
