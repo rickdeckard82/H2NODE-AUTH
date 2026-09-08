@@ -56,6 +56,7 @@ class MfaVerifyIn(BaseModel):
 class MfaSetupOut(BaseModel):
     secret: str
     otpauth_uri: str
+    qr_svg: str  # data URI (image/svg+xml) do QR code do otpauth_uri
 
 
 class MfaCodeIn(BaseModel):

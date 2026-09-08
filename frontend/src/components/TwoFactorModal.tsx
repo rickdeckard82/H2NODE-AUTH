@@ -7,6 +7,7 @@ import { Button, Field, Modal, useToast } from "./ui";
 interface SetupOut {
   secret: string;
   otpauth_uri: string;
+  qr_svg: string;
 }
 
 type Step = "status" | "setup" | "disable";
@@ -114,9 +115,16 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
       {step === "setup" && setup && (
         <form className="space-y-4" onSubmit={onSubmitEnable}>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            No seu aplicativo autenticador, adicione uma conta usando esta chave (entrada
-            manual — "chave baseada em tempo"):
+            No seu aplicativo autenticador, escaneie o QR code abaixo — ou adicione a conta
+            manualmente com esta chave ("chave baseada em tempo"):
           </p>
+          <div className="flex justify-center">
+            <img
+              src={setup.qr_svg}
+              alt="QR code para configurar o 2FA no aplicativo autenticador"
+              className="h-48 w-48 rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700"
+            />
+          </div>
           <div className="break-all rounded-lg border border-slate-200 bg-slate-50 p-3 text-center font-mono text-sm tracking-wider dark:border-slate-800 dark:bg-slate-800/50">
             {setup.secret}
           </div>

@@ -281,7 +281,8 @@ def setup_mfa(
     secret = twofactor.generate_secret()
     user.mfa_secret = encrypt(secret)  # pendente até /mfa/enable confirmar o código
     db.commit()
-    return MfaSetupOut(secret=secret, otpauth_uri=twofactor.provisioning_uri(secret, username=user.username))
+    uri = twofactor.provisioning_uri(secret, username=user.username)
+    return MfaSetupOut(secret=secret, otpauth_uri=uri, qr_svg=twofactor.qr_data_uri(uri))
 
 
 @router.post("/mfa/enable", response_model=Message, dependencies=[Depends(enforce_csrf)])
