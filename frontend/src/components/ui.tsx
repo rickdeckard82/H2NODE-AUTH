@@ -3,10 +3,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
   type ButtonHTMLAttributes,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 
 /* ---------------- Card / headers ---------------- */
 
@@ -130,8 +132,28 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  // trava o scroll do body enquanto o modal está aberto
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
-  return (
+
+  // renderiza no <body> — escapa de qualquer ancestral com transform/overflow
+  // (ex.: a sidebar, que usa translate-x para a gaveta mobile).
+  return createPortal(
     <div
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm dark:bg-black/60 sm:p-10"
       onClick={onClose}
@@ -152,7 +174,8 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
