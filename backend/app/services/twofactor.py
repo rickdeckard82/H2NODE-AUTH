@@ -97,19 +97,18 @@ def hash_device_token(token: str) -> str:
 
 def register_trusted_device(
     user: SystemUser, *, user_agent: str | None, ip_address: str | None
-) -> str:
-    """Cria a linha do dispositivo confiável e devolve o token em claro (só para
-    o cookie). Sem commit — quem chama fecha a transação."""
+) -> tuple[str, MfaTrustedDevice]:
+    """Cria a linha do dispositivo confiável e devolve (token em claro p/ o
+    cookie, a linha). Sem commit — quem chama fecha a transação."""
     token = secrets.token_urlsafe(32)
-    user.mfa_trusted_devices.append(
-        MfaTrustedDevice(
-            token_hash=hash_device_token(token),
-            user_agent=(user_agent or "")[:255] or None,
-            ip_address=ip_address,
-            expires_at=utcnow() + timedelta(days=settings.mfa_trusted_device_ttl_days),
-        )
+    device = MfaTrustedDevice(
+        token_hash=hash_device_token(token),
+        user_agent=(user_agent or "")[:255] or None,
+        ip_address=ip_address,
+        expires_at=utcnow() + timedelta(days=settings.mfa_trusted_device_ttl_days),
     )
-    return token
+    user.mfa_trusted_devices.append(device)
+    return token, device
 
 
 def trusted_device_valid(user: SystemUser, token: str) -> bool:
@@ -127,5 +126,8 @@ def trusted_device_valid(user: SystemUser, token: str) -> bool:
     return False
 
 
-def discard_trusted_devices(user: SystemUser) -> None:
+def discard_trusted_devices(user: SystemUser) -> int:
+    """Remove todos os dispositivos confiáveis do utilizador; devolve quantos."""
+    n = len(user.mfa_trusted_devices)
     user.mfa_trusted_devices.clear()  # delete-orphan remove as linhas no flush
+    return n

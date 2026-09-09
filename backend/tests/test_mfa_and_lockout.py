@@ -260,6 +260,50 @@ def test_trusted_device_can_be_listed_and_revoked(auth_client):
     assert _login_expecting_mfa(auth_client)
 
 
+def test_trusted_device_history_in_audit(auth_client):
+    secret, _ = _enable_mfa(auth_client)
+    mfa_token = _login_expecting_mfa(auth_client)
+    verify = auth_client.post(
+        "/api/auth/mfa/verify",
+        json={"mfa_token": mfa_token, "code": _current_totp(secret), "remember_device": True},
+    )
+    auth_client.headers.update({"X-CSRF-Token": verify.json()["csrf_token"]})
+
+    trail = auth_client.get(
+        "/api/audit", params={"entity_type": "mfa_trusted_device"}
+    ).json()["items"]
+    assert [t["action"] for t in trail] == ["trust_device"]
+    assert trail[0]["actor_username"] == "admin"
+
+    dev_id = auth_client.get("/api/auth/mfa/trusted-devices").json()[0]["id"]
+    assert auth_client.delete(f"/api/auth/mfa/trusted-devices/{dev_id}").status_code == 204
+
+    actions = sorted(
+        t["action"]
+        for t in auth_client.get(
+            "/api/audit", params={"entity_type": "mfa_trusted_device"}
+        ).json()["items"]
+    )
+    assert actions == ["revoke_trusted_device", "trust_device"]
+
+    # trocar a senha derruba os dispositivos e deixa rastro
+    verify2 = auth_client.post(
+        "/api/auth/mfa/verify",
+        json={"mfa_token": _login_expecting_mfa(auth_client), "code": _current_totp(secret),
+              "remember_device": True},
+    )
+    auth_client.headers.update({"X-CSRF-Token": verify2.json()["csrf_token"]})
+    chg = auth_client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "changeme-admin-123", "new_password": "another-new-secret-9"},
+    )
+    assert chg.status_code == 200, chg.text
+    trail = auth_client.get(
+        "/api/audit", params={"entity_type": "mfa_trusted_device", "action": "revoke_trusted_devices"}
+    ).json()["items"]
+    assert trail and trail[0]["before_json"] and "password_changed" in trail[0]["before_json"]
+
+
 def test_disabling_mfa_drops_trusted_devices(auth_client):
     secret, _ = _enable_mfa(auth_client)
     mfa_token = _login_expecting_mfa(auth_client)

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { fmtDate } from "../lib/format";
+import { shortUA } from "../lib/ua";
 import { Button, Field, Modal, useToast } from "./ui";
 
 interface SetupOut {
@@ -25,33 +26,6 @@ interface TrustedDevice {
   last_used_at: string | null;
   expires_at: string;
   current: boolean;
-}
-
-function shortUA(ua: string | null): string {
-  if (!ua) return "Dispositivo desconhecido";
-  const os = /Windows/.test(ua)
-    ? "Windows"
-    : /Android/.test(ua)
-      ? "Android"
-      : /iPhone|iPad|iOS/.test(ua)
-        ? "iOS"
-        : /Mac OS X|Macintosh/.test(ua)
-          ? "macOS"
-          : /Linux/.test(ua)
-            ? "Linux"
-            : "outro SO";
-  const browser = /Edg\//.test(ua)
-    ? "Edge"
-    : /OPR\/|Opera/.test(ua)
-      ? "Opera"
-      : /Firefox\//.test(ua)
-        ? "Firefox"
-        : /Chrome\//.test(ua)
-          ? "Chrome"
-          : /Safari\//.test(ua)
-            ? "Safari"
-            : "navegador";
-  return `${browser} · ${os}`;
 }
 
 function TrustedDevices() {

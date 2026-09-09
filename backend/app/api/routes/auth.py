@@ -228,12 +228,20 @@ def verify_mfa(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
 
     if body.remember_device and settings.mfa_trusted_device_ttl_days > 0:
-        token = twofactor.register_trusted_device(
+        token, device = twofactor.register_trusted_device(
             user,
             user_agent=request.headers.get("user-agent"),
             ip_address=client_ip(request),
         )
         _set_trusted_device_cookie(response, token)
+        db.flush()  # materializa device.id p/ a auditoria
+        audit.record(
+            db, action="trust_device", entity_type="mfa_trusted_device",
+            entity_id=device.id, actor_id=user.id, actor_username=user.username,
+            ip_address=client_ip(request), user_agent=request.headers.get("user-agent"),
+            after={"user_agent": device.user_agent, "ip_address": device.ip_address,
+                   "expires_at": device.expires_at},
+        )
 
     return _complete_login(db, response, user, request)
 
@@ -302,12 +310,18 @@ def change_my_password(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "senha atual incorreta")
     user.password_hash = hash_password(body.new_password)
     # a senha pode ter vazado: derruba os dispositivos que pulavam o 2FA
-    twofactor.discard_trusted_devices(user)
+    dropped = twofactor.discard_trusted_devices(user)
     _clear_trusted_device_cookie(response)
     audit.record(
         db, action="change_password", entity_type="system_user", entity_id=user.id,
         actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
     )
+    if dropped:
+        audit.record(
+            db, action="revoke_trusted_devices", entity_type="mfa_trusted_device",
+            actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
+            before={"count": dropped, "reason": "password_changed"},
+        )
     db.commit()
     return Message(detail="senha alterada com sucesso")
 
@@ -363,10 +377,16 @@ def disable_mfa(
     user.mfa_enabled = False
     user.mfa_secret = None
     twofactor.discard_recovery_codes(user)
-    twofactor.discard_trusted_devices(user)
+    dropped = twofactor.discard_trusted_devices(user)
     _clear_trusted_device_cookie(response)
     audit.record(db, action="disable_mfa", entity_type="system_user", entity_id=user.id,
                  actor_id=user.id, actor_username=user.username, ip_address=client_ip(request))
+    if dropped:
+        audit.record(
+            db, action="revoke_trusted_devices", entity_type="mfa_trusted_device",
+            actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
+            before={"count": dropped, "reason": "mfa_disabled"},
+        )
     db.commit()
     return Message(detail="2FA desativado")
 
@@ -421,11 +441,11 @@ def revoke_all_trusted_devices(
     request: Request, response: Response,
     db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
 ) -> None:
-    twofactor.discard_trusted_devices(user)
+    dropped = twofactor.discard_trusted_devices(user)
     _clear_trusted_device_cookie(response)
-    audit.record(db, action="revoke_trusted_devices", entity_type="system_user",
-                 entity_id=user.id, actor_id=user.id, actor_username=user.username,
-                 ip_address=client_ip(request))
+    audit.record(db, action="revoke_trusted_devices", entity_type="mfa_trusted_device",
+                 actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
+                 before={"count": dropped, "reason": "manual"})
     db.commit()
 
 
@@ -441,10 +461,11 @@ def revoke_trusted_device(
     tok = request.cookies.get(settings.mfa_device_cookie_name)
     if tok and dev.token_hash == twofactor.hash_device_token(tok):
         _clear_trusted_device_cookie(response)
+    before = {"user_agent": dev.user_agent, "ip_address": dev.ip_address, "reason": "manual"}
     user.mfa_trusted_devices.remove(dev)
-    audit.record(db, action="revoke_trusted_device", entity_type="system_user",
-                 entity_id=user.id, actor_id=user.id, actor_username=user.username,
-                 ip_address=client_ip(request))
+    audit.record(db, action="revoke_trusted_device", entity_type="mfa_trusted_device",
+                 entity_id=device_id, actor_id=user.id, actor_username=user.username,
+                 ip_address=client_ip(request), before=before)
     db.commit()
 
 
