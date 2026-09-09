@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { RefreshButton } from "../../components/RefreshButton";
 import { Button, Card, PageHeader, Pagination, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
@@ -44,6 +45,7 @@ export default function AuthorizationPage() {
       <PageHeader
         title="Authorization"
         subtitle="Comandos executados nos equipamentos, com o IP de origem de quem executou"
+        actions={<RefreshButton keys={["authz"]} />}
       />
 
       <ReportFilters

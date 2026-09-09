@@ -151,9 +151,9 @@ export function CompareBar({
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
-        <h3 className="font-semibold">Aceitos vs. negados (24h)</h3>
+        <h3 className="font-semibold">Aceitos vs. negados (7 dias)</h3>
         <span className="text-sm text-slate-500 dark:text-slate-400">
-          {total ? `${aPct.toFixed(0)}% de aprovação` : "sem eventos nas últimas 24h"}
+          {total ? `${aPct.toFixed(0)}% de aprovação` : "sem eventos nos últimos 7 dias"}
         </span>
       </div>
 
@@ -185,6 +185,169 @@ export function CompareBar({
           <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
           Negados <b className="tabular-nums text-slate-800 dark:text-slate-100">{rejects}</b>
         </span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Séries diárias (7 dias) ---------------- */
+
+export interface DailyPoint {
+  date: string; // YYYY-MM-DD (UTC)
+  accepts: number;
+  rejects: number;
+  sessions: number;
+}
+
+/** "seg", "ter"… a partir de uma data ISO em UTC. */
+function dayLabel(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("pt-BR", { weekday: "short", timeZone: "UTC" }).replace(".", "");
+}
+
+/** Curva suave (Bézier com pontos de controle no ponto médio). */
+function smoothPath(pts: [number, number][]): string {
+  if (pts.length < 2) return "";
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[i + 1];
+    const mx = (x0 + x1) / 2;
+    d += ` C ${mx} ${y0}, ${mx} ${y1}, ${x1} ${y1}`;
+  }
+  return d;
+}
+
+/** Barras empilhadas (aceitos + negados) por dia, últimos 7 dias. */
+export function AuthTrendChart({ data }: { data: DailyPoint[] }) {
+  const max = Math.max(1, ...data.map((d) => d.accepts + d.rejects));
+  const totA = data.reduce((s, d) => s + d.accepts, 0);
+  const totR = data.reduce((s, d) => s + d.rejects, 0);
+  const total = totA + totR;
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3">
+        <h3 className="font-semibold">Autenticações por dia · 7 dias</h3>
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          {total ? `${((totA / total) * 100).toFixed(0)}% de aprovação` : "sem eventos"}
+        </span>
+      </div>
+
+      <div className="flex h-44 items-end gap-2 sm:gap-3">
+        {data.map((d, i) => {
+          const t = d.accepts + d.rejects;
+          const isToday = i === data.length - 1;
+          return (
+            <div
+              key={d.date}
+              className="group flex h-full flex-1 flex-col items-center justify-end gap-1.5"
+            >
+              <span className="text-[11px] tabular-nums text-slate-400 opacity-0 transition-opacity group-hover:opacity-100 dark:text-slate-500">
+                {t || " "}
+              </span>
+              <div
+                className="flex w-full max-w-[44px] flex-col-reverse overflow-hidden rounded-md bg-slate-100 ring-1 ring-inset ring-black/[0.03] transition-all dark:bg-slate-800 dark:ring-white/5"
+                style={{ height: `${Math.max((t / max) * 100, 2)}%` }}
+                title={`${dayLabel(d.date)} — ${d.accepts} aceitos · ${d.rejects} negados`}
+              >
+                <div
+                  className="w-full bg-emerald-500 transition-[flex-grow] duration-500"
+                  style={{ flexGrow: d.accepts }}
+                />
+                <div
+                  className="w-full bg-rose-500 transition-[flex-grow] duration-500"
+                  style={{ flexGrow: d.rejects }}
+                />
+              </div>
+              <span
+                className={`text-[11px] capitalize ${
+                  isToday
+                    ? "font-semibold text-slate-600 dark:text-slate-300"
+                    : "text-slate-400 dark:text-slate-500"
+                }`}
+              >
+                {dayLabel(d.date)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          Aceitos <b className="tabular-nums text-slate-800 dark:text-slate-100">{totA}</b>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+          Negados <b className="tabular-nums text-slate-800 dark:text-slate-100">{totR}</b>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Área suave: sessões iniciadas por dia, últimos 7 dias. */
+export function SessionsAreaChart({ data }: { data: DailyPoint[] }) {
+  const W = 300;
+  const H = 96;
+  const pad = 6;
+  const max = Math.max(1, ...data.map((d) => d.sessions));
+  const peak = Math.max(...data.map((d) => d.sessions), 0);
+  const total = data.reduce((s, d) => s + d.sessions, 0);
+
+  const pts: [number, number][] = data.map((d, i) => [
+    data.length > 1 ? (i / (data.length - 1)) * W : W / 2,
+    H - pad - (d.sessions / max) * (H - pad * 2),
+  ]);
+  const line = smoothPath(pts);
+  const area = line ? `${line} L ${W} ${H} L 0 ${H} Z` : "";
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
+        <h3 className="font-semibold">Sessões por dia · 7 dias</h3>
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          {total ? `${total} no total · pico ${peak}` : "sem sessões"}
+        </span>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={H}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Sessões por dia"
+        className="overflow-visible"
+      >
+        <defs>
+          <linearGradient id="sessGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={CHART_COLORS[0]} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={CHART_COLORS[0]} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {area && <path d={area} fill="url(#sessGrad)" />}
+        {line && (
+          <path
+            d={line}
+            fill="none"
+            stroke={CHART_COLORS[0]}
+            strokeWidth={2}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+      </svg>
+
+      <div className="mt-1 flex justify-between text-[11px] capitalize text-slate-400 dark:text-slate-500">
+        {data.map((d, i) => (
+          <span key={d.date} className={i === data.length - 1 ? "font-semibold" : ""}>
+            {dayLabel(d.date)}
+          </span>
+        ))}
       </div>
     </div>
   );

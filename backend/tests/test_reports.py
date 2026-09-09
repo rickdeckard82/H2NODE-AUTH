@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
-from app.models import CmdAcct, RadPostAuth
+from app.models import CmdAcct, RadAcct, RadPostAuth
 
 
 def _seed_authn(db):
@@ -100,3 +100,31 @@ def test_commands_csv_unescaped(auth_client, seeded):
 
 def test_reports_require_auth(client):
     assert client.get("/api/accounting/commands").status_code == 401
+
+
+def test_stats_covers_one_week_with_daily_series(auth_client, seeded):
+    now = datetime.now(UTC).replace(tzinfo=None)
+    seeded.add_all([
+        RadPostAuth(username="a", pass_="", reply="Access-Accept", authdate=now),
+        RadPostAuth(username="b", pass_="", reply="Access-Accept",
+                    authdate=now - timedelta(days=3)),
+        RadPostAuth(username="c", pass_="", reply="Access-Reject",
+                    authdate=now - timedelta(days=3)),
+        # fora da janela de 7 dias: não deve contar
+        RadPostAuth(username="d", pass_="", reply="Access-Accept",
+                    authdate=now - timedelta(days=9)),
+        RadAcct(radacctid=1, username="a", nasipaddress="10.0.0.1", acctsessionid="x1",
+                acctstarttime=now - timedelta(days=1), acctstoptime=None),
+    ])
+    seeded.commit()
+
+    s = auth_client.get("/api/accounting/stats").json()
+    assert s["accepts_7d"] == 2
+    assert s["rejects_7d"] == 1
+    assert s["active_sessions"] == 1
+    assert s["sessions_7d"] == 1
+    assert len(s["daily"]) == 7
+    assert s["daily"][-1]["accepts"] == 1  # hoje
+    assert sum(p["accepts"] for p in s["daily"]) == 2
+    assert sum(p["rejects"] for p in s["daily"]) == 1
+    assert [p["username"] for p in s["top_users_7d"]] == ["a"]

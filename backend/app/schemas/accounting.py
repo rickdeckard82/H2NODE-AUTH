@@ -43,9 +43,18 @@ class CommandEventOut(BaseModel):
     acctsessionid: str
 
 
+class DailyPoint(BaseModel):
+    date: str  # YYYY-MM-DD (UTC)
+    accepts: int
+    rejects: int
+    sessions: int
+
+
 class AccountingStats(BaseModel):
     active_sessions: int
-    sessions_last_24h: int
-    accepts_last_24h: int
-    rejects_last_24h: int
-    top_users_24h: list[dict]
+    sessions_7d: int
+    accepts_7d: int
+    rejects_7d: int
+    top_users_7d: list[dict]
+    # 7 pontos, do mais antigo ao mais recente (contando hoje).
+    daily: list[DailyPoint]

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { RefreshButton } from "../../components/RefreshButton";
 import { Badge, Card, Modal, PageHeader, Pagination, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
@@ -44,7 +45,11 @@ export default function AuditPage() {
 
   return (
     <div>
-      <PageHeader title="Auditoria" subtitle="Todas as ações administrativas realizadas no painel" />
+      <PageHeader
+        title="Auditoria"
+        subtitle="Todas as ações administrativas realizadas no painel"
+        actions={<RefreshButton keys={["audit"]} />}
+      />
 
       <Card className="mb-3 flex flex-wrap gap-2">
         <input

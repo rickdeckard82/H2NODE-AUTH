@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { RefreshButton } from "../../components/RefreshButton";
 import { Badge, Button, Card, PageHeader, Pagination, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
@@ -56,6 +57,7 @@ export default function AccountingPage() {
       <PageHeader
         title="Accounting"
         subtitle="Comandos executados nos equipamentos e sessões de login (radacct)"
+        actions={<RefreshButton keys={["acct-commands", "acct-sessions"]} />}
       />
 
       <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">

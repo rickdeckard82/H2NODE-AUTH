@@ -15,6 +15,7 @@ from app.schemas.accounting import (
     AccountingStats,
     AuthEventOut,
     CommandEventOut,
+    DailyPoint,
     SessionOut,
 )
 from app.schemas.common import Page
@@ -267,36 +268,65 @@ def export_commands_csv(
     )
 
 
+_REJECT_FILTER = or_(RadPostAuth.reply.like("Access-Reject%"), RadPostAuth.reply == "")
+_ACCEPT_FILTER = RadPostAuth.reply.like("Access-Accept%")
+
+
+def _count_by_day(db: Session, col, *filters, start: datetime) -> dict[str, int]:
+    """{'YYYY-MM-DD': n} agrupado por dia (UTC) de `col`, a partir de `start`."""
+    rows = db.execute(
+        select(func.date(col).label("d"), func.count().label("n"))
+        .where(col >= start, *filters)
+        .group_by(func.date(col))
+    ).all()
+    return {str(d): n for d, n in rows}
+
+
 @router.get("/stats", response_model=AccountingStats)
 def stats(db: Session = Depends(get_db)) -> AccountingStats:
     now = datetime.now(UTC).replace(tzinfo=None)
-    day_ago = now - timedelta(hours=24)
+    week_ago = now - timedelta(days=7)
+    # 00:00 UTC de 6 dias atrás => 7 baldes diários contando hoje
+    first_day = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
 
     active = db.execute(
         select(func.count()).select_from(RadAcct).where(RadAcct.acctstoptime.is_(None))
     ).scalar_one()
-    last24 = db.execute(
-        select(func.count()).select_from(RadAcct).where(RadAcct.acctstarttime >= day_ago)
+    sessions_7d = db.execute(
+        select(func.count()).select_from(RadAcct).where(RadAcct.acctstarttime >= week_ago)
     ).scalar_one()
-    accepts = db.execute(
+    accepts_7d = db.execute(
         select(func.count()).select_from(RadPostAuth).where(
-            RadPostAuth.authdate >= day_ago, RadPostAuth.reply.like("Access-Accept%")
+            RadPostAuth.authdate >= week_ago, _ACCEPT_FILTER
         )
     ).scalar_one()
-    rejects = db.execute(
+    rejects_7d = db.execute(
         select(func.count()).select_from(RadPostAuth).where(
-            RadPostAuth.authdate >= day_ago,
-            or_(RadPostAuth.reply.like("Access-Reject%"), RadPostAuth.reply == ""),
+            RadPostAuth.authdate >= week_ago, _REJECT_FILTER
         )
     ).scalar_one()
     top = db.execute(
         select(RadAcct.username, func.count().label("n"))
-        .where(RadAcct.acctstarttime >= day_ago)
-        .group_by(RadAcct.username).order_by(func.count().desc()).limit(5)
+        .where(RadAcct.acctstarttime >= week_ago)
+        .group_by(RadAcct.username).order_by(func.count().desc()).limit(6)
     ).all()
 
+    acc_day = _count_by_day(db, RadPostAuth.authdate, _ACCEPT_FILTER, start=first_day)
+    rej_day = _count_by_day(db, RadPostAuth.authdate, _REJECT_FILTER, start=first_day)
+    sess_day = _count_by_day(db, RadAcct.acctstarttime, start=first_day)
+    daily = [
+        DailyPoint(
+            date=(d := (first_day + timedelta(days=i)).date().isoformat()),
+            accepts=acc_day.get(d, 0),
+            rejects=rej_day.get(d, 0),
+            sessions=sess_day.get(d, 0),
+        )
+        for i in range(7)
+    ]
+
     return AccountingStats(
-        active_sessions=active, sessions_last_24h=last24,
-        accepts_last_24h=accepts, rejects_last_24h=rejects,
-        top_users_24h=[{"username": u, "sessions": n} for u, n in top],
+        active_sessions=active, sessions_7d=sessions_7d,
+        accepts_7d=accepts_7d, rejects_7d=rejects_7d,
+        top_users_7d=[{"username": u, "sessions": n} for u, n in top],
+        daily=daily,
     )

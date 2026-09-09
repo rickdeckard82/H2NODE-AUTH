@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { RefreshButton } from "../../components/RefreshButton";
 import { Badge, Button, Card, PageHeader, Pagination, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
@@ -47,6 +48,7 @@ export default function AuthenticationPage() {
       <PageHeader
         title="Authentication"
         subtitle="Tentativas de login nos equipamentos (RADIUS e TACACS+), com IP de origem e destino"
+        actions={<RefreshButton keys={["authn"]} />}
       />
 
       <ReportFilters
