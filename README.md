@@ -7,7 +7,7 @@ com painel web para gestão. Stack: **FreeRADIUS 3.2 + MySQL 8** para o AAA,
 | Camada | O que faz |
 |---|---|
 | **Authentication** | Valida usuário/senha (PAP, senha em hash SSHA2-512 no `radcheck`). |
-| **Authorization** | Perfil de privilégio → atributos RADIUS por fabricante (Huawei, Juniper, Datacom, Mikrotik). |
+| **Authorization** | Perfil de privilégio → atributos RADIUS por fabricante (Huawei, Juniper, Datacom, Mikrotik, A10). |
 | **Accounting** | Start/Interim/Stop em `radacct`; tentativas de auth em `radpostauth`; dashboard e export CSV. |
 
 O painel permite cadastrar: **usuários de autenticação**, **equipamentos** (agrupados por

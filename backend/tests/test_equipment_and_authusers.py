@@ -103,6 +103,18 @@ def test_create_auth_user_writes_radcheck_and_group(auth_client, seeded):
     assert seeded.query(RadGroupReply).filter_by(groupname=grp.groupname).count() >= 1
 
 
+def test_a10_manufacturer_seeded_with_privilege_attr(auth_client, seeded):
+    from app.models import Manufacturer
+
+    m = seeded.query(Manufacturer).filter_by(name="a10").one()
+    assert m.vendor_kind.value == "a10"
+    assert m.radius_vendor_id == 22610
+
+    # os perfis embutidos carregam o VSA do A10 no radgroupreply
+    rows = seeded.query(RadGroupReply).filter_by(attribute="A10-Admin-Privilege").all()
+    assert {r.value for r in rows} == {"3", "12", "14"}
+
+
 def test_auth_group_crud_and_user_assignment(auth_client, seeded):
     from app.models import AuthGroupCidr
 

@@ -46,7 +46,7 @@ sudo ufw allow from <IP-DO-NPM> to any port 8080 proto tcp
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 1812 proto udp
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 1813 proto udp
 
-# TACACS+ (se usar Huawei/Juniper/Datacom com tac_plus-ng)
+# TACACS+ (se usar Huawei/Juniper/Datacom/A10 com tac_plus-ng)
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 49 proto tcp
 
 sudo ufw enable

@@ -27,6 +27,7 @@ MANUFACTURERS = [
     ("juniper", "Juniper", VendorKind.juniper, 2636),
     ("datacom", "Datacom", VendorKind.datacom, 3709),
     ("mikrotik", "Mikrotik", VendorKind.mikrotik, 14988),
+    ("a10", "A10 Networks", VendorKind.a10, 22610),
 ]
 
 # perfil -> descrição, {vendor_kind (slug) -> (attribute, value)}
@@ -38,6 +39,7 @@ PROFILES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
             "juniper": ("Juniper-Local-User-Name", "super-user"),
             "datacom": ("Datacom-Privilege-Level", "15"),
             "mikrotik": ("Mikrotik-Group", "full"),
+            "a10": ("A10-Admin-Privilege", "3"),
         },
     ),
     "operator": (
@@ -47,6 +49,7 @@ PROFILES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
             "juniper": ("Juniper-Local-User-Name", "operator"),
             "datacom": ("Datacom-Privilege-Level", "10"),
             "mikrotik": ("Mikrotik-Group", "write"),
+            "a10": ("A10-Admin-Privilege", "12"),
         },
     ),
     "read-only": (
@@ -56,6 +59,7 @@ PROFILES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
             "juniper": ("Juniper-Local-User-Name", "read-only"),
             "datacom": ("Datacom-Privilege-Level", "1"),
             "mikrotik": ("Mikrotik-Group", "read"),
+            "a10": ("A10-Admin-Privilege", "14"),
         },
     ),
 }

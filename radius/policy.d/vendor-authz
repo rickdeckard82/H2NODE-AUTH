@@ -19,6 +19,7 @@ vendor-authz {
                 &Juniper-Local-User-Name !* ANY
                 &Mikrotik-Group !* ANY
                 &Datacom-Privilege-Level !* ANY
+                &A10-Admin-Privilege !* ANY
             }
         }
         case "juniper" {
@@ -26,6 +27,7 @@ vendor-authz {
                 &Huawei-Exec-Privilege !* ANY
                 &Mikrotik-Group !* ANY
                 &Datacom-Privilege-Level !* ANY
+                &A10-Admin-Privilege !* ANY
             }
         }
         case "mikrotik" {
@@ -33,6 +35,7 @@ vendor-authz {
                 &Huawei-Exec-Privilege !* ANY
                 &Juniper-Local-User-Name !* ANY
                 &Datacom-Privilege-Level !* ANY
+                &A10-Admin-Privilege !* ANY
             }
         }
         case "datacom" {
@@ -40,6 +43,15 @@ vendor-authz {
                 &Huawei-Exec-Privilege !* ANY
                 &Juniper-Local-User-Name !* ANY
                 &Mikrotik-Group !* ANY
+                &A10-Admin-Privilege !* ANY
+            }
+        }
+        case "a10" {
+            update reply {
+                &Huawei-Exec-Privilege !* ANY
+                &Juniper-Local-User-Name !* ANY
+                &Mikrotik-Group !* ANY
+                &Datacom-Privilege-Level !* ANY
             }
         }
         case {

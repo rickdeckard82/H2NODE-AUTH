@@ -33,3 +33,25 @@ VALUE   Datacom-Privilege-Level         config          10
 VALUE   Datacom-Privilege-Level         admin           15
 
 END-VENDOR      Datacom
+
+# ─────────────────────────────────────────────────────────────
+# A10 Networks ACOS (Thunder / Thunder CGN — ex.: CGN 1040, 4440).
+# O `dictionary.a10` padrão do FreeRADIUS traz os VSA de assinante (AX/ADC),
+# mas nem sempre os de acesso administrativo — definimos aqui. Confirme
+# nome/numeração e os níveis reais com o guia de "Management Access" da SUA
+# release ACOS; o painel permite editar atributo/valor por perfil sem tocar
+# neste arquivo.
+# ─────────────────────────────────────────────────────────────
+
+VENDOR          A10                     22610
+
+BEGIN-VENDOR    A10
+
+ATTRIBUTE       A10-Admin-Privilege             1       integer
+ATTRIBUTE       A10-Admin-Partition             2       string
+
+VALUE   A10-Admin-Privilege             Root            3
+VALUE   A10-Admin-Privilege             Partition-EnableDisable 12
+VALUE   A10-Admin-Privilege             Read-Only       14
+
+END-VENDOR      A10

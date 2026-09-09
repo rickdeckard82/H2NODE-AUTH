@@ -135,7 +135,7 @@ traz o comando executado:
 
 - **Cisco e a maioria dos gateways** (`Cisco-AVPair = "cmd=..."` / `"shell:cmd=..."`)
   funcionam sem ajuste.
-- **Huawei / Juniper / Datacom**: confirme o VSA real do seu firmware com
+- **Huawei / Juniper / Datacom / A10**: confirme o VSA real do seu firmware com
   `freeradius -X` num comando executado e mapeie-o para `Pulse-Command` logo no
   início do bloco em `radius/sites-available/default`, por ex.:
 
@@ -151,7 +151,7 @@ e `db/init/01_db_users.sh`).
 
 ## TACACS+ (tac_plus-ng)
 
-Serviço `tacacs` (porta `49/tcp`). Cobre **Huawei / Juniper / Datacom** que falam
+Serviço `tacacs` (porta `49/tcp`). Cobre **Huawei / Juniper / Datacom / A10** que falam
 TACACS+ — o **MikroTik não tem cliente TACACS+** e continua em RADIUS.
 
 - **Autenticação/autorização** (usuário, senha, grupo): resolvidas em tempo de

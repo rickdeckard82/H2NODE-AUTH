@@ -13,6 +13,7 @@ class VendorKind(str, enum.Enum):
     juniper = "juniper"
     datacom = "datacom"
     mikrotik = "mikrotik"
+    a10 = "a10"  # A10 Networks ACOS (Thunder / Thunder CGN)
     generic = "generic"  # não filtra VSA (equipamento ignora atributos alheios)
 
 

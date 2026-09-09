@@ -38,6 +38,7 @@ const KIND_HINT: Record<VendorKind, string> = {
   juniper: "envia Juniper-Local-User-Name",
   datacom: "envia Datacom-Privilege-Level",
   mikrotik: "envia Mikrotik-Group",
+  a10: "envia A10-Admin-Privilege",
   generic: "não filtra VSA — envia todos os atributos do perfil",
 };
 
