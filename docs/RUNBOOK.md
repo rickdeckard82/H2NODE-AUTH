@@ -119,7 +119,11 @@ automático.
 
 ## Relatórios (Authentication / Authorization / Accounting)
 
-- **Authentication** — tentativas de login (`radpostauth`): Access-Accept/Reject.
+- **Authentication** — tentativas de login (`radpostauth`): Access-Accept/Reject,
+  com **protocolo** (RADIUS/TACACS+) e **IP de origem** (o equipamento) e **de
+  destino** (o servidor AAA). RADIUS grava direto pelo site `default`; TACACS+ é
+  importado do `access.log` do tac_plus-ng (ver abaixo). O `IP de destino` das
+  linhas TACACS+ só aparece se `TACACS_SERVER_IP` estiver definido.
 - **Authorization** — comandos executados (`cmd_acct`), com o IP de origem de quem
   executou.
 - **Accounting** — aba *Comandos* (`cmd_acct`, sem o IP de origem) + aba *Sessões*
@@ -165,6 +169,11 @@ TACACS+ — o **MikroTik não tem cliente TACACS+** e continua em RADIUS.
   `/var/log/tac_plus-ng/acct.log`; `tacacs/acct_import.py` (no mesmo container)
   segue o arquivo e insere em **`cmd_acct`** → aparece em *Authorization* e
   *Accounting* do painel.
+- **Tentativas de login**: o daemon grava as autenticações de shell em
+  `/var/log/tac_plus-ng/access.log`; `tacacs/authlog_import.py` segue o arquivo e
+  insere em **`radpostauth`** com `protocol='tacacs'` → aparece em
+  *Authentication*. Só as linhas `shell login succeeded/failed` são importadas
+  (as de autorização já vão para `cmd_acct`).
 - **Protocolo por equipamento**: no cadastro do grupo (padrão `radius`) e do
   equipamento (em branco = herda). `radius` ⇒ vira cliente `nas`; `tacacs` ⇒ vira
   `host` no `pulse.cfg`. Alternar remove de um lado e adiciona no outro.

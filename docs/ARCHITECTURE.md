@@ -53,7 +53,11 @@ em produção.
 1. `authorize`: `sql` carrega `radcheck`/`radgroupcheck`/`radgroupreply` do usuário e do grupo.
 2. Enforce de estado: consulta `app_auth_user` — se `is_active = 0` ou `expires_at` vencido → **reject**.
 3. `pap` valida a senha contra `SSHA2-512-Password`.
-4. `radpostauth` registra a tentativa (aceita ou negada).
+4. `post-auth` grava a tentativa em `radpostauth` (INSERT próprio, não o módulo
+   `sql` — sem senha em claro, com `nasipaddress`/`serveripaddress` de origem e
+   destino e `protocol='radius'`). Aceita e negada.
+   As de **TACACS+** entram na mesma tabela via `tacacs/authlog_import.py`
+   (`protocol='tacacs'`), lendo o `access.log` do tac_plus-ng.
 
 ### Authorization (Access-Accept)
 - O grupo `profile_<perfil>` traz em `radgroupreply` **um conjunto de VSAs por fabricante**.

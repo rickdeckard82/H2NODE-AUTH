@@ -92,6 +92,13 @@ class RadPostAuth(Base):
     reply: Mapped[str] = mapped_column(String(64), default="")
     authdate: Mapped[datetime] = mapped_column(DateTime)
     class_: Mapped[str | None] = mapped_column("class", String(64))
+    # Colunas próprias do Pulse (fora do schema padrão do FreeRADIUS):
+    # IP de origem (o equipamento) e de destino (o servidor AAA que recebeu),
+    # e o protocolo — 'radius' (gravado pelo site `default`) ou 'tacacs'
+    # (importado do access.log do tac_plus-ng por authlog_import.py).
+    nasipaddress: Mapped[str | None] = mapped_column(String(45), default=None)
+    serveripaddress: Mapped[str | None] = mapped_column(String(45), default=None)
+    protocol: Mapped[str] = mapped_column(String(8), default="radius")
 
 
 class CmdAcct(Base):

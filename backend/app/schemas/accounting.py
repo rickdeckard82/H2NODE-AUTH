@@ -25,6 +25,10 @@ class AuthEventOut(BaseModel):
     reply: str
     authdate: UtcDatetime
     accepted: bool
+    protocol: str = "radius"
+    source_ip: str | None = None
+    dest_ip: str | None = None
+    nas_name: str | None = None
 
 
 class CommandEventOut(BaseModel):

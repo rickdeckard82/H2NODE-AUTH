@@ -119,13 +119,25 @@ accounting {
 }
 
 # ──────────────────────────── POST-AUTH ──────────────────────────────
+# Nota: NÃO chamamos o módulo `sql` aqui — a query padrão de post-auth grava a
+# senha em claro e não tem IP de origem/destino. Fazemos o INSERT à mão em
+# radpostauth (mesma técnica do cmd_acct acima), com nasipaddress = equipamento,
+# serveripaddress = este servidor, protocol = 'radius' e pass vazio. O User-Name
+# já é validado no `authorize` (regex), e cada %{} dentro de %{sql:...} passa
+# pela função de escape do driver.
 post-auth {
     # Traduz o perfil em VSA do fabricante do NAS que originou o request
     # e remove os VSAs dos demais fabricantes.
     vendor-authz
 
     # Registra a tentativa (sucesso) em radpostauth.
-    sql
+    "%{sql: \
+        INSERT INTO radpostauth \
+          (username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) \
+        VALUES ( \
+          '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
+          '%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', '%{Packet-Dst-IP-Address}', 'radius' \
+        )}"
 
     update {
         &reply: += &session-state:
@@ -133,7 +145,13 @@ post-auth {
 
     Post-Auth-Type REJECT {
         # Registra a tentativa (falha) em radpostauth.
-        sql
+        "%{sql: \
+            INSERT INTO radpostauth \
+              (username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) \
+            VALUES ( \
+              '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
+              '%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', '%{Packet-Dst-IP-Address}', 'radius' \
+            )}"
         attr_filter.access_reject
         update reply { &Reply-Message := "Acesso negado" }
     }

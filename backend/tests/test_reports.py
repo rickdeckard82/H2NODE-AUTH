@@ -6,11 +6,17 @@ from app.models import CmdAcct, RadPostAuth
 def _seed_authn(db):
     now = datetime(2026, 9, 3, 18, 0, 0)
     db.add_all([
-        RadPostAuth(username="everton", pass_="", reply="Access-Accept", authdate=now),
+        RadPostAuth(username="everton", pass_="", reply="Access-Accept", authdate=now,
+                    protocol="radius", nasipaddress="10.0.0.1",
+                    serveripaddress="10.0.0.254"),
         RadPostAuth(username="everton", pass_="", reply="Access-Reject",
-                    authdate=now - timedelta(hours=1)),
+                    authdate=now - timedelta(hours=1), protocol="radius",
+                    nasipaddress="10.0.0.1", serveripaddress="10.0.0.254"),
         RadPostAuth(username="joao", pass_="", reply="Access-Accept",
-                    authdate=now - timedelta(days=2)),
+                    authdate=now - timedelta(days=2), protocol="radius"),
+        RadPostAuth(username="tacuser", pass_="", reply="Access-Accept",
+                    authdate=now - timedelta(minutes=5), protocol="tacacs",
+                    nasipaddress="10.0.0.2"),
     ])
     db.commit()
 
@@ -34,7 +40,11 @@ def test_authentication_list_and_filter(auth_client, seeded):
     _seed_authn(seeded)
     r = auth_client.get("/api/accounting/authentication")
     assert r.status_code == 200
-    assert r.json()["total"] == 3
+    assert r.json()["total"] == 4
+    top = r.json()["items"][0]  # mais recente = everton Access-Accept
+    assert top["source_ip"] == "10.0.0.1"
+    assert top["dest_ip"] == "10.0.0.254"
+    assert top["protocol"] == "radius"
 
     r = auth_client.get("/api/accounting/authentication", params={"accepted": "false"})
     assert [i["username"] for i in r.json()["items"]] == ["everton"]
@@ -44,18 +54,24 @@ def test_authentication_list_and_filter(auth_client, seeded):
     # data serializada com offset UTC explícito
     assert r.json()["items"][0]["authdate"].endswith("+00:00")
 
+    r = auth_client.get("/api/accounting/authentication", params={"protocol": "tacacs"})
+    assert r.json()["total"] == 1
+    assert r.json()["items"][0]["username"] == "tacuser"
+    assert r.json()["items"][0]["dest_ip"] is None
+
 
 def test_authentication_alias_still_works(auth_client, seeded):
     _seed_authn(seeded)
-    assert auth_client.get("/api/accounting/auth-events").json()["total"] == 3
+    assert auth_client.get("/api/accounting/auth-events").json()["total"] == 4
 
 
 def test_authentication_csv(auth_client, seeded):
     _seed_authn(seeded)
     r = auth_client.get("/api/accounting/authentication.csv")
     assert r.status_code == 200
-    assert "authdate_utc,username,reply" in r.text
+    assert "authdate_utc,protocol,username,source_ip,dest_ip,reply" in r.text
     assert "Access-Reject" in r.text
+    assert "tacacs" in r.text
 
 
 def test_commands_list_filter_and_unescape(auth_client, seeded):

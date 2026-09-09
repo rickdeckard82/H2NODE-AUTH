@@ -10,11 +10,13 @@ export default function AuthenticationPage() {
   const fmt = useFmtDate();
   const [filters, setFilters] = useState<ReportFilterState>(emptyFilters);
   const [accepted, setAccepted] = useState<"" | "true" | "false">("");
+  const [protocol, setProtocol] = useState<"" | "radius" | "tacacs">("");
   const [page, setPage] = useState(1);
 
   const query = {
     username: filters.username,
     accepted: accepted || undefined,
+    protocol: protocol || undefined,
     since: toIso(filters.since),
     until: toIso(filters.until),
   };
@@ -44,7 +46,7 @@ export default function AuthenticationPage() {
     <div>
       <PageHeader
         title="Authentication"
-        subtitle="Tentativas de login nos equipamentos (Access-Accept / Access-Reject)"
+        subtitle="Tentativas de login nos equipamentos (RADIUS e TACACS+), com IP de origem e destino"
       />
 
       <ReportFilters
@@ -52,6 +54,21 @@ export default function AuthenticationPage() {
         onChange={onFilters}
         right={
           <>
+            <label className="block">
+              <span className="label">Protocolo</span>
+              <select
+                className="input max-w-[130px]"
+                value={protocol}
+                onChange={(e) => {
+                  setProtocol(e.target.value as "" | "radius" | "tacacs");
+                  setPage(1);
+                }}
+              >
+                <option value="">Todos</option>
+                <option value="radius">RADIUS</option>
+                <option value="tacacs">TACACS+</option>
+              </select>
+            </label>
             <label className="block">
               <span className="label">Resultado</span>
               <select
@@ -79,14 +96,17 @@ export default function AuthenticationPage() {
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
               <th className="th">Data</th>
+              <th className="th">Protocolo</th>
               <th className="th">Usuário</th>
+              <th className="th">Origem</th>
+              <th className="th">Destino</th>
               <th className="th">Resultado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {list.isLoading && (
               <tr>
-                <td className="td" colSpan={3}>
+                <td className="td" colSpan={6}>
                   <Spinner className="h-5 w-5 text-brand-600" />
                 </td>
               </tr>
@@ -94,7 +114,19 @@ export default function AuthenticationPage() {
             {list.data?.items.map((e) => (
               <tr key={e.id}>
                 <td className="td whitespace-nowrap">{fmt(e.authdate)}</td>
+                <td className="td">
+                  <Badge tone={e.protocol === "tacacs" ? "amber" : "blue"}>
+                    {e.protocol === "tacacs" ? "TACACS+" : "RADIUS"}
+                  </Badge>
+                </td>
                 <td className="td font-medium">{e.username || "—"}</td>
+                <td className="td">
+                  <span className="font-mono text-xs">{e.source_ip || "—"}</span>
+                  {e.nas_name && (
+                    <div className="text-xs text-slate-400 dark:text-slate-500">{e.nas_name}</div>
+                  )}
+                </td>
+                <td className="td font-mono text-xs">{e.dest_ip || "—"}</td>
                 <td className="td">
                   {e.accepted ? (
                     <Badge tone="green">{e.reply || "Access-Accept"}</Badge>
@@ -106,7 +138,7 @@ export default function AuthenticationPage() {
             ))}
             {list.data?.items.length === 0 && (
               <tr>
-                <td className="td text-slate-400 dark:text-slate-500" colSpan={3}>
+                <td className="td text-slate-400 dark:text-slate-500" colSpan={6}>
                   Nenhum evento para o filtro.
                 </td>
               </tr>

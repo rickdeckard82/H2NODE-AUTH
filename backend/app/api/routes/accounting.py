@@ -119,7 +119,7 @@ def export_sessions_csv(
 
 
 # ─────────────────────────── Authentication (radpostauth) ───────────────────────────
-def _authn_stmt(username: str | None, accepted: bool | None,
+def _authn_stmt(username: str | None, accepted: bool | None, protocol: str | None,
                 since: datetime | None, until: datetime | None):
     stmt = select(RadPostAuth)
     if username:
@@ -129,6 +129,8 @@ def _authn_stmt(username: str | None, accepted: bool | None,
     elif accepted is False:
         stmt = stmt.where(or_(RadPostAuth.reply.like("Access-Reject%"),
                               RadPostAuth.reply == ""))
+    if protocol:
+        stmt = stmt.where(RadPostAuth.protocol == protocol)
     if since:
         stmt = stmt.where(RadPostAuth.authdate >= since)
     if until:
@@ -142,20 +144,27 @@ def list_authentication(
     db: Session = Depends(get_db),
     username: str | None = None,
     accepted: bool | None = None,
+    protocol: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
 ) -> Page[AuthEventOut]:
-    stmt = _authn_stmt(username, accepted, since, until)
+    stmt = _authn_stmt(username, accepted, protocol, since, until)
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
     rows = db.execute(
         stmt.order_by(RadPostAuth.authdate.desc())
         .limit(page_size).offset((page - 1) * page_size)
     ).scalars()
+    nas_names = _nas_names(db)
     items = [
-        AuthEventOut(id=r.id, username=r.username, reply=r.reply, authdate=r.authdate,
-                     accepted=r.reply.startswith("Access-Accept"))
+        AuthEventOut(
+            id=r.id, username=r.username, reply=r.reply, authdate=r.authdate,
+            accepted=r.reply.startswith("Access-Accept"),
+            protocol=r.protocol or "radius",
+            source_ip=r.nasipaddress or None, dest_ip=r.serveripaddress or None,
+            nas_name=nas_names.get(r.nasipaddress or ""),
+        )
         for r in rows
     ]
     return Page(items=items, total=total, page=page, page_size=page_size)
@@ -166,17 +175,19 @@ def export_authentication_csv(
     db: Session = Depends(get_db),
     username: str | None = None,
     accepted: bool | None = None,
+    protocol: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
 ) -> StreamingResponse:
-    stmt = _authn_stmt(username, accepted, since, until).order_by(
+    stmt = _authn_stmt(username, accepted, protocol, since, until).order_by(
         RadPostAuth.authdate.desc()
     ).limit(50000)
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["authdate_utc", "username", "reply"])
+    w.writerow(["authdate_utc", "protocol", "username", "source_ip", "dest_ip", "reply"])
     for r in db.execute(stmt).scalars():
-        w.writerow([r.authdate, r.username, r.reply])
+        w.writerow([r.authdate, r.protocol or "radius", r.username,
+                    r.nasipaddress or "", r.serveripaddress or "", r.reply])
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]), media_type="text/csv",

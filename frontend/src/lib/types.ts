@@ -141,6 +141,10 @@ export interface AuthEvent {
   reply: string;
   authdate: string;
   accepted: boolean;
+  protocol: string;
+  source_ip: string | null;
+  dest_ip: string | null;
+  nas_name: string | null;
 }
 
 export interface CommandEvent {
