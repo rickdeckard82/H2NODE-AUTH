@@ -123,10 +123,13 @@ def test_change_own_password(auth_client):
 
 def test_reveal_manufacturer_secret(auth_client, seeded):
     mid = first_manufacturer_id(seeded)
-    auth_client.patch(f"/api/manufacturers/{mid}", json={"radius_secret": "mfr-plain-secret"})
+    auth_client.patch(f"/api/manufacturers/{mid}", json={
+        "radius_secret": "mfr-plain-secret", "tacacs_key": "mfr-tac-key-9",
+    })
     r = auth_client.get(f"/api/manufacturers/{mid}/secret")
     assert r.status_code == 200, r.text
     assert r.json()["radius_secret"] == "mfr-plain-secret"
+    assert r.json()["tacacs_key"] == "mfr-tac-key-9"
 
 
 def test_reveal_equipment_secret_own_and_inherited(auth_client, seeded):

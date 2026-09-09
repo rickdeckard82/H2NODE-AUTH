@@ -168,6 +168,15 @@ export default function ManufacturersPage() {
                           load={() => api.get(`/manufacturers/${m.id}/secret`)}
                         />
                       )}
+                      {m.has_tacacs_key && (
+                        <RevealSecretButton
+                          title={`Chave TACACS+ — ${m.display_name}`}
+                          hint="Esta consulta fica registrada na auditoria."
+                          field="tacacs_key"
+                          label="Ver chave"
+                          load={() => api.get(`/manufacturers/${m.id}/secret`)}
+                        />
+                      )}
                       <button
                         className="text-brand-600 hover:underline dark:text-brand-400"
                         onClick={() =>

@@ -6,10 +6,14 @@ export function RevealSecretButton({
   title,
   hint,
   load,
+  field = "radius_secret",
+  label = "Ver senha",
 }: {
   title: string;
   hint?: string;
-  load: () => Promise<{ radius_secret: string | null }>;
+  load: () => Promise<Record<string, string | null>>;
+  field?: string;
+  label?: string;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -22,7 +26,7 @@ export function RevealSecretButton({
     setSecret(undefined);
     try {
       const res = await load();
-      setSecret(res.radius_secret);
+      setSecret(res[field] ?? null);
     } catch (e) {
       setOpen(false);
       toast("err", e instanceof ApiError ? e.detail : "Erro ao consultar o segredo");
@@ -44,7 +48,7 @@ export function RevealSecretButton({
         className="text-brand-600 hover:underline dark:text-brand-400"
         onClick={reveal}
       >
-        Ver senha
+        {label}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={title}>
         {loading ? (

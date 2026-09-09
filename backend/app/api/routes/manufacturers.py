@@ -53,7 +53,8 @@ def reveal_manufacturer_secret(
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
     db.commit()
     return ManufacturerSecretOut(
-        radius_secret=decrypt(m.radius_secret_enc) if m.radius_secret_enc else None
+        radius_secret=decrypt(m.radius_secret_enc) if m.radius_secret_enc else None,
+        tacacs_key=decrypt(m.tacacs_key_enc) if m.tacacs_key_enc else None,
     )
 
 

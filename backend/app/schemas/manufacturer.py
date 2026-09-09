@@ -46,3 +46,4 @@ class ManufacturerOut(ManufacturerBase):
 
 class ManufacturerSecretOut(BaseModel):
     radius_secret: str | None
+    tacacs_key: str | None = None
