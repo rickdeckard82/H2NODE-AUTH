@@ -2,9 +2,10 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Enum, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+from app.models.mfa_recovery_code import MfaRecoveryCode
 
 
 class SystemRole(str, enum.Enum):
@@ -40,6 +41,16 @@ class SystemUser(Base, TimestampMixin):
     # (backoff exponencial); zera no primeiro login bem-sucedido.
     lockout_strikes: Mapped[int] = mapped_column(Integer, default=0)
 
+    mfa_recovery_codes: Mapped[list[MfaRecoveryCode]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
     @property
     def has_password(self) -> bool:
         return self.password_hash is not None
+
+    @property
+    def mfa_recovery_codes_remaining(self) -> int:
+        return sum(1 for c in self.mfa_recovery_codes if c.used_at is None)

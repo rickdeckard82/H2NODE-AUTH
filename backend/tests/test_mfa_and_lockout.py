@@ -104,6 +104,90 @@ def test_mfa_setup_enable_login_and_disable(auth_client):
     assert auth_client.get("/api/auth/me").json()["mfa_enabled"] is False
 
 
+def _enable_mfa(auth_client) -> tuple[str, list[str]]:
+    secret = auth_client.post("/api/auth/mfa/setup").json()["secret"]
+    enable = auth_client.post("/api/auth/mfa/enable", json={"code": _current_totp(secret)})
+    assert enable.status_code == 200, enable.text
+    return secret, enable.json()["recovery_codes"]
+
+
+def test_enable_returns_recovery_codes_and_me_counts_them(auth_client):
+    _, codes = _enable_mfa(auth_client)
+    assert len(codes) == 10
+    assert len(set(codes)) == 10
+    assert auth_client.get("/api/auth/me").json()["mfa_recovery_codes_remaining"] == 10
+
+
+def test_recovery_code_logs_in_once_then_is_burned(auth_client):
+    _, codes = _enable_mfa(auth_client)
+    code = codes[0]
+
+    body = auth_client.post(
+        "/api/auth/login", json={"username": "admin", "password": "changeme-admin-123"}
+    ).json()
+    mfa_token = body["mfa_token"]
+
+    verify = auth_client.post(
+        "/api/auth/mfa/verify", json={"mfa_token": mfa_token, "code": code}
+    )
+    assert verify.status_code == 200, verify.text
+    auth_client.headers.update({"X-CSRF-Token": verify.json()["csrf_token"]})
+    assert auth_client.get("/api/auth/me").json()["mfa_recovery_codes_remaining"] == 9
+
+    # o mesmo código não serve uma segunda vez
+    body2 = auth_client.post(
+        "/api/auth/login", json={"username": "admin", "password": "changeme-admin-123"}
+    ).json()
+    reuse = auth_client.post(
+        "/api/auth/mfa/verify", json={"mfa_token": body2["mfa_token"], "code": code}
+    )
+    assert reuse.status_code == 401
+
+
+def test_recovery_code_can_disable_mfa(auth_client):
+    _, codes = _enable_mfa(auth_client)
+    disable = auth_client.post(
+        "/api/auth/mfa/disable",
+        json={"password": "changeme-admin-123", "code": codes[-1]},
+    )
+    assert disable.status_code == 200, disable.text
+    me = auth_client.get("/api/auth/me").json()
+    assert me["mfa_enabled"] is False
+    assert me["mfa_recovery_codes_remaining"] == 0
+
+
+def test_regenerate_recovery_codes_invalidates_the_old_set(auth_client):
+    secret, codes = _enable_mfa(auth_client)
+    regen = auth_client.post(
+        "/api/auth/mfa/recovery-codes/regenerate",
+        json={"password": "changeme-admin-123", "code": _current_totp(secret)},
+    )
+    assert regen.status_code == 200, regen.text
+    new_codes = regen.json()["recovery_codes"]
+    assert set(new_codes).isdisjoint(codes)
+    assert auth_client.get("/api/auth/me").json()["mfa_recovery_codes_remaining"] == 10
+
+    body = auth_client.post(
+        "/api/auth/login", json={"username": "admin", "password": "changeme-admin-123"}
+    ).json()
+    old = auth_client.post(
+        "/api/auth/mfa/verify", json={"mfa_token": body["mfa_token"], "code": codes[0]}
+    )
+    assert old.status_code == 401
+
+
+def test_regenerate_requires_valid_password_and_code(auth_client):
+    secret, _ = _enable_mfa(auth_client)
+    assert auth_client.post(
+        "/api/auth/mfa/recovery-codes/regenerate",
+        json={"password": "wrong", "code": _current_totp(secret)},
+    ).status_code == 401
+    assert auth_client.post(
+        "/api/auth/mfa/recovery-codes/regenerate",
+        json={"password": "changeme-admin-123", "code": "000000"},
+    ).status_code == 401
+
+
 def test_superadmin_can_reset_other_users_mfa(auth_client):
     r = auth_client.post("/api/system-users", json={
         "username": "mfa.user", "email": "mfa.user@example.com", "full_name": "MFA User",

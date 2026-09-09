@@ -8,7 +8,7 @@ from app.core.security import hash_password
 from app.models import SystemRole, SystemUser
 from app.schemas.common import Message, Page
 from app.schemas.system_user import SystemUserCreate, SystemUserOut, SystemUserUpdate
-from app.services import audit, invites, mailer
+from app.services import audit, invites, mailer, twofactor
 
 router = APIRouter(
     prefix="/system-users",
@@ -122,6 +122,7 @@ def reset_mfa(
         raise HTTPException(status.HTTP_409_CONFLICT, "2FA não está ativo para este utilizador")
     user.mfa_enabled = False
     user.mfa_secret = None
+    twofactor.discard_recovery_codes(user)
     audit.record(db, action="reset_mfa", entity_type="system_user", entity_id=user.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
     db.commit()

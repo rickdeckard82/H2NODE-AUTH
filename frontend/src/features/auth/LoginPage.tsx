@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [code, setCode] = useState("");
+  const [useRecovery, setUseRecovery] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -61,31 +62,54 @@ export default function LoginPage() {
               <div className="text-xl font-bold">Pulse RADIUS</div>
             </div>
             <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
-              Digite o código de 6 dígitos do seu aplicativo autenticador.
+              {useRecovery
+                ? "Digite um dos seus códigos de recuperação (uso único)."
+                : "Digite o código de 6 dígitos do seu aplicativo autenticador."}
             </p>
-            <Field label="Código de verificação" error={error ?? undefined}>
+            <Field
+              label={useRecovery ? "Código de recuperação" : "Código de verificação"}
+              error={error ?? undefined}
+            >
               <input
                 className="input text-center font-mono text-lg tracking-widest"
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
+                inputMode={useRecovery ? "text" : "numeric"}
                 autoComplete="one-time-code"
+                maxLength={useRecovery ? 13 : 6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) =>
+                  setCode(useRecovery ? e.target.value.toUpperCase() : e.target.value.replace(/\D/g, ""))
+                }
                 required
                 autoFocus
               />
             </Field>
-            <Button type="submit" className="mt-5 w-full" loading={busy} disabled={code.length !== 6}>
+            <Button
+              type="submit"
+              className="mt-5 w-full"
+              loading={busy}
+              disabled={useRecovery ? code.trim().length < 6 : code.length !== 6}
+            >
               Verificar
             </Button>
             <button
               type="button"
               className="mt-3 w-full text-center text-sm text-slate-500 hover:underline dark:text-slate-400"
               onClick={() => {
+                setUseRecovery((v) => !v);
+                setCode("");
+                setError(null);
+              }}
+            >
+              {useRecovery ? "Usar o código do autenticador" : "Usar um código de recuperação"}
+            </button>
+            <button
+              type="button"
+              className="mt-2 w-full text-center text-sm text-slate-500 hover:underline dark:text-slate-400"
+              onClick={() => {
                 setMfaToken(null);
                 setCode("");
                 setError(null);
+                setUseRecovery(false);
               }}
             >
               Voltar

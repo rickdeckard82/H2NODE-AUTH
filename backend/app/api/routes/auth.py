@@ -31,8 +31,11 @@ from app.schemas.auth import (
     MeOut,
     MfaCodeIn,
     MfaDisableIn,
+    MfaEnableOut,
+    MfaRegenerateIn,
     MfaSetupOut,
     MfaVerifyIn,
+    RecoveryCodesOut,
     SessionOut,
 )
 from app.schemas.common import Message
@@ -49,6 +52,13 @@ _TOKEN_GC_KEEP_DAYS = 1  # remove tokens expirados/revogados há mais de 1 dia
 
 def _lockout_minutes(strikes: int) -> int:
     return min(_LOCKOUT_BASE_MINUTES * (2 ** max(strikes - 1, 0)), _LOCKOUT_CAP_MINUTES)
+
+
+def _mfa_code_ok(user: SystemUser, code: str) -> bool:
+    """Aceita um TOTP válido OU consome (uso único) um código de recuperação."""
+    if user.mfa_secret and twofactor.verify_code(decrypt(user.mfa_secret), code):
+        return True
+    return twofactor.consume_recovery_code(user, code)
 
 
 def _gc_refresh_tokens(db: Session) -> None:
@@ -190,7 +200,7 @@ def verify_mfa(
     user = db.get(SystemUser, int(payload["sub"]))
     if user is None or not user.is_active or not user.mfa_enabled or not user.mfa_secret:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "sessão de 2FA inválida")
-    if not twofactor.verify_code(decrypt(user.mfa_secret), body.code):
+    if not _mfa_code_ok(user, body.code):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
 
     return _complete_login(db, response, user, request)
@@ -285,11 +295,11 @@ def setup_mfa(
     return MfaSetupOut(secret=secret, otpauth_uri=uri, qr_svg=twofactor.qr_data_uri(uri))
 
 
-@router.post("/mfa/enable", response_model=Message, dependencies=[Depends(enforce_csrf)])
+@router.post("/mfa/enable", response_model=MfaEnableOut, dependencies=[Depends(enforce_csrf)])
 def enable_mfa(
     body: MfaCodeIn, request: Request,
     db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
-) -> Message:
+) -> MfaEnableOut:
     if user.mfa_enabled:
         raise HTTPException(status.HTTP_409_CONFLICT, "2FA já está ativo")
     if not user.mfa_secret:
@@ -297,10 +307,11 @@ def enable_mfa(
     if not twofactor.verify_code(decrypt(user.mfa_secret), body.code):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
     user.mfa_enabled = True
+    codes = twofactor.issue_recovery_codes(user)
     audit.record(db, action="enable_mfa", entity_type="system_user", entity_id=user.id,
                  actor_id=user.id, actor_username=user.username, ip_address=client_ip(request))
     db.commit()
-    return Message(detail="2FA ativado")
+    return MfaEnableOut(detail="2FA ativado", recovery_codes=codes)
 
 
 @router.post("/mfa/disable", response_model=Message, dependencies=[Depends(enforce_csrf)])
@@ -312,14 +323,39 @@ def disable_mfa(
         raise HTTPException(status.HTTP_409_CONFLICT, "2FA não está ativo")
     if not user.password_hash or not verify_password(body.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "senha incorreta")
-    if not twofactor.verify_code(decrypt(user.mfa_secret), body.code):
+    if not _mfa_code_ok(user, body.code):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
     user.mfa_enabled = False
     user.mfa_secret = None
+    twofactor.discard_recovery_codes(user)
     audit.record(db, action="disable_mfa", entity_type="system_user", entity_id=user.id,
                  actor_id=user.id, actor_username=user.username, ip_address=client_ip(request))
     db.commit()
     return Message(detail="2FA desativado")
+
+
+@router.post(
+    "/mfa/recovery-codes/regenerate",
+    response_model=RecoveryCodesOut,
+    dependencies=[Depends(enforce_csrf)],
+)
+def regenerate_recovery_codes(
+    body: MfaRegenerateIn, request: Request,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> RecoveryCodesOut:
+    """Gera um lote novo de códigos de recuperação e invalida os anteriores."""
+    if not user.mfa_enabled or not user.mfa_secret:
+        raise HTTPException(status.HTTP_409_CONFLICT, "2FA não está ativo")
+    if not user.password_hash or not verify_password(body.password, user.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "senha incorreta")
+    if not _mfa_code_ok(user, body.code):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
+    codes = twofactor.issue_recovery_codes(user)
+    audit.record(db, action="regenerate_mfa_recovery_codes", entity_type="system_user",
+                 entity_id=user.id, actor_id=user.id, actor_username=user.username,
+                 ip_address=client_ip(request))
+    db.commit()
+    return RecoveryCodesOut(recovery_codes=codes)
 
 
 @router.get("/invite/{token}", response_model=InviteOut)

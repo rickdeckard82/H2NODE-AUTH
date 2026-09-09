@@ -20,6 +20,7 @@ export interface Me {
   is_active: boolean;
   timezone: string;
   mfa_enabled: boolean;
+  mfa_recovery_codes_remaining: number;
   last_login_at: string | null;
 }
 

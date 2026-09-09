@@ -4,6 +4,7 @@ from app.models.auth_user import AuthUser
 from app.models.base import Base
 from app.models.equipment import Equipment, EquipmentStatus
 from app.models.manufacturer import Manufacturer, VendorKind
+from app.models.mfa_recovery_code import MfaRecoveryCode
 from app.models.privilege_profile import PrivilegeProfile, PrivilegeProfileAttr
 from app.models.radius import (
     CmdAcct,
@@ -31,6 +32,7 @@ __all__ = [
     "EquipmentStatus",
     "Manufacturer",
     "VendorKind",
+    "MfaRecoveryCode",
     "PrivilegeProfile",
     "PrivilegeProfileAttr",
     "RefreshToken",

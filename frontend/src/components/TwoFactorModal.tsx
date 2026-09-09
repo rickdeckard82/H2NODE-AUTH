@@ -10,13 +10,66 @@ interface SetupOut {
   qr_svg: string;
 }
 
-type Step = "status" | "setup" | "disable";
+interface RecoveryOut {
+  recovery_codes: string[];
+}
+
+type Step = "status" | "setup" | "recovery" | "regenerate" | "disable";
+
+function RecoveryCodes({ codes }: { codes: string[] }) {
+  const toast = useToast();
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        Guarde estes <strong>códigos de recuperação</strong> num lugar seguro. Cada um
+        funciona <strong>uma única vez</strong> e serve para entrar ou desativar o 2FA se
+        você perder o aplicativo autenticador.
+      </p>
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-center font-mono text-sm dark:border-slate-800 dark:bg-slate-800/50">
+        {codes.map((c) => (
+          <span key={c} className="tracking-wider">
+            {c}
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            navigator.clipboard
+              .writeText(codes.join("\n"))
+              .then(() => toast("ok", "Códigos copiados"))
+              .catch(() => toast("err", "Não foi possível copiar"));
+          }}
+        >
+          Copiar
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            const blob = new Blob([codes.join("\n") + "\n"], { type: "text/plain" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "pulse-radius-codigos-recuperacao.txt";
+            a.click();
+            URL.revokeObjectURL(a.href);
+          }}
+        >
+          Baixar .txt
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user, refresh } = useAuth();
   const toast = useToast();
   const [step, setStep] = useState<Step>("status");
   const [setup, setSetup] = useState<SetupOut | null>(null);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +77,7 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
   function reset() {
     setStep("status");
     setSetup(null);
+    setRecoveryCodes(null);
     setCode("");
     setPassword("");
     setError(null);
@@ -44,13 +98,31 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
   });
 
   const confirmEnable = useMutation({
-    mutationFn: () => api.post("/auth/mfa/enable", { code }),
-    onSuccess: async () => {
+    mutationFn: () => api.post<{ detail: string } & RecoveryOut>("/auth/mfa/enable", { code }),
+    onSuccess: async (res) => {
       toast("ok", "2FA ativado");
       await refresh();
-      close();
+      setRecoveryCodes(res.recovery_codes);
+      setCode("");
+      setPassword("");
+      setError(null);
+      setStep("recovery");
     },
     onError: (e) => setError(e instanceof ApiError ? e.detail : "Código inválido"),
+  });
+
+  const regenerate = useMutation({
+    mutationFn: () =>
+      api.post<RecoveryOut>("/auth/mfa/recovery-codes/regenerate", { password, code }),
+    onSuccess: (res) => {
+      toast("ok", "Novos códigos gerados");
+      setRecoveryCodes(res.recovery_codes);
+      setCode("");
+      setPassword("");
+      setError(null);
+      setStep("recovery");
+    },
+    onError: (e) => setError(e instanceof ApiError ? e.detail : "Senha ou código inválido"),
   });
 
   const confirmDisable = useMutation({
@@ -63,17 +135,15 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
     onError: (e) => setError(e instanceof ApiError ? e.detail : "Senha ou código inválido"),
   });
 
-  function onSubmitEnable(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    confirmEnable.mutate();
+  function submit(fn: () => void) {
+    return (e: FormEvent) => {
+      e.preventDefault();
+      setError(null);
+      fn();
+    };
   }
 
-  function onSubmitDisable(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    confirmDisable.mutate();
-  }
+  const remaining = user?.mfa_recovery_codes_remaining ?? 0;
 
   return (
     <Modal open={open} onClose={close} title="Autenticação em duas etapas (2FA)">
@@ -84,6 +154,24 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 O 2FA está <strong>ativo</strong> na sua conta.
               </p>
+              <div className="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-slate-600 dark:text-slate-300">
+                    Códigos de recuperação restantes:{" "}
+                    <strong className={remaining <= 2 ? "text-red-600 dark:text-red-400" : ""}>
+                      {remaining}
+                    </strong>
+                  </span>
+                  <Button variant="ghost" onClick={() => setStep("regenerate")}>
+                    Gerar novos
+                  </Button>
+                </div>
+                {remaining <= 2 && (
+                  <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                    Você está quase sem códigos — gere um lote novo e guarde-o.
+                  </p>
+                )}
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={close}>
                   Fechar
@@ -113,7 +201,7 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
       )}
 
       {step === "setup" && setup && (
-        <form className="space-y-4" onSubmit={onSubmitEnable}>
+        <form className="space-y-4" onSubmit={submit(() => confirmEnable.mutate())}>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             No seu aplicativo autenticador, escaneie o QR code abaixo — ou adicione a conta
             manualmente com esta chave ("chave baseada em tempo"):
@@ -154,10 +242,20 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
         </form>
       )}
 
-      {step === "disable" && (
-        <form className="space-y-3" onSubmit={onSubmitDisable}>
+      {step === "recovery" && recoveryCodes && (
+        <div className="space-y-4">
+          <RecoveryCodes codes={recoveryCodes} />
+          <div className="flex justify-end">
+            <Button onClick={close}>Já guardei os códigos</Button>
+          </div>
+        </div>
+      )}
+
+      {step === "regenerate" && (
+        <form className="space-y-3" onSubmit={submit(() => regenerate.mutate())}>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Confirme sua senha e um código atual do autenticador para desativar o 2FA.
+            Confirme sua senha e um código atual (do autenticador ou um código de
+            recuperação ainda válido). Os códigos anteriores deixam de funcionar.
           </p>
           <Field label="Senha atual">
             <input
@@ -170,13 +268,51 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
               autoFocus
             />
           </Field>
-          <Field label="Código de verificação" error={error ?? undefined}>
+          <Field label="Código do autenticador ou de recuperação" error={error ?? undefined}>
             <input
               className="input text-center font-mono text-lg tracking-widest"
-              inputMode="numeric"
-              maxLength={6}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setCode(e.target.value)}
+              required
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setStep("status")}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              loading={regenerate.isPending}
+              disabled={code.trim().length < 6 || !password}
+            >
+              Gerar novos códigos
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {step === "disable" && (
+        <form className="space-y-3" onSubmit={submit(() => confirmDisable.mutate())}>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Confirme sua senha e um código para desativar o 2FA — pode ser o código atual
+            do autenticador ou um dos seus códigos de recuperação.
+          </p>
+          <Field label="Senha atual">
+            <input
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus
+            />
+          </Field>
+          <Field label="Código do autenticador ou de recuperação" error={error ?? undefined}>
+            <input
+              className="input text-center font-mono text-lg tracking-widest"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
               required
             />
           </Field>
@@ -184,7 +320,12 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
             <Button type="button" variant="ghost" onClick={close}>
               Cancelar
             </Button>
-            <Button type="submit" variant="danger" loading={confirmDisable.isPending} disabled={code.length !== 6}>
+            <Button
+              type="submit"
+              variant="danger"
+              loading={confirmDisable.isPending}
+              disabled={code.trim().length < 6 || !password}
+            >
               Desativar 2FA
             </Button>
           </div>

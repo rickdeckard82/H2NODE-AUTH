@@ -36,6 +36,7 @@ class MeOut(BaseModel):
     is_active: bool
     timezone: str
     mfa_enabled: bool
+    mfa_recovery_codes_remaining: int = 0
     last_login_at: UtcDatetime | None
 
 
@@ -48,9 +49,13 @@ class SessionOut(BaseModel):
     mfa_token: str | None = None
 
 
+# Aceita um TOTP de 6 dígitos OU um código de recuperação (XXXXX-XXXXX).
+_MfaOrRecovery = Field(min_length=6, max_length=32)
+
+
 class MfaVerifyIn(BaseModel):
     mfa_token: str
-    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    code: str = _MfaOrRecovery
 
 
 class MfaSetupOut(BaseModel):
@@ -65,4 +70,18 @@ class MfaCodeIn(BaseModel):
 
 class MfaDisableIn(BaseModel):
     password: str
-    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    code: str = _MfaOrRecovery
+
+
+class MfaRegenerateIn(BaseModel):
+    password: str
+    code: str = _MfaOrRecovery
+
+
+class MfaEnableOut(BaseModel):
+    detail: str
+    recovery_codes: list[str]
+
+
+class RecoveryCodesOut(BaseModel):
+    recovery_codes: list[str]
