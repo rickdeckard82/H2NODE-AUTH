@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { AppFooter } from "../components/AppFooter";
 import { ChangePasswordModal } from "../components/ChangePasswordModal";
@@ -99,16 +99,44 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate("/login", { replace: true });
   }
 
+  // trava o scroll do body enquanto o drawer mobile está aberto
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="min-h-screen overflow-x-clip lg:flex">
+      {open && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          className="fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
       <aside
-        className={`${
-          open ? "flex" : "hidden"
-        } w-full shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex lg:h-screen lg:w-64 lg:sticky lg:top-0`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[84vw] flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-out dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:shadow-none lg:transition-none ${
+          open ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        }`}
       >
         <div className="flex items-center gap-2.5 px-4 py-4">
           <Logo className="h-14 w-14 shrink-0" />
           <span className="text-lg font-bold tracking-tight">Pulse RADIUS</span>
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            className="ml-auto rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden"
+            onClick={() => setOpen(false)}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M5 5l10 10M15 5L5 15" />
+            </svg>
+          </button>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-6">
@@ -173,13 +201,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AppFooter className="px-4 py-3" />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-clip">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
           <button
-            className="rounded-lg border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 lg:hidden"
-            onClick={() => setOpen((v) => !v)}
+            type="button"
+            aria-label="Abrir menu"
+            className="-ml-1 rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 lg:hidden"
+            onClick={() => setOpen(true)}
           >
-            ☰
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 5h14M3 10h14M3 15h14" />
+            </svg>
           </button>
           <div className="relative ml-auto flex items-center gap-3 text-sm">
             {userMenuOpen && (
@@ -236,7 +268,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         )}
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 sm:p-6 xl:px-8">{children}</main>
       </div>
     </div>
   );
