@@ -59,6 +59,7 @@ export default function ManufacturersPage() {
 
   const save = useMutation({
     mutationFn: (f: FormState) => {
+      const isTacacs = f.aaa_protocol === "tacacs";
       const common = {
         display_name: f.display_name,
         vendor_kind: f.vendor_kind,
@@ -68,17 +69,23 @@ export default function ManufacturersPage() {
       };
       if (f.id) {
         const body: Record<string, unknown> = { ...common };
-        if (f.clear_secret) body.clear_secret = true;
-        else if (f.radius_secret) body.radius_secret = f.radius_secret;
-        if (f.clear_tacacs_key) body.clear_tacacs_key = true;
-        else if (f.tacacs_key) body.tacacs_key = f.tacacs_key;
+        // Só mexe no segredo RADIUS quando o grupo fala RADIUS; quando fala
+        // TACACS+ o campo nem aparece (evita sobrescrever com autofill do navegador).
+        if (!isTacacs) {
+          if (f.clear_secret) body.clear_secret = true;
+          else if (f.radius_secret) body.radius_secret = f.radius_secret;
+        }
+        if (isTacacs) {
+          if (f.clear_tacacs_key) body.clear_tacacs_key = true;
+          else if (f.tacacs_key) body.tacacs_key = f.tacacs_key;
+        }
         return api.patch(`/manufacturers/${f.id}`, body);
       }
       return api.post("/manufacturers", {
         ...common,
         name: f.name,
-        radius_secret: f.radius_secret || null,
-        tacacs_key: f.tacacs_key || null,
+        radius_secret: isTacacs ? null : f.radius_secret || null,
+        tacacs_key: isTacacs ? f.tacacs_key || null : null,
       });
     },
     onSuccess: () => {
@@ -271,32 +278,37 @@ export default function ManufacturersPage() {
               </Field>
             </div>
 
-            <Field
-              label={
-                form.id ? "Segredo RADIUS padrão (em branco = manter)" : "Segredo RADIUS padrão"
-              }
-              hint="Shared secret herdado pelos equipamentos deste fabricante que não tiverem um próprio. Guardado cifrado."
-            >
-              <input
-                className="input font-mono"
-                type="password"
-                value={form.radius_secret}
-                minLength={6}
-                disabled={form.clear_secret}
-                onChange={(e) => setForm({ ...form, radius_secret: e.target.value })}
-              />
-            </Field>
-            {form.id && (
-              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={form.clear_secret}
-                  onChange={(e) =>
-                    setForm({ ...form, clear_secret: e.target.checked, radius_secret: "" })
+            {form.aaa_protocol !== "tacacs" && (
+              <>
+                <Field
+                  label={
+                    form.id ? "Segredo RADIUS padrão (em branco = manter)" : "Segredo RADIUS padrão"
                   }
-                />
-                Remover o segredo padrão deste fabricante
-              </label>
+                  hint="Shared secret herdado pelos equipamentos deste fabricante que não tiverem um próprio. Guardado cifrado."
+                >
+                  <input
+                    className="input font-mono"
+                    type="password"
+                    autoComplete="new-password"
+                    value={form.radius_secret}
+                    minLength={6}
+                    disabled={form.clear_secret}
+                    onChange={(e) => setForm({ ...form, radius_secret: e.target.value })}
+                  />
+                </Field>
+                {form.id && (
+                  <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={form.clear_secret}
+                      onChange={(e) =>
+                        setForm({ ...form, clear_secret: e.target.checked, radius_secret: "" })
+                      }
+                    />
+                    Remover o segredo padrão deste fabricante
+                  </label>
+                )}
+              </>
             )}
 
             {form.aaa_protocol === "tacacs" && (
@@ -308,6 +320,7 @@ export default function ManufacturersPage() {
                   <input
                     className="input font-mono"
                     type="password"
+                    autoComplete="new-password"
                     value={form.tacacs_key}
                     minLength={6}
                     disabled={form.clear_tacacs_key}
