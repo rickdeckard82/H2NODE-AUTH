@@ -242,11 +242,27 @@ export default function EquipmentPage() {
                   </div>
                 </td>
                 <td className="td">
-                  {eq.secret_source === "equipment" && <Badge tone="slate">próprio</Badge>}
-                  {eq.secret_source === "manufacturer" && (
-                    <Badge tone="green">herdado do fabricante</Badge>
+                  {eq.effective_protocol === "tacacs" ? (
+                    <>
+                      {eq.tacacs_key_source === "equipment" && (
+                        <Badge tone="slate">chave própria</Badge>
+                      )}
+                      {eq.tacacs_key_source === "manufacturer" && (
+                        <Badge tone="green">chave herdada do grupo</Badge>
+                      )}
+                      {eq.tacacs_key_source === "none" && (
+                        <Badge tone="red">sem chave TACACS+</Badge>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {eq.secret_source === "equipment" && <Badge tone="slate">próprio</Badge>}
+                      {eq.secret_source === "manufacturer" && (
+                        <Badge tone="green">herdado do fabricante</Badge>
+                      )}
+                      {eq.secret_source === "none" && <Badge tone="red">sem segredo</Badge>}
+                    </>
                   )}
-                  {eq.secret_source === "none" && <Badge tone="red">sem segredo</Badge>}
                 </td>
                 <td className="td">{eq.site || "—"}</td>
                 <td className="td">
@@ -256,7 +272,7 @@ export default function EquipmentPage() {
                 <td className="td text-right">
                   {writable && (
                     <div className="flex justify-end gap-2">
-                      {eq.secret_source !== "none" && (
+                      {eq.effective_protocol === "radius" && eq.secret_source !== "none" && (
                         <RevealSecretButton
                           title={`Segredo RADIUS — ${eq.name}`}
                           hint="Esta consulta fica registrada na auditoria."
