@@ -29,6 +29,50 @@ interface AuthEvent {
   nas_name: string | null;
 }
 
+function AuthEventList({
+  title,
+  tone,
+  events,
+  loading,
+  emptyText,
+}: {
+  title: string;
+  tone: "rose" | "emerald";
+  events: AuthEvent[] | undefined;
+  loading: boolean;
+  emptyText: string;
+}) {
+  const fmtDate = useFmtDate();
+  const dot = tone === "rose" ? "bg-rose-500" : "bg-emerald-500";
+  return (
+    <Card>
+      <h3 className="mb-3 font-semibold">{title}</h3>
+      <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
+        {loading ? (
+          <li className="py-2">
+            <Spinner className="h-4 w-4 text-brand-600" />
+          </li>
+        ) : events && events.length ? (
+          events.map((e) => (
+            <li key={e.id} className="flex items-center justify-between gap-3 py-2">
+              <span className="flex min-w-0 items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+                <span className="truncate">{e.username || "—"}</span>
+              </span>
+              <span className="flex shrink-0 flex-wrap items-baseline justify-end gap-x-2 text-xs text-slate-400 dark:text-slate-500">
+                <span className="font-mono">{e.source_ip || "—"}</span>
+                <span>{fmtDate(e.authdate)}</span>
+              </span>
+            </li>
+          ))
+        ) : (
+          <li className="py-2 text-slate-400 dark:text-slate-500">{emptyText}</li>
+        )}
+      </ul>
+    </Card>
+  );
+}
+
 function Stat({
   label,
   value,
@@ -59,12 +103,16 @@ function Stat({
 }
 
 export default function DashboardPage() {
-  const fmtDate = useFmtDate();
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => api.get<Stats>("/accounting/stats") });
   const failures = useQuery({
     queryKey: ["recent-failures"],
     queryFn: () =>
       api.get<Page<AuthEvent>>("/accounting/authentication", { accepted: false, page_size: 8 }),
+  });
+  const successes = useQuery({
+    queryKey: ["recent-successes"],
+    queryFn: () =>
+      api.get<Page<AuthEvent>>("/accounting/authentication", { accepted: true, page_size: 8 }),
   });
 
   const d = stats.data;
@@ -78,7 +126,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Painel"
         subtitle="Visão geral do AAA — últimos 7 dias"
-        actions={<RefreshButton keys={["stats", "recent-failures"]} />}
+        actions={<RefreshButton keys={["stats", "recent-failures", "recent-successes"]} />}
       />
 
       {stats.isLoading || !d ? (
@@ -130,29 +178,22 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <Card>
-            <h3 className="mb-3 font-semibold">Falhas de autenticação recentes</h3>
-            <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
-              {failures.data?.items.length ? (
-                failures.data.items.map((e) => (
-                  <li key={e.id} className="flex items-center justify-between gap-3 py-2">
-                    <span className="flex min-w-0 items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
-                      <span className="truncate">{e.username || "—"}</span>
-                      <span className="shrink-0 font-mono text-xs font-normal text-slate-400 dark:text-slate-500">
-                        {e.source_ip || "—"}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
-                      {fmtDate(e.authdate)}
-                    </span>
-                  </li>
-                ))
-              ) : (
-                <li className="py-2 text-slate-400 dark:text-slate-500">Nenhuma falha recente</li>
-              )}
-            </ul>
-          </Card>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AuthEventList
+              title="Falhas de autenticação recentes"
+              tone="rose"
+              events={failures.data?.items}
+              loading={failures.isLoading}
+              emptyText="Nenhuma falha recente"
+            />
+            <AuthEventList
+              title="Sucessos de autenticação recentes"
+              tone="emerald"
+              events={successes.data?.items}
+              loading={successes.isLoading}
+              emptyText="Nenhum sucesso recente"
+            />
+          </div>
         </div>
       )}
     </div>
