@@ -25,6 +25,8 @@ interface AuthEvent {
   reply: string;
   authdate: string;
   accepted: boolean;
+  source_ip: string | null;
+  nas_name: string | null;
 }
 
 function Stat({
@@ -134,11 +136,14 @@ export default function DashboardPage() {
               {failures.data?.items.length ? (
                 failures.data.items.map((e) => (
                   <li key={e.id} className="flex items-center justify-between gap-3 py-2">
-                    <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                    <span className="flex min-w-0 items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
-                      {e.username || "—"}
+                      <span className="truncate">{e.username || "—"}</span>
+                      <span className="shrink-0 font-mono text-xs font-normal text-slate-400 dark:text-slate-500">
+                        {e.source_ip || "—"}
+                      </span>
                     </span>
-                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                    <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
                       {fmtDate(e.authdate)}
                     </span>
                   </li>
