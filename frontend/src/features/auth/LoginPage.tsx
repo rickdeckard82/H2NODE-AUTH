@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [code, setCode] = useState("");
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [useRecovery, setUseRecovery] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -43,7 +44,7 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await verifyMfa(mfaToken, code);
+      await verifyMfa(mfaToken, code, rememberDevice);
       navigate("/", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : "Código inválido");
@@ -83,9 +84,17 @@ export default function LoginPage() {
                 autoFocus
               />
             </Field>
+            <label className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={rememberDevice}
+                onChange={(e) => setRememberDevice(e.target.checked)}
+              />
+              Confiar neste dispositivo (não pedir o código por 30 dias)
+            </label>
             <Button
               type="submit"
-              className="mt-5 w-full"
+              className="mt-4 w-full"
               loading={busy}
               disabled={useRecovery ? code.trim().length < 6 : code.length !== 6}
             >
@@ -110,6 +119,7 @@ export default function LoginPage() {
                 setCode("");
                 setError(null);
                 setUseRecovery(false);
+                setRememberDevice(false);
               }}
             >
               Voltar

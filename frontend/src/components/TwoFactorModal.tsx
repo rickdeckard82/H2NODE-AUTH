@@ -1,7 +1,8 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { fmtDate } from "../lib/format";
 import { Button, Field, Modal, useToast } from "./ui";
 
 interface SetupOut {
@@ -15,6 +16,123 @@ interface RecoveryOut {
 }
 
 type Step = "status" | "setup" | "recovery" | "regenerate" | "disable";
+
+interface TrustedDevice {
+  id: number;
+  user_agent: string | null;
+  ip_address: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string;
+  current: boolean;
+}
+
+function shortUA(ua: string | null): string {
+  if (!ua) return "Dispositivo desconhecido";
+  const os = /Windows/.test(ua)
+    ? "Windows"
+    : /Android/.test(ua)
+      ? "Android"
+      : /iPhone|iPad|iOS/.test(ua)
+        ? "iOS"
+        : /Mac OS X|Macintosh/.test(ua)
+          ? "macOS"
+          : /Linux/.test(ua)
+            ? "Linux"
+            : "outro SO";
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /OPR\/|Opera/.test(ua)
+      ? "Opera"
+      : /Firefox\//.test(ua)
+        ? "Firefox"
+        : /Chrome\//.test(ua)
+          ? "Chrome"
+          : /Safari\//.test(ua)
+            ? "Safari"
+            : "navegador";
+  return `${browser} · ${os}`;
+}
+
+function TrustedDevices() {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["trusted-devices"],
+    queryFn: () => api.get<TrustedDevice[]>("/auth/mfa/trusted-devices"),
+  });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["trusted-devices"] });
+  const revoke = useMutation({
+    mutationFn: (id: number) => api.del(`/auth/mfa/trusted-devices/${id}`),
+    onSuccess: () => {
+      toast("ok", "Dispositivo removido");
+      invalidate();
+    },
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+  });
+  const revokeAll = useMutation({
+    mutationFn: () => api.del("/auth/mfa/trusted-devices"),
+    onSuccess: () => {
+      toast("ok", "Todos os dispositivos foram esquecidos");
+      invalidate();
+    },
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+  });
+
+  const devices = q.data ?? [];
+  return (
+    <div className="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium text-slate-700 dark:text-slate-200">
+          Dispositivos confiáveis
+        </span>
+        {devices.length > 0 && (
+          <Button variant="ghost" onClick={() => revokeAll.mutate()} loading={revokeAll.isPending}>
+            Esquecer todos
+          </Button>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        Navegadores que pulam o código do 2FA no login. A validade (30 dias) renova a cada
+        acesso.
+      </p>
+      {q.isLoading ? (
+        <p className="mt-2 text-slate-400">Carregando…</p>
+      ) : devices.length === 0 ? (
+        <p className="mt-2 text-slate-400 dark:text-slate-500">
+          Nenhum — o 2FA é pedido em todo login.
+        </p>
+      ) : (
+        <ul className="mt-2 divide-y divide-slate-100 dark:divide-slate-800">
+          {devices.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-3 py-2">
+              <div className="min-w-0">
+                <div className="truncate text-slate-700 dark:text-slate-200">
+                  {shortUA(d.user_agent)}
+                  {d.current && (
+                    <span className="ml-1 text-xs text-brand-600 dark:text-brand-400">
+                      (este dispositivo)
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-400 dark:text-slate-500">
+                  {d.ip_address ?? "IP desconhecido"} · expira {fmtDate(d.expires_at)}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 text-rose-600 hover:underline dark:text-rose-400"
+                onClick={() => revoke.mutate(d.id)}
+              >
+                Remover
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function RecoveryCodes({ codes }: { codes: string[] }) {
   const toast = useToast();
@@ -172,6 +290,7 @@ export function TwoFactorModal({ open, onClose }: { open: boolean; onClose: () =
                   </p>
                 )}
               </div>
+              <TrustedDevices />
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={close}>
                   Fechar

@@ -1,12 +1,16 @@
-"""2FA para utilizadores do painel: TOTP (RFC 6238) + códigos de recuperação."""
+"""2FA para utilizadores do painel: TOTP (RFC 6238) + códigos de recuperação
++ dispositivos confiáveis ("lembrar deste dispositivo")."""
 
+import hashlib
 import secrets
+from datetime import timedelta
 
 import pyotp
 import segno
 
+from app.core.config import settings
 from app.core.security import hash_password, utcnow, verify_password
-from app.models import MfaRecoveryCode, SystemUser
+from app.models import MfaRecoveryCode, MfaTrustedDevice, SystemUser
 
 _ISSUER = "Pulse RADIUS"
 
@@ -79,3 +83,49 @@ def consume_recovery_code(user: SystemUser, code: str) -> bool:
             row.used_at = utcnow()
             return True
     return False
+
+
+# --- Dispositivos confiáveis ("lembrar deste dispositivo") --------------------
+#
+# Token aleatório de 256 bits: entropia suficiente para guardar só o SHA-256
+# (sem sal/Argon2 — não é senha e precisa de lookup por hash a cada login).
+
+
+def hash_device_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def register_trusted_device(
+    user: SystemUser, *, user_agent: str | None, ip_address: str | None
+) -> str:
+    """Cria a linha do dispositivo confiável e devolve o token em claro (só para
+    o cookie). Sem commit — quem chama fecha a transação."""
+    token = secrets.token_urlsafe(32)
+    user.mfa_trusted_devices.append(
+        MfaTrustedDevice(
+            token_hash=hash_device_token(token),
+            user_agent=(user_agent or "")[:255] or None,
+            ip_address=ip_address,
+            expires_at=utcnow() + timedelta(days=settings.mfa_trusted_device_ttl_days),
+        )
+    )
+    return token
+
+
+def trusted_device_valid(user: SystemUser, token: str) -> bool:
+    """True se `token` casa com um dispositivo confiável não expirado do
+    utilizador. Nesse caso renova o uso e estende a validade (janela deslizante)."""
+    if not token:
+        return False
+    wanted = hash_device_token(token)
+    now = utcnow()
+    for dev in user.mfa_trusted_devices:
+        if secrets.compare_digest(dev.token_hash, wanted) and dev.expires_at > now:
+            dev.last_used_at = now
+            dev.expires_at = now + timedelta(days=settings.mfa_trusted_device_ttl_days)
+            return True
+    return False
+
+
+def discard_trusted_devices(user: SystemUser) -> None:
+    user.mfa_trusted_devices.clear()  # delete-orphan remove as linhas no flush

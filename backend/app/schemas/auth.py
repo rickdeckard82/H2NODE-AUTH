@@ -56,6 +56,21 @@ _MfaOrRecovery = Field(min_length=6, max_length=32)
 class MfaVerifyIn(BaseModel):
     mfa_token: str
     code: str = _MfaOrRecovery
+    # True => grava um cookie de "dispositivo confiável" e este navegador pula o
+    # 2FA nos próximos logins (janela deslizante, ver MFA_TRUSTED_DEVICE_TTL_DAYS).
+    remember_device: bool = False
+
+
+class TrustedDeviceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_agent: str | None
+    ip_address: str | None
+    created_at: UtcDatetime
+    last_used_at: UtcDatetime | None
+    expires_at: UtcDatetime
+    current: bool = False  # é o dispositivo de onde parte a requisição
 
 
 class MfaSetupOut(BaseModel):

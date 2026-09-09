@@ -40,7 +40,7 @@ interface AuthCtx {
   user: Me | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<LoginResult>;
-  verifyMfa: (mfaToken: string, code: string) => Promise<void>;
+  verifyMfa: (mfaToken: string, code: string, rememberDevice?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   can: (...roles: Role[]) => boolean;
@@ -69,13 +69,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { mfaRequired: false };
   }, []);
 
-  const verifyMfa = useCallback(async (mfaToken: string, code: string) => {
-    const res = await api.post<SessionResponse>("/auth/mfa/verify", {
-      mfa_token: mfaToken,
-      code,
-    });
-    setUser(res.user);
-  }, []);
+  const verifyMfa = useCallback(
+    async (mfaToken: string, code: string, rememberDevice = false) => {
+      const res = await api.post<SessionResponse>("/auth/mfa/verify", {
+        mfa_token: mfaToken,
+        code,
+        remember_device: rememberDevice,
+      });
+      setUser(res.user);
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     await api.post("/auth/logout").catch(() => undefined);

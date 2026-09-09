@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 from app.models.mfa_recovery_code import MfaRecoveryCode
+from app.models.mfa_trusted_device import MfaTrustedDevice
 
 
 class SystemRole(str, enum.Enum):
@@ -42,6 +43,11 @@ class SystemUser(Base, TimestampMixin):
     lockout_strikes: Mapped[int] = mapped_column(Integer, default=0)
 
     mfa_recovery_codes: Mapped[list[MfaRecoveryCode]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    mfa_trusted_devices: Mapped[list[MfaTrustedDevice]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         lazy="selectin",

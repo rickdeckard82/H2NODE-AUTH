@@ -199,6 +199,107 @@ def test_superadmin_can_reset_other_users_mfa(auth_client):
     assert auth_client.post(f"/api/system-users/{uid}/reset-mfa").status_code == 409
 
 
+def _login_expecting_mfa(client) -> str:
+    body = client.post(
+        "/api/auth/login", json={"username": "admin", "password": "changeme-admin-123"}
+    ).json()
+    assert body["mfa_required"] is True
+    return body["mfa_token"]
+
+
+def test_remember_device_skips_mfa_on_next_login(auth_client):
+    secret, _ = _enable_mfa(auth_client)
+
+    mfa_token = _login_expecting_mfa(auth_client)
+    verify = auth_client.post(
+        "/api/auth/mfa/verify",
+        json={"mfa_token": mfa_token, "code": _current_totp(secret), "remember_device": True},
+    )
+    assert verify.status_code == 200, verify.text
+    assert auth_client.cookies.get("pr_td")
+    auth_client.headers.update({"X-CSRF-Token": verify.json()["csrf_token"]})
+
+    # próximo login neste "navegador" não pede mais o código
+    again = auth_client.post(
+        "/api/auth/login", json={"username": "admin", "password": "changeme-admin-123"}
+    )
+    assert again.status_code == 200
+    assert again.json()["mfa_required"] is False
+    assert again.json()["user"]["username"] == "admin"
+
+
+def test_without_remember_device_mfa_is_still_required(auth_client):
+    secret, _ = _enable_mfa(auth_client)
+    mfa_token = _login_expecting_mfa(auth_client)
+    auth_client.post(
+        "/api/auth/mfa/verify",
+        json={"mfa_token": mfa_token, "code": _current_totp(secret)},
+    )
+    assert not auth_client.cookies.get("pr_td")
+    assert _login_expecting_mfa(auth_client)
+
+
+def test_trusted_device_can_be_listed_and_revoked(auth_client):
+    secret, _ = _enable_mfa(auth_client)
+    mfa_token = _login_expecting_mfa(auth_client)
+    verify = auth_client.post(
+        "/api/auth/mfa/verify",
+        json={"mfa_token": mfa_token, "code": _current_totp(secret), "remember_device": True},
+    )
+    auth_client.headers.update({"X-CSRF-Token": verify.json()["csrf_token"]})
+
+    devices = auth_client.get("/api/auth/mfa/trusted-devices").json()
+    assert len(devices) == 1
+    assert devices[0]["current"] is True
+
+    assert auth_client.delete(
+        f"/api/auth/mfa/trusted-devices/{devices[0]['id']}"
+    ).status_code == 204
+    assert auth_client.get("/api/auth/mfa/trusted-devices").json() == []
+    # revogado => o 2FA volta a ser exigido
+    assert _login_expecting_mfa(auth_client)
+
+
+def test_disabling_mfa_drops_trusted_devices(auth_client):
+    secret, _ = _enable_mfa(auth_client)
+    mfa_token = _login_expecting_mfa(auth_client)
+    verify = auth_client.post(
+        "/api/auth/mfa/verify",
+        json={"mfa_token": mfa_token, "code": _current_totp(secret), "remember_device": True},
+    )
+    auth_client.headers.update({"X-CSRF-Token": verify.json()["csrf_token"]})
+
+    auth_client.post(
+        "/api/auth/mfa/disable",
+        json={"password": "changeme-admin-123", "code": _current_totp(secret)},
+    )
+    # reativa o 2FA: não pode reaproveitar o dispositivo confiável antigo
+    secret2, _ = _enable_mfa(auth_client)
+    assert auth_client.get("/api/auth/mfa/trusted-devices").json() == []
+    assert _login_expecting_mfa(auth_client)
+
+
+def test_password_change_drops_trusted_devices(auth_client):
+    secret, _ = _enable_mfa(auth_client)
+    mfa_token = _login_expecting_mfa(auth_client)
+    verify = auth_client.post(
+        "/api/auth/mfa/verify",
+        json={"mfa_token": mfa_token, "code": _current_totp(secret), "remember_device": True},
+    )
+    auth_client.headers.update({"X-CSRF-Token": verify.json()["csrf_token"]})
+
+    changed = auth_client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "changeme-admin-123", "new_password": "brand-new-secret-1"},
+    )
+    assert changed.status_code == 200, changed.text
+    assert auth_client.get("/api/auth/mfa/trusted-devices").json() == []
+    body = auth_client.post(
+        "/api/auth/login", json={"username": "admin", "password": "brand-new-secret-1"}
+    ).json()
+    assert body["mfa_required"] is True
+
+
 def test_invite_accept_is_rate_limited(client):
     limiter.enabled = True
     try:

@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_ttl_minutes: int = Field(default=15, alias="ACCESS_TOKEN_TTL_MINUTES")
     refresh_token_ttl_days: int = Field(default=7, alias="REFRESH_TOKEN_TTL_DAYS")
+    # "Lembrar deste dispositivo" no 2FA: janela deslizante (renovada a cada
+    # login) em que o navegador pula a 2ª etapa.
+    mfa_trusted_device_ttl_days: int = Field(
+        default=30, alias="MFA_TRUSTED_DEVICE_TTL_DAYS"
+    )
     fernet_key: str = Field(alias="FERNET_KEY")
 
     # Storage do rate-limit. Vazio => memória (por worker). Redis => compartilhado.
@@ -83,6 +88,10 @@ class Settings(BaseSettings):
     @property
     def csrf_cookie_name(self) -> str:
         return "pr_csrf"
+
+    @property
+    def mfa_device_cookie_name(self) -> str:
+        return "pr_td"
 
 
 @lru_cache

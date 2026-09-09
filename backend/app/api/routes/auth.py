@@ -37,6 +37,7 @@ from app.schemas.auth import (
     MfaVerifyIn,
     RecoveryCodesOut,
     SessionOut,
+    TrustedDeviceOut,
 )
 from app.schemas.common import Message
 from app.services import audit, invites, twofactor
@@ -105,6 +106,21 @@ def _clear_auth_cookies(resp: Response) -> None:
         (settings.csrf_cookie_name, "/"),
     ):
         resp.delete_cookie(name, path=path, domain=settings.cookie_domain)
+    # o cookie de dispositivo confiável (pr_td) sobrevive de propósito ao logout
+
+
+def _set_trusted_device_cookie(resp: Response, token: str) -> None:
+    resp.set_cookie(
+        settings.mfa_device_cookie_name, token, httponly=True, path="/api/auth",
+        max_age=settings.mfa_trusted_device_ttl_days * 86400,
+        secure=settings.cookie_secure, samesite="strict", domain=settings.cookie_domain,
+    )
+
+
+def _clear_trusted_device_cookie(resp: Response) -> None:
+    resp.delete_cookie(
+        settings.mfa_device_cookie_name, path="/api/auth", domain=settings.cookie_domain
+    )
 
 
 def _issue_session(db: Session, resp: Response, user: SystemUser, request: Request) -> str:
@@ -181,6 +197,14 @@ def login(
         user.password_hash = hash_password(body.password)
 
     if user.mfa_enabled:
+        # dispositivo já marcado como confiável => pula a 2ª etapa
+        device_token = request.cookies.get(settings.mfa_device_cookie_name)
+        if (
+            settings.mfa_trusted_device_ttl_days > 0
+            and device_token
+            and twofactor.trusted_device_valid(user, device_token)
+        ):
+            return _complete_login(db, response, user, request)
         db.commit()  # persiste o rehash de senha, se houve, antes de sair sem sessão
         return SessionOut(mfa_required=True, mfa_token=create_mfa_token(str(user.id)))
 
@@ -202,6 +226,14 @@ def verify_mfa(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "sessão de 2FA inválida")
     if not _mfa_code_ok(user, body.code):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
+
+    if body.remember_device and settings.mfa_trusted_device_ttl_days > 0:
+        token = twofactor.register_trusted_device(
+            user,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=client_ip(request),
+        )
+        _set_trusted_device_cookie(response, token)
 
     return _complete_login(db, response, user, request)
 
@@ -263,12 +295,15 @@ def me(user: SystemUser = Depends(get_current_user)) -> MeOut:
 @router.patch("/me/password", response_model=Message, dependencies=[Depends(enforce_csrf)])
 @limiter.limit("10/minute")
 def change_my_password(
-    body: ChangePasswordIn, request: Request,
+    body: ChangePasswordIn, request: Request, response: Response,
     db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
 ) -> Message:
     if not user.password_hash or not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "senha atual incorreta")
     user.password_hash = hash_password(body.new_password)
+    # a senha pode ter vazado: derruba os dispositivos que pulavam o 2FA
+    twofactor.discard_trusted_devices(user)
+    _clear_trusted_device_cookie(response)
     audit.record(
         db, action="change_password", entity_type="system_user", entity_id=user.id,
         actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
@@ -316,7 +351,7 @@ def enable_mfa(
 
 @router.post("/mfa/disable", response_model=Message, dependencies=[Depends(enforce_csrf)])
 def disable_mfa(
-    body: MfaDisableIn, request: Request,
+    body: MfaDisableIn, request: Request, response: Response,
     db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
 ) -> Message:
     if not user.mfa_enabled or not user.mfa_secret:
@@ -328,6 +363,8 @@ def disable_mfa(
     user.mfa_enabled = False
     user.mfa_secret = None
     twofactor.discard_recovery_codes(user)
+    twofactor.discard_trusted_devices(user)
+    _clear_trusted_device_cookie(response)
     audit.record(db, action="disable_mfa", entity_type="system_user", entity_id=user.id,
                  actor_id=user.id, actor_username=user.username, ip_address=client_ip(request))
     db.commit()
@@ -356,6 +393,59 @@ def regenerate_recovery_codes(
                  ip_address=client_ip(request))
     db.commit()
     return RecoveryCodesOut(recovery_codes=codes)
+
+
+@router.get("/mfa/trusted-devices", response_model=list[TrustedDeviceOut])
+def list_trusted_devices(
+    request: Request,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> list[TrustedDeviceOut]:
+    """Dispositivos em que o 2FA foi lembrado (ainda válidos), mais recente primeiro."""
+    tok = request.cookies.get(settings.mfa_device_cookie_name)
+    current_hash = twofactor.hash_device_token(tok) if tok else None
+    now = utcnow()
+    return [
+        TrustedDeviceOut(
+            id=d.id, user_agent=d.user_agent, ip_address=d.ip_address,
+            created_at=d.created_at, last_used_at=d.last_used_at, expires_at=d.expires_at,
+            current=current_hash is not None and d.token_hash == current_hash,
+        )
+        for d in sorted(user.mfa_trusted_devices, key=lambda x: x.created_at, reverse=True)
+        if d.expires_at > now
+    ]
+
+
+@router.delete("/mfa/trusted-devices", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(enforce_csrf)])
+def revoke_all_trusted_devices(
+    request: Request, response: Response,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> None:
+    twofactor.discard_trusted_devices(user)
+    _clear_trusted_device_cookie(response)
+    audit.record(db, action="revoke_trusted_devices", entity_type="system_user",
+                 entity_id=user.id, actor_id=user.id, actor_username=user.username,
+                 ip_address=client_ip(request))
+    db.commit()
+
+
+@router.delete("/mfa/trusted-devices/{device_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(enforce_csrf)])
+def revoke_trusted_device(
+    device_id: int, request: Request, response: Response,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> None:
+    dev = next((d for d in user.mfa_trusted_devices if d.id == device_id), None)
+    if dev is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "dispositivo não encontrado")
+    tok = request.cookies.get(settings.mfa_device_cookie_name)
+    if tok and dev.token_hash == twofactor.hash_device_token(tok):
+        _clear_trusted_device_cookie(response)
+    user.mfa_trusted_devices.remove(dev)
+    audit.record(db, action="revoke_trusted_device", entity_type="system_user",
+                 entity_id=user.id, actor_id=user.id, actor_username=user.username,
+                 ip_address=client_ip(request))
+    db.commit()
 
 
 @router.get("/invite/{token}", response_model=InviteOut)
