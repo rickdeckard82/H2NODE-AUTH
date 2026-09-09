@@ -15,9 +15,11 @@ interface FormState {
   notes: string;
   radius_secret: string;
   clear_secret: boolean;
+  has_secret: boolean;
   aaa_protocol: AaaProtocol;
   tacacs_key: string;
   clear_tacacs_key: boolean;
+  has_tacacs_key: boolean;
 }
 
 const empty: FormState = {
@@ -28,9 +30,11 @@ const empty: FormState = {
   notes: "",
   radius_secret: "",
   clear_secret: false,
+  has_secret: false,
   aaa_protocol: "radius",
   tacacs_key: "",
   clear_tacacs_key: false,
+  has_tacacs_key: false,
 };
 
 const KIND_HINT: Record<VendorKind, string> = {
@@ -124,7 +128,7 @@ export default function ManufacturersPage() {
                 <th className="th">Nome</th>
                 <th className="th">Família (VSA)</th>
                 <th className="th">Vendor ID</th>
-                <th className="th">Segredo padrão</th>
+                <th className="th">Segredo / chave padrão</th>
                 <th className="th">Equipamentos</th>
                 <th className="th">Atualizado</th>
                 <th className="th" />
@@ -142,11 +146,16 @@ export default function ManufacturersPage() {
                   </td>
                   <td className="td">{m.radius_vendor_id ?? "—"}</td>
                   <td className="td">
-                    {m.has_secret ? (
-                      <Badge tone="green">definido</Badge>
-                    ) : (
-                      <Badge tone="amber">não definido</Badge>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      <Badge tone={m.aaa_protocol === "tacacs" ? "amber" : "blue"}>
+                        {m.aaa_protocol === "tacacs" ? "TACACS+" : "RADIUS"}
+                      </Badge>
+                      {(m.aaa_protocol === "tacacs" ? m.has_tacacs_key : m.has_secret) ? (
+                        <Badge tone="green">definido</Badge>
+                      ) : (
+                        <Badge tone="amber">não definido</Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="td">{m.equipment_count}</td>
                   <td className="td">{fmtDate(m.updated_at)}</td>
@@ -172,8 +181,10 @@ export default function ManufacturersPage() {
                             notes: m.notes ?? "",
                             radius_secret: "",
                             clear_secret: false,
+                            has_secret: m.has_secret,
                             tacacs_key: "",
                             clear_tacacs_key: false,
+                            has_tacacs_key: m.has_tacacs_key,
                           })
                         }
                       >
@@ -282,7 +293,9 @@ export default function ManufacturersPage() {
               <>
                 <Field
                   label={
-                    form.id ? "Segredo RADIUS padrão (em branco = manter)" : "Segredo RADIUS padrão"
+                    form.id
+                      ? `Segredo RADIUS padrão ${form.has_secret ? "(já definido — em branco = manter)" : "(em branco = manter)"}`
+                      : "Segredo RADIUS padrão"
                   }
                   hint="Shared secret herdado pelos equipamentos deste fabricante que não tiverem um próprio. Guardado cifrado."
                 >
@@ -314,7 +327,11 @@ export default function ManufacturersPage() {
             {form.aaa_protocol === "tacacs" && (
               <>
                 <Field
-                  label={form.id ? "Chave TACACS+ padrão (em branco = manter)" : "Chave TACACS+ padrão"}
+                  label={
+                    form.id
+                      ? `Chave TACACS+ padrão ${form.has_tacacs_key ? "(já definida — em branco = manter)" : "(em branco = manter)"}`
+                      : "Chave TACACS+ padrão"
+                  }
                   hint="Chave herdada pelos equipamentos TACACS+ deste fabricante. Guardada cifrada."
                 >
                   <input
