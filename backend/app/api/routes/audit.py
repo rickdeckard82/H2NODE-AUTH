@@ -6,13 +6,33 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import require_audit_reader
 from app.core.db import get_db
-from app.models import AuditLog
-from app.schemas.audit import AuditLogOut
+from app.core.security import utcnow
+from app.models import AuditLog, MfaTrustedDevice, SystemUser
+from app.schemas.audit import AuditLogOut, TrustedDeviceRow
 from app.schemas.common import Page
 
 router = APIRouter(
     prefix="/audit", tags=["audit"], dependencies=[Depends(require_audit_reader)]
 )
+
+
+@router.get("/trusted-devices", response_model=list[TrustedDeviceRow])
+def list_trusted_devices(db: Session = Depends(get_db)) -> list[TrustedDeviceRow]:
+    """Dispositivos memorizados no 2FA de todos os utilizadores do painel."""
+    now = utcnow()
+    rows = db.execute(
+        select(MfaTrustedDevice, SystemUser.username)
+        .join(SystemUser, SystemUser.id == MfaTrustedDevice.system_user_id)
+        .order_by(MfaTrustedDevice.created_at.desc())
+    ).all()
+    return [
+        TrustedDeviceRow(
+            id=d.id, username=uname, user_agent=d.user_agent, ip_address=d.ip_address,
+            created_at=d.created_at, last_used_at=d.last_used_at,
+            expires_at=d.expires_at, expired=d.expires_at <= now,
+        )
+        for d, uname in rows
+    ]
 
 
 @router.get("", response_model=Page[AuditLogOut])

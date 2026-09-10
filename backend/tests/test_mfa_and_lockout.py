@@ -275,6 +275,12 @@ def test_trusted_device_history_in_audit(auth_client):
     assert [t["action"] for t in trail] == ["trust_device"]
     assert trail[0]["actor_username"] == "admin"
 
+    # a aba lista o dispositivo ativo com o utilizador
+    active = auth_client.get("/api/audit/trusted-devices").json()
+    assert len(active) == 1
+    assert active[0]["username"] == "admin"
+    assert active[0]["expired"] is False
+
     dev_id = auth_client.get("/api/auth/mfa/trusted-devices").json()[0]["id"]
     assert auth_client.delete(f"/api/auth/mfa/trusted-devices/{dev_id}").status_code == 204
 

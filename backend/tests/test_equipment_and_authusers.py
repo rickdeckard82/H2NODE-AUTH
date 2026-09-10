@@ -195,8 +195,9 @@ def test_operator_permission_boundaries(auth_client, client, seeded):
 
     op = _operator_client(client, seeded)
 
-    # não vê a auditoria
+    # não vê a auditoria (nem o histórico de dispositivos 2FA)
     assert op.get("/api/audit").status_code == 403
+    assert op.get("/api/audit/trusted-devices").status_code == 403
     # não exclui equipamento nem usuário de autenticação
     assert op.delete(f"/api/equipment/{eq_id}").status_code == 403
     assert op.delete(f"/api/auth-users/{au_id}").status_code == 403

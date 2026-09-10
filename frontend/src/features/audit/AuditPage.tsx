@@ -22,6 +22,17 @@ const ACTION_TONE: Record<string, Tone> = {
 
 type View = "actions" | "devices";
 
+interface TrustedDevice {
+  id: number;
+  username: string | null;
+  user_agent: string | null;
+  ip_address: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string;
+  expired: boolean;
+}
+
 function safeParse(json: string | null): Record<string, unknown> {
   if (!json) return {};
   try {
@@ -89,6 +100,16 @@ export default function AuditPage() {
       }),
   });
 
+  const devices = useQuery({
+    queryKey: ["audit-trusted-devices"],
+    queryFn: () => api.get<TrustedDevice[]>("/audit/trusted-devices"),
+    enabled: isDevices,
+  });
+  const q = actor.trim().toLowerCase();
+  const activeDevices = (devices.data ?? []).filter(
+    (d) => !q || (d.username ?? "").toLowerCase().includes(q),
+  );
+
   function switchView(v: View) {
     setView(v);
     setPage(1);
@@ -105,10 +126,10 @@ export default function AuditPage() {
         title="Auditoria"
         subtitle={
           isDevices
-            ? "Histórico de dispositivos memorizados no 2FA (memorização e remoção)"
+            ? "Dispositivos memorizados no 2FA (ativos) e o histórico de memorização/remoção"
             : "Todas as ações administrativas realizadas no painel"
         }
-        actions={<RefreshButton keys={["audit"]} />}
+        actions={<RefreshButton keys={["audit", "audit-trusted-devices"]} />}
       />
 
       <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
@@ -173,7 +194,65 @@ export default function AuditPage() {
         )}
       </Card>
 
+      {isDevices && (
+        <Card className="mb-3 overflow-x-auto p-0">
+          <div className="flex items-baseline justify-between gap-3 px-3 pt-3">
+            <h3 className="font-semibold">Dispositivos memorizados (ativos)</h3>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              {activeDevices.length} {activeDevices.length === 1 ? "dispositivo" : "dispositivos"}
+            </span>
+          </div>
+          <table className="mt-2 min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+            <thead className="bg-slate-50 dark:bg-slate-800/50">
+              <tr>
+                <th className="th">Utilizador</th>
+                <th className="th">Dispositivo</th>
+                <th className="th">Origem</th>
+                <th className="th">Memorizado</th>
+                <th className="th">Último uso</th>
+                <th className="th">Expira</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {devices.isLoading && (
+                <tr>
+                  <td className="td" colSpan={6}>
+                    <Spinner className="h-5 w-5 text-brand-600" />
+                  </td>
+                </tr>
+              )}
+              {activeDevices.map((d) => (
+                <tr key={d.id}>
+                  <td className="td font-medium">{d.username || "—"}</td>
+                  <td className="td">{shortUA(d.user_agent)}</td>
+                  <td className="td font-mono text-xs">{d.ip_address || "—"}</td>
+                  <td className="td">{fmtDate(d.created_at)}</td>
+                  <td className="td">{d.last_used_at ? fmtDate(d.last_used_at) : "—"}</td>
+                  <td className="td">
+                    {d.expired ? (
+                      <Badge tone="red">expirado</Badge>
+                    ) : (
+                      fmtDate(d.expires_at)
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {!devices.isLoading && activeDevices.length === 0 && (
+                <tr>
+                  <td className="td text-slate-400 dark:text-slate-500" colSpan={6}>
+                    Nenhum dispositivo memorizado no momento.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
       <Card className="overflow-x-auto p-0">
+        {isDevices && (
+          <h3 className="px-3 pb-2 pt-3 font-semibold">Histórico de eventos</h3>
+        )}
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
@@ -234,7 +313,7 @@ export default function AuditPage() {
             {list.data?.items.length === 0 && (
               <tr>
                 <td className="td text-slate-400 dark:text-slate-500" colSpan={isDevices ? 5 : 7}>
-                  {isDevices ? "Nenhum dispositivo memorizado ainda." : "Nenhum registro."}
+                  {isDevices ? "Nenhum evento registrado ainda." : "Nenhum registro."}
                 </td>
               </tr>
             )}
