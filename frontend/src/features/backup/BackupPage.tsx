@@ -4,8 +4,6 @@ import { Button, Card, Field, PageHeader, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { useT } from "../../lib/i18n";
 
-const CONFIRM_WORD = "RESTAURAR";
-
 interface RestoreResult {
   statements: number;
   dump_schema_version: string | null;
@@ -14,6 +12,7 @@ interface RestoreResult {
 
 export default function BackupPage() {
   const t = useT();
+  const CONFIRM_WORD = t("RESTAURAR");
   const toast = useToast();
   const [includeAccounting, setIncludeAccounting] = useState(true);
   const [encryptExport, setEncryptExport] = useState(true);
@@ -53,7 +52,7 @@ export default function BackupPage() {
       setConfirm("");
       setFile(null);
       if (fileRef.current) fileRef.current.value = "";
-      toast(r.warning ? "err" : "ok", r.warning ?? "Backup restaurado. Faça login novamente.");
+      toast(r.warning ? "err" : "ok", r.warning ?? t("Backup restaurado. Faça login novamente."));
     },
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Falha ao restaurar")),
   });
@@ -122,13 +121,21 @@ export default function BackupPage() {
 
         <div className="mt-3 space-y-3">
           <Field label={t("Arquivo de backup (.sql ou .sql.enc)")}>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".sql,.enc,application/sql,application/octet-stream,text/plain"
-              className="input"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".sql,.enc,application/sql,application/octet-stream,text/plain"
+                className="hidden"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+              <Button type="button" variant="ghost" onClick={() => fileRef.current?.click()}>
+                {t("Escolher arquivo")}
+              </Button>
+              <span className="truncate text-sm text-slate-500 dark:text-slate-400">
+                {file?.name ?? t("Nenhum arquivo escolhido")}
+              </span>
+            </div>
           </Field>
           <Field label={t("Digite {palavra} para confirmar", { palavra: CONFIRM_WORD })}>
             <input

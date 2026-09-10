@@ -87,7 +87,7 @@ export default function SystemUsersPage() {
       });
     },
     onSuccess: (_, f) => {
-      toast("ok", f.sendInvite && !f.id ? "Usuário criado — convite enviado por e-mail" : t("Usuário salvo"));
+      toast("ok", f.sendInvite && !f.id ? t("Usuário criado — convite enviado por e-mail") : t("Usuário salvo"));
       setForm(null);
       invalidate();
     },

@@ -599,4 +599,13 @@ export const en: Record<string, string> = {
   "Operação: pode configurar, sem administração do dispositivo":
     "Operation: can configure, without device administration",
   "Somente leitura / auditoria": "Read-only / audit",
+  "{n} usuário": "{n} user",
+  "{n} usuários": "{n} users",
+  "{n} dispositivo": "{n} device",
+  "{n} dispositivos": "{n} devices",
+  "Backup restaurado. Faça login novamente.": "Backup restored. Sign in again.",
+  "Usuário criado — convite enviado por e-mail": "User created — invitation sent by email",
+  RESTAURAR: "RESTORE",
+  "Escolher arquivo": "Choose file",
+  "Nenhum arquivo escolhido": "No file chosen",
 };
