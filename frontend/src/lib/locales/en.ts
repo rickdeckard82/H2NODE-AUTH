@@ -608,4 +608,6 @@ export const en: Record<string, string> = {
   RESTAURAR: "RESTORE",
   "Escolher arquivo": "Choose file",
   "Nenhum arquivo escolhido": "No file chosen",
+  "Voltar a herdar o segredo do fabricante": "Go back to inheriting the vendor secret",
+  "Voltar a herdar a chave do grupo": "Go back to inheriting the group key",
 };

@@ -452,49 +452,58 @@ export default function EquipmentPage() {
               <select
                 className="input"
                 value={form.aaa_protocol}
-                onChange={(e) =>
-                  setForm({ ...form, aaa_protocol: e.target.value as "" | AaaProtocol })
-                }
+                onChange={(e) => {
+                  const p = e.target.value as "" | AaaProtocol;
+                  setForm({
+                    ...form,
+                    aaa_protocol: p,
+                    // limpa o campo do protocolo que fica escondido
+                    ...(p === "tacacs" ? { radius_secret: "" } : {}),
+                    ...(p === "radius" ? { tacacs_key: "" } : {}),
+                  });
+                }}
               >
                 <option value="">{t("herdar do grupo")}</option>
                 <option value="radius">{t("radius")}</option>
                 <option value="tacacs">{t("tacacs")}</option>
               </select>
             </Field>
-            <div className="col-span-2">
-              <Field
-                label={t("Segredo RADIUS")}
-                hint={
-                  form.inherit_secret
-                    ? t("vai herdar o segredo padrão do fabricante")
-                    : selectedManufacturer && !selectedManufacturer.has_secret
-                      ? t("o fabricante não tem segredo padrão — este campo é obrigatório")
-                      : t("em branco = herda o segredo padrão do fabricante. Guardado cifrado (Fernet).")
-                }
-              >
-                <input
-                  className="input font-mono"
-                  type="password"
-                  value={form.radius_secret}
-                  minLength={6}
-                  disabled={form.inherit_secret}
-                  onChange={(e) => setForm({ ...form, radius_secret: e.target.value })}
-                  required={secretRequired}
-                />
-              </Field>
-              {form.id && (
-                <label className="mt-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            {effProto === "radius" && (
+              <div className="col-span-2">
+                <Field
+                  label={t("Segredo RADIUS")}
+                  hint={
+                    form.inherit_secret
+                      ? t("vai herdar o segredo padrão do fabricante")
+                      : selectedManufacturer && !selectedManufacturer.has_secret
+                        ? t("o fabricante não tem segredo padrão — este campo é obrigatório")
+                        : t("em branco = herda o segredo padrão do fabricante. Guardado cifrado (Fernet).")
+                  }
+                >
                   <input
-                    type="checkbox"
-                    checked={form.inherit_secret}
-                    onChange={(e) =>
-                      setForm({ ...form, inherit_secret: e.target.checked, radius_secret: "" })
-                    }
+                    className="input font-mono"
+                    type="password"
+                    value={form.radius_secret}
+                    minLength={6}
+                    disabled={form.inherit_secret}
+                    onChange={(e) => setForm({ ...form, radius_secret: e.target.value })}
+                    required={secretRequired}
                   />
-                  Voltar a herdar o segredo do fabricante
-                </label>
-              )}
-            </div>
+                </Field>
+                {form.id && (
+                  <label className="mt-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={form.inherit_secret}
+                      onChange={(e) =>
+                        setForm({ ...form, inherit_secret: e.target.checked, radius_secret: "" })
+                      }
+                    />
+                    {t("Voltar a herdar o segredo do fabricante")}
+                  </label>
+                )}
+              </div>
+            )}
             {effProto === "radius" && (
               <div className="col-span-2">
                 <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
@@ -548,7 +557,7 @@ export default function EquipmentPage() {
                         setForm({ ...form, inherit_tacacs_key: e.target.checked, tacacs_key: "" })
                       }
                     />
-                    Voltar a herdar a chave do grupo
+                    {t("Voltar a herdar a chave do grupo")}
                   </label>
                 )}
               </div>
