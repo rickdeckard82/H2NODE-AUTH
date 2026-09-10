@@ -20,6 +20,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Tela Authentication com IP de origem/destino e eventos TACACS+.",
       "Painel repaginado: janela de 7 dias (era 24h), gráfico de barras de autenticações por dia e área de sessões por dia, sucessos e falhas lado a lado com IP de origem, botão Atualizar nas telas de relatórios e auditoria.",
       "Auditoria ganha a aba “Dispositivos 2FA”: dispositivos memorizados ativos + histórico de memorização/remoção.",
+      "Configuração → LGPD: nome e e-mail da empresa exibidos no Aviso de Privacidade e prazos de retenção (logins/accounting, auditoria e usuários de autenticação inativos). O sistema apaga automaticamente, uma vez por dia, o que passar do prazo — 0 desliga a exclusão.",
+      "Textos do painel padronizados em pt-BR.",
       "Menu vira gaveta sobreposta em telas menores; área central mais larga e sem rolagem horizontal da página. Correção: “Notas de versão” e demais modais agora abrem centralizados.",
     ],
   },

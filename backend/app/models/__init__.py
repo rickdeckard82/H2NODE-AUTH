@@ -3,6 +3,7 @@ from app.models.auth_group import AuthGroupCidr, AuthUserGroup
 from app.models.auth_user import AuthUser
 from app.models.base import Base
 from app.models.equipment import Equipment, EquipmentStatus
+from app.models.lgpd_settings import LgpdSettings
 from app.models.manufacturer import Manufacturer, VendorKind
 from app.models.mfa_recovery_code import MfaRecoveryCode
 from app.models.mfa_trusted_device import MfaTrustedDevice
@@ -38,6 +39,7 @@ __all__ = [
     "PrivilegeProfile",
     "PrivilegeProfileAttr",
     "RefreshToken",
+    "LgpdSettings",
     "SmtpSettings",
     "SystemRole",
     "SystemUser",

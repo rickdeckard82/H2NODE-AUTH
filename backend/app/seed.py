@@ -11,6 +11,7 @@ from app.core.db import SessionLocal
 from app.core.logging import logger
 from app.core.security import hash_password
 from app.models import (
+    LgpdSettings,
     Manufacturer,
     PrivilegeProfile,
     PrivilegeProfileAttr,
@@ -18,6 +19,7 @@ from app.models import (
     SystemUser,
     VendorKind,
 )
+from app.schemas.lgpd import DEFAULT_DPO_EMAIL, DEFAULT_ORG_NAME
 from app.services import radius_sync
 
 # Fabricantes comuns pré-cadastrados como ponto de partida (editáveis/removíveis
@@ -128,12 +130,27 @@ def seed_admin(db: Session) -> None:
     logger.info("seed_admin_created", username=settings.bootstrap_admin_username)
 
 
+def seed_lgpd(db: Session) -> None:
+    """Cria a linha de config LGPD com os padrões (retenções em 0 = sem exclusão
+    automática). O superadmin ajusta em Configuração → LGPD."""
+    if db.execute(select(LgpdSettings).limit(1)).first():
+        return
+    db.add(
+        LgpdSettings(
+            org_name=DEFAULT_ORG_NAME, dpo_email=DEFAULT_DPO_EMAIL,
+            accounting_retention_days=0, audit_retention_days=0, auth_user_retention_days=0,
+        )
+    )
+    logger.info("seed_lgpd_created")
+
+
 def main() -> None:
     db = SessionLocal()
     try:
         mfrs = seed_manufacturers(db)
         seed_profiles(db, mfrs)
         seed_admin(db)
+        seed_lgpd(db)
         db.commit()
         logger.info("seed_done")
     except Exception:

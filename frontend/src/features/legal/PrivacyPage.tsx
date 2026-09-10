@@ -1,7 +1,25 @@
+import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "../../components/Logo";
+import { api } from "../../lib/api";
 import { LEGAL } from "../../lib/legal";
+
+interface LegalNotice {
+  org_name: string;
+  dpo_email: string;
+  accounting_retention_days: number;
+  audit_retention_days: number;
+  auth_user_retention_days: number;
+  updated_at: string | null;
+}
+
+/** "365 dias (~12 meses)" ou, com 0, "mantidos enquanto forem necessários". */
+function retLabel(days: number): string {
+  if (!days || days <= 0) return "mantidos enquanto forem necessários";
+  const months = Math.round((days / 30) * 10) / 10;
+  return `${days} dias (aprox. ${months} meses)`;
+}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -15,6 +33,24 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default function PrivacyPage() {
+  const { data } = useQuery({
+    queryKey: ["legal-notice"],
+    queryFn: () => api.get<LegalNotice>("/settings/legal"),
+    retry: false,
+  });
+
+  const orgName = data?.org_name || LEGAL.orgName;
+  const dpoEmail = data?.dpo_email || LEGAL.dpoEmail;
+  const lastUpdated = data?.updated_at
+    ? new Date(data.updated_at).toLocaleDateString("pt-BR")
+    : LEGAL.lastUpdated;
+  const accountingRetention = data
+    ? retLabel(data.accounting_retention_days)
+    : LEGAL.accountingRetention;
+  const auditRetention = data ? retLabel(data.audit_retention_days) : LEGAL.auditRetention;
+  const userRetention =
+    data && data.auth_user_retention_days > 0 ? retLabel(data.auth_user_retention_days) : null;
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
       <div className="mx-auto max-w-2xl px-4 py-10">
@@ -23,7 +59,7 @@ export default function PrivacyPage() {
           <div>
             <h1 className="text-xl font-bold">Aviso de Privacidade</h1>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Pulse RADIUS · última atualização em {LEGAL.lastUpdated}
+              Pulse RADIUS · última atualização em {lastUpdated}
             </p>
           </div>
         </div>
@@ -41,14 +77,14 @@ export default function PrivacyPage() {
 
           <Section title="2. Controlador e Encarregado (DPO)">
             <p>
-              Controlador: <strong>{LEGAL.orgName}</strong>. Pedidos relativos a
+              Controlador: <strong>{orgName}</strong>. Pedidos relativos a
               dados pessoais devem ser enviados ao Encarregado pelo Tratamento de
               Dados Pessoais:{" "}
               <a
                 className="text-brand-600 hover:underline dark:text-brand-400"
-                href={`mailto:${LEGAL.dpoEmail}`}
+                href={`mailto:${dpoEmail}`}
               >
-                {LEGAL.dpoEmail}
+                {dpoEmail}
               </a>
               .
             </p>
@@ -122,8 +158,14 @@ export default function PrivacyPage() {
 
           <Section title="7. Retenção">
             <ul className="list-disc space-y-1.5 pl-5">
-              <li>Registros de accounting: {LEGAL.accountingRetention}.</li>
-              <li>Registros de auditoria do painel: {LEGAL.auditRetention}.</li>
+              <li>Registros de accounting (logins, comandos, sessões): {accountingRetention}.</li>
+              <li>Registros de auditoria do painel: {auditRetention}.</li>
+              {userRetention && (
+                <li>
+                  Contas de usuários de autenticação desativadas: excluídas após{" "}
+                  {userRetention} sem uso.
+                </li>
+              )}
               <li>
                 Dados de conta são mantidos enquanto a conta existir; após a
                 exclusão, permanecem apenas as referências mínimas necessárias nos
@@ -149,9 +191,9 @@ export default function PrivacyPage() {
               Encaminhe o pedido para{" "}
               <a
                 className="text-brand-600 hover:underline dark:text-brand-400"
-                href={`mailto:${LEGAL.dpoEmail}`}
+                href={`mailto:${dpoEmail}`}
               >
-                {LEGAL.dpoEmail}
+                {dpoEmail}
               </a>
               .
             </p>

@@ -33,8 +33,20 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
 - **Auditoria** ganha a aba **“Dispositivos 2FA”**: dispositivos memorizados
   ativos (`GET /audit/trusted-devices`) + histórico de memorização/remoção
   (`entity_type = mfa_trusted_device`).
+- **Configuração → LGPD** (`app_lgpd_settings`, migração `0015`, só superadmin):
+  nome/razão social e e-mail do Encarregado exibidos no Aviso de Privacidade
+  (que passa a ler `GET /settings/legal`, público), e prazos de retenção em
+  dias para **logins/accounting** (`radpostauth`, `cmd_acct`, `radacct`
+  encerrado), **auditoria** (`app_audit_log`) e **usuários de autenticação
+  desativados e sem uso**. Um expurgo oportunista roda no máximo 1×/dia
+  (claim atômico via `last_purge_at`, disparado pelo `/health`); `0` desliga
+  a exclusão automática daquele conjunto.
 
 ### Alterado
+
+- **Textos do painel padronizados em pt-BR** (era uma mistura com pt-PT). A
+  tela de contas do painel passou a se chamar **“Usuários do painel”** (vs
+  **“Usuários de autenticação”**, as contas RADIUS/TACACS+).
 
 - **Papéis (RBAC)**: o **operador** deixa de ver Auditoria e Grupos de usuário e
   de excluir usuários de autenticação e equipamentos (`DELETE` passa a exigir

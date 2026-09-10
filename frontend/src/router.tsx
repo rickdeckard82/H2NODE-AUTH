@@ -16,6 +16,7 @@ const PrivilegeProfilesPage = lazy(() => import("./features/privilege-profiles/P
 const SystemUsersPage = lazy(() => import("./features/system-users/SystemUsersPage"));
 const BackupPage = lazy(() => import("./features/backup/BackupPage"));
 const SmtpSettingsPage = lazy(() => import("./features/settings/SmtpSettingsPage"));
+const LgpdSettingsPage = lazy(() => import("./features/settings/LgpdSettingsPage"));
 const AccountingPage = lazy(() => import("./features/accounting/AccountingPage"));
 const AuthenticationPage = lazy(() => import("./features/reports/AuthenticationPage"));
 const AuthorizationPage = lazy(() => import("./features/reports/AuthorizationPage"));
@@ -146,6 +147,14 @@ export const router = createBrowserRouter([
         element: (
           <Protected roles={["superadmin"]}>
             <SmtpSettingsPage />
+          </Protected>
+        ),
+      },
+      {
+        path: "settings/lgpd",
+        element: (
+          <Protected roles={["superadmin"]}>
+            <LgpdSettingsPage />
           </Protected>
         ),
       },

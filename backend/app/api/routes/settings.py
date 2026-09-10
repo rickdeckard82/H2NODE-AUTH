@@ -1,14 +1,35 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import client_ip, enforce_csrf, require_superadmin
 from app.core.crypto import encrypt
 from app.core.db import get_db
-from app.models import SmtpSettings, SystemUser
+from app.models import LgpdSettings, SmtpSettings, SystemUser
+from app.schemas.lgpd import (
+    DEFAULT_DPO_EMAIL,
+    DEFAULT_ORG_NAME,
+    LegalNoticeOut,
+    LgpdSettingsIn,
+    LgpdSettingsOut,
+)
 from app.schemas.smtp_settings import SmtpSettingsIn, SmtpSettingsOut, SmtpTestIn
 from app.services import audit, mailer
 
 router = APIRouter(prefix="/settings", tags=["settings"])
+
+
+def _lgpd_or_default(db: Session) -> LgpdSettings:
+    """Linha de config LGPD, ou uma transitória com os padrões se ainda não há.
+
+    Defaults de coluna do SQLAlchemy só valem no INSERT, então preenchemos os
+    campos explicitamente aqui para o objeto transitório validar.
+    """
+    cfg = db.execute(select(LgpdSettings)).scalars().first()
+    return cfg or LgpdSettings(
+        org_name=DEFAULT_ORG_NAME, dpo_email=DEFAULT_DPO_EMAIL,
+        accounting_retention_days=0, audit_retention_days=0, auth_user_retention_days=0,
+    )
 
 
 def _to_out(cfg: SmtpSettings) -> SmtpSettingsOut:
@@ -59,6 +80,53 @@ def put_smtp(
     db.commit()
     db.refresh(cfg)
     return _to_out(cfg)
+
+
+@router.get("/legal", response_model=LegalNoticeOut)
+def get_legal_notice(db: Session = Depends(get_db)) -> LegalNoticeOut:
+    """Público — alimenta o Aviso de Privacidade em /privacidade."""
+    return LegalNoticeOut.model_validate(_lgpd_or_default(db))
+
+
+@router.get("/lgpd", response_model=LgpdSettingsOut)
+def get_lgpd(
+    db: Session = Depends(get_db), _: SystemUser = Depends(require_superadmin)
+) -> LgpdSettingsOut:
+    return LgpdSettingsOut.model_validate(_lgpd_or_default(db))
+
+
+@router.put("/lgpd", response_model=LgpdSettingsOut, dependencies=[Depends(enforce_csrf)])
+def put_lgpd(
+    body: LgpdSettingsIn, request: Request,
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_superadmin),
+) -> LgpdSettingsOut:
+    cfg = db.execute(select(LgpdSettings)).scalars().first()
+    creating = cfg is None
+    if cfg is None:
+        cfg = LgpdSettings()
+        db.add(cfg)
+
+    cfg.org_name = body.org_name
+    cfg.dpo_email = body.dpo_email
+    cfg.accounting_retention_days = body.accounting_retention_days
+    cfg.audit_retention_days = body.audit_retention_days
+    cfg.auth_user_retention_days = body.auth_user_retention_days
+    db.flush()
+
+    audit.record(
+        db, action="create" if creating else "update", entity_type="lgpd_settings",
+        entity_id=cfg.id, actor_id=actor.id, actor_username=actor.username,
+        ip_address=client_ip(request),
+        after={
+            "org_name": cfg.org_name, "dpo_email": cfg.dpo_email,
+            "accounting_retention_days": cfg.accounting_retention_days,
+            "audit_retention_days": cfg.audit_retention_days,
+            "auth_user_retention_days": cfg.auth_user_retention_days,
+        },
+    )
+    db.commit()
+    db.refresh(cfg)
+    return LgpdSettingsOut.model_validate(cfg)
 
 
 @router.post("/smtp/test", dependencies=[Depends(enforce_csrf)])
