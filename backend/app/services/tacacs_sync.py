@@ -42,7 +42,7 @@ def _q(value: str) -> str:
 
 def _profile_block(p: PrivilegeProfile) -> str:
     lvl = max(0, min(15, p.tacacs_priv_level or 0))
-    extra: list[str] = []
+    sets = [f"            set priv-lvl = {lvl}"]
     for raw in (p.tacacs_extra_avpairs or "").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -50,17 +50,16 @@ def _profile_block(p: PrivilegeProfile) -> str:
         k, v = line.split("=", 1)
         k = k.strip()
         if _AVPAIR_KEY.match(k):
-            extra.append(f"            set {k} = {_q(v.strip())}")
-    extra_txt = ("\n" + "\n".join(extra)) if extra else ""
+            sets.append(f"            set {k} = {_q(v.strip())}")
+    sets_txt = "\n".join(sets)
+    # priv-lvl + AV pairs (ex.: local-user-name p/ Junos) valem para a autorização
+    # de login/exec — `cmd` vazio — de qualquer serviço (shell, junos-exec, …).
+    # Autorização de comando (`cmd` preenchido) é apenas permitida.
     return (
         f"profile {p.name} {{\n"
         f"    script {{\n"
-        f"        if (service == shell) {{\n"
-        f"            if (cmd == \"\") {{\n"
-        f"                set priv-lvl = {lvl}{extra_txt}\n"
-        f"                permit\n"
-        f"            }}\n"
-        f"            set priv-lvl = {lvl}\n"
+        f"        if (cmd == \"\") {{\n"
+        f"{sets_txt}\n"
         f"            permit\n"
         f"        }}\n"
         f"        permit\n"
