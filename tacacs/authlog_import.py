@@ -10,17 +10,26 @@ Formato padrão da linha de acesso do tac_plus-ng (campos separados por TAB, e o
 
     <YYYY-mm-dd> <HH:MM:SS> <+ZZZZ> <nas-ip>  <user>  <port>  <rem-addr>  <msg>
 
-Só interessam as linhas de autenticação de shell — `<msg>` == "shell login
-succeeded" / "shell login failed". As linhas de autorização (com grupo/permit/
-comando) são ignoradas aqui (vão para cmd_acct via acct_import.py).
+Só interessam as linhas de autenticação de login — `<msg>` no formato
+"<método> login <succeeded|failed>[ [motivo]]". O método varia por equipamento:
+shell/ascii (login interativo), pap, chap, mschap[v2], enable, "enforced enable",
+ssh-key-hash, "radius …" (bridge). As linhas de autorização (com grupo/permit/
+comando) não casam com esse padrão e são ignoradas aqui (vão para cmd_acct via
+acct_import.py).
 """
 
 import datetime
 import os
+import re
 import sys
 import time
 
 import pymysql
+
+# "<método> login <succeeded|failed>[ …]" — 1 ou 2 palavras antes de "login"
+# ("shell", "pap", "enforced enable", "radius pap", …). As linhas de autorização
+# terminam em comando/serviço e não casam.
+_LOGIN_RESULT = re.compile(r"^(?:[\w-]+ ){1,2}login (succeeded|failed)\b")
 
 _DB = dict(
     host=os.getenv("SQL_HOST", "db"),
@@ -62,12 +71,10 @@ def parse(line: str) -> tuple | None:
     if len(f) < 5:
         return None
     msg = f[-1].strip()
-    if msg == "shell login succeeded":
-        reply = "Access-Accept"
-    elif msg == "shell login failed":
-        reply = "Access-Reject"
-    else:
+    m = _LOGIN_RESULT.match(msg)
+    if not m:
         return None  # linha de autorização / outro evento
+    reply = "Access-Accept" if m.group(1) == "succeeded" else "Access-Reject"
 
     head = f[0].split()  # <date> <time> <tz> <nas-ip>
     if len(head) < 2:

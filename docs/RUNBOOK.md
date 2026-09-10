@@ -172,8 +172,9 @@ TACACS+ — o **MikroTik não tem cliente TACACS+** e continua em RADIUS.
 - **Tentativas de login**: o daemon grava as autenticações de shell em
   `/var/log/tac_plus-ng/access.log`; `tacacs/authlog_import.py` segue o arquivo e
   insere em **`radpostauth`** com `protocol='tacacs'` → aparece em
-  *Authentication*. Só as linhas `shell login succeeded/failed` são importadas
-  (as de autorização já vão para `cmd_acct`).
+  *Authentication*. Importa qualquer linha `<método> login succeeded/failed`
+  (`shell`/`ascii`/`pap`/`chap`/`mschap`/`enable`/`ssh-key-hash`/`radius …` — o
+  método varia por equipamento); as de autorização já vão para `cmd_acct`.
 - **Protocolo por equipamento**: no cadastro do grupo (padrão `radius`) e do
   equipamento (em branco = herda). `radius` ⇒ vira cliente `nas`; `tacacs` ⇒ vira
   `host` no `pulse.cfg`. Alternar remove de um lado e adiciona no outro.
