@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, enforce_csrf, require_admin, require_auditor
+from app.api.deps import client_ip, enforce_csrf, require_admin, require_operator
 from app.core.db import get_db
 from app.models import AuthGroupCidr, AuthUser, AuthUserGroup, SystemUser
 from app.schemas.auth_group import AuthGroupCreate, AuthGroupOut, AuthGroupUpdate, CidrIn
@@ -49,7 +49,7 @@ def _to_out(g: AuthUserGroup, members: int) -> AuthGroupOut:
     )
 
 
-@router.get("", response_model=list[AuthGroupOut], dependencies=[Depends(require_auditor)])
+@router.get("", response_model=list[AuthGroupOut], dependencies=[Depends(require_operator)])
 def list_groups(db: Session = Depends(get_db)) -> list[AuthGroupOut]:
     counts = _member_counts(db)
     rows = db.execute(select(AuthUserGroup).order_by(AuthUserGroup.name)).scalars()

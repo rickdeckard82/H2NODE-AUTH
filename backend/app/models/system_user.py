@@ -13,7 +13,8 @@ class SystemRole(str, enum.Enum):
     superadmin = "superadmin"  # tudo, inclusive gerir utilizadores do painel
     admin = "admin"            # gere usuários de auth, equipamentos e perfis
     operator = "operator"      # cadastra usuários de auth; leitura de equipamentos
-    auditor = "auditor"        # somente leitura (inclui accounting e auditoria)
+    auditor = "auditor"        # só leitura de equipamentos e relatórios AAA
+                               # (sem área de utilizadores nem log de auditoria)
 
 
 class SystemUser(Base, TimestampMixin):

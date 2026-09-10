@@ -13,8 +13,6 @@ interface NavLeaf {
   label: string;
   icon: IconName;
   roles?: Role[];
-  // true => `roles` é lista exata (via roleIn); senão é hierárquico (via can)
-  exact?: boolean;
 }
 
 interface NavGroup {
@@ -41,14 +39,8 @@ const NAV: NavEntry[] = [
     label: "Usuários",
     icon: "users",
     children: [
-      { to: "/auth-users", label: "Usuários de autenticação", icon: "idCard" },
-      {
-        to: "/user-groups",
-        label: "Grupos de usuário",
-        icon: "users",
-        roles: ["admin", "auditor"],
-        exact: true,
-      },
+      { to: "/auth-users", label: "Usuários de autenticação", icon: "idCard", roles: ["operator"] },
+      { to: "/user-groups", label: "Grupos de usuário", icon: "users", roles: ["admin"] },
       { to: "/profiles", label: "Perfis de privilégio", icon: "shield", roles: ["admin"] },
     ],
   },
@@ -59,13 +51,7 @@ const NAV: NavEntry[] = [
       { to: "/auth-log", label: "Authentication", icon: "activity" },
       { to: "/authz-log", label: "Authorization", icon: "shield" },
       { to: "/accounting", label: "Accounting", icon: "barChart" },
-      {
-        to: "/audit",
-        label: "Auditoria",
-        icon: "clipboard",
-        roles: ["admin", "auditor"],
-        exact: true,
-      },
+      { to: "/audit", label: "Auditoria", icon: "clipboard", roles: ["admin"] },
     ],
   },
   {
@@ -87,7 +73,7 @@ const leafClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, logout, can, roleIn } = useAuth();
+  const { user, logout, can } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -99,13 +85,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     (user.role === "superadmin" || user.role === "admin" || user.role === "operator") &&
     !user.mfa_enabled;
 
-  const canSee = (c: NavLeaf) =>
-    !c.roles || (c.exact ? roleIn(...c.roles) : can(...c.roles));
+  const canSee = (roles?: Role[]) => !roles || can(...roles);
 
   // grupos visíveis, já filtrados por permissão
   const entries: NavEntry[] = NAV.map((e) => {
     if (!isGroup(e)) return e;
-    return { ...e, children: e.children.filter(canSee) };
+    return { ...e, children: e.children.filter((c) => canSee(c.roles)) };
   }).filter((e) => !isGroup(e) || e.children.length > 0);
 
   // grupos começam abertos; o toggle apenas recolhe/expande

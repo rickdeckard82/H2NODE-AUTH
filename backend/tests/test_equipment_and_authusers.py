@@ -214,7 +214,7 @@ def test_operator_permission_boundaries(auth_client, client, seeded):
     }).status_code == 201
 
 
-def test_auditor_still_sees_audit_and_user_groups(client, seeded):
+def test_auditor_cannot_see_audit_or_users(client, seeded):
     from app.core.security import hash_password
     from app.models import SystemRole, SystemUser
     seeded.add(SystemUser(username="aud", email="aud@x.com", full_name="Aud",
@@ -223,5 +223,12 @@ def test_auditor_still_sees_audit_and_user_groups(client, seeded):
     seeded.commit()
     login = client.post("/api/auth/login", json={"username": "aud", "password": "auditor-pass-1"})
     client.headers.update({"X-CSRF-Token": login.json()["csrf_token"]})
-    assert client.get("/api/audit").status_code == 200
-    assert client.get("/api/auth-groups").status_code == 200
+    # sem acesso a auditoria nem à área de utilizadores
+    assert client.get("/api/audit").status_code == 403
+    assert client.get("/api/audit/trusted-devices").status_code == 403
+    assert client.get("/api/auth-users").status_code == 403
+    assert client.get("/api/auth-groups").status_code == 403
+    assert client.get("/api/privilege-profiles").status_code == 403
+    # mas segue com a leitura de equipamentos e dos relatórios AAA
+    assert client.get("/api/equipment").status_code == 200
+    assert client.get("/api/accounting/authentication").status_code == 200

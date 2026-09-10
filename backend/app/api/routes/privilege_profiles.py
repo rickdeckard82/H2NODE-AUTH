@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, enforce_csrf, require_admin, require_auditor
+from app.api.deps import client_ip, enforce_csrf, require_admin, require_operator
 from app.core.db import get_db
 from app.models import AuthUser, Manufacturer, PrivilegeProfile, PrivilegeProfileAttr, SystemUser
 from app.schemas.privilege_profile import (
@@ -42,7 +42,7 @@ def _validate_manufacturers(db: Session, attrs) -> None:
                                 f"fabricante(s) inexistente(s): {sorted(missing)}")
 
 
-@router.get("", response_model=list[PrivilegeProfileOut], dependencies=[Depends(require_auditor)])
+@router.get("", response_model=list[PrivilegeProfileOut], dependencies=[Depends(require_operator)])
 def list_profiles(db: Session = Depends(get_db)) -> list[PrivilegeProfileOut]:
     rows = db.execute(select(PrivilegeProfile).order_by(PrivilegeProfile.name)).scalars()
     return [_to_out(p) for p in rows]

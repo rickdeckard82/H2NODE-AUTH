@@ -29,19 +29,11 @@ function Loader() {
   );
 }
 
-function Protected({
-  roles,
-  exact,
-  children,
-}: {
-  roles?: Role[];
-  exact?: boolean;
-  children: ReactNode;
-}) {
-  const { user, loading, can, roleIn } = useAuth();
+function Protected({ roles, children }: { roles?: Role[]; children: ReactNode }) {
+  const { user, loading, can } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (roles && !(exact ? roleIn(...roles) : can(...roles))) return <Navigate to="/" replace />;
+  if (roles && !can(...roles)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -89,11 +81,18 @@ export const router = createBrowserRouter([
     element: <Shell />,
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: "auth-users", element: <AuthUsersPage /> },
+      {
+        path: "auth-users",
+        element: (
+          <Protected roles={["operator"]}>
+            <AuthUsersPage />
+          </Protected>
+        ),
+      },
       {
         path: "user-groups",
         element: (
-          <Protected roles={["admin", "auditor"]} exact>
+          <Protected roles={["admin"]}>
             <UserGroupsPage />
           </Protected>
         ),
@@ -121,7 +120,7 @@ export const router = createBrowserRouter([
       {
         path: "audit",
         element: (
-          <Protected roles={["admin", "auditor"]} exact>
+          <Protected roles={["admin"]}>
             <AuditPage />
           </Protected>
         ),

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_audit_reader
+from app.api.deps import require_admin
 from app.core.db import get_db
 from app.core.security import utcnow
 from app.models import AuditLog, MfaTrustedDevice, SystemUser
@@ -12,7 +12,7 @@ from app.schemas.audit import AuditLogOut, TrustedDeviceRow
 from app.schemas.common import Page
 
 router = APIRouter(
-    prefix="/audit", tags=["audit"], dependencies=[Depends(require_audit_reader)]
+    prefix="/audit", tags=["audit"], dependencies=[Depends(require_admin)]
 )
 
 

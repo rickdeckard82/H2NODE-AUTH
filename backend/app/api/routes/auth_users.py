@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, enforce_csrf, require_admin, require_auditor, require_operator
+from app.api.deps import client_ip, enforce_csrf, require_admin, require_operator
 from app.core.db import get_db
 from app.models import AuthUser, AuthUserGroup, PrivilegeProfile, SystemUser
 from app.schemas.auth_user import (
@@ -39,7 +39,7 @@ def _check_group(db: Session, gid: int) -> None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "grupo de usuário inexistente")
 
 
-@router.get("", response_model=Page[AuthUserOut], dependencies=[Depends(require_auditor)])
+@router.get("", response_model=Page[AuthUserOut], dependencies=[Depends(require_operator)])
 def list_auth_users(
     db: Session = Depends(get_db),
     q: str | None = None,
