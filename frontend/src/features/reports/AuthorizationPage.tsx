@@ -45,7 +45,7 @@ export default function AuthorizationPage() {
   return (
     <div>
       <PageHeader
-        title={t("Authorization")}
+        title={t("Autorização")}
         subtitle={t("Comandos executados nos equipamentos, com o IP de origem de quem executou")}
         actions={<RefreshButton keys={["authz"]} />}
       />

@@ -1,9 +1,11 @@
 import { CHANGELOG } from "../lib/changelog";
+import { useT } from "../lib/i18n";
 import { Modal } from "./ui";
 
 export function ChangelogModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT();
   return (
-    <Modal open={open} onClose={onClose} title="Notas de versão" wide>
+    <Modal open={open} onClose={onClose} title={t("Notas de versão")} wide>
       <div className="space-y-5">
         {CHANGELOG.map((entry) => (
           <div key={entry.version}>
@@ -13,7 +15,7 @@ export function ChangelogModal({ open, onClose }: { open: boolean; onClose: () =
             </div>
             <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
               {entry.changes.map((c, i) => (
-                <li key={i}>{c}</li>
+                <li key={i}>{t(c)}</li>
               ))}
             </ul>
           </div>

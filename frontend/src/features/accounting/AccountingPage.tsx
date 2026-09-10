@@ -57,7 +57,7 @@ export default function AccountingPage() {
   return (
     <div>
       <PageHeader
-        title={t("Accounting")}
+        title={t("Contabilização (Accounting)")}
         subtitle={t("Comandos executados nos equipamentos e sessões de login (radacct)")}
         actions={<RefreshButton keys={["acct-commands", "acct-sessions"]} />}
       />

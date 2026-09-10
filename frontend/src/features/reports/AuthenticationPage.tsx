@@ -48,7 +48,7 @@ export default function AuthenticationPage() {
   return (
     <div>
       <PageHeader
-        title={t("Authentication")}
+        title={t("Autenticação")}
         subtitle={t("Tentativas de login nos equipamentos (RADIUS e TACACS+), com IP de origem e destino")}
         actions={<RefreshButton keys={["authn"]} />}
       />
