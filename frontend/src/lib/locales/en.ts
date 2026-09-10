@@ -588,4 +588,15 @@ export const en: Record<string, string> = {
   "Último acesso": "Last access",
   "Último expurgo automático: {data}": "Last automatic purge: {data}",
   "— sem grupo (sem restrição de IP) —": "— no group (no IP restriction) —",
+  "Segredo RADIUS padrão": "Default RADIUS secret",
+  "Chave TACACS+ padrão": "Default TACACS+ key",
+  "(já definido — em branco = manter)": "(already set — blank = keep)",
+  "(já definida — em branco = manter)": "(already set — blank = keep)",
+  "(em branco = manter)": "(blank = keep)",
+  "Senha (em branco = manter)": "Password (blank = keep)",
+  "Acesso administrativo total (nível máximo em cada fabricante)":
+    "Full administrative access (highest level on each vendor)",
+  "Operação: pode configurar, sem administração do dispositivo":
+    "Operation: can configure, without device administration",
+  "Somente leitura / auditoria": "Read-only / audit",
 };

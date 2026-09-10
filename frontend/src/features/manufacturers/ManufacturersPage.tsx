@@ -305,8 +305,8 @@ export default function ManufacturersPage() {
                 <Field
                   label={
                     form.id
-                      ? `Segredo RADIUS padrão ${form.has_secret ? "(já definido — em branco = manter)" : "(em branco = manter)"}`
-                      : "Segredo RADIUS padrão"
+                      ? `${t("Segredo RADIUS padrão")} ${form.has_secret ? t("(já definido — em branco = manter)") : t("(em branco = manter)")}`
+                      : t("Segredo RADIUS padrão")
                   }
                   hint={t("Shared secret herdado pelos equipamentos deste fabricante que não tiverem um próprio. Guardado cifrado.")}
                 >
@@ -340,8 +340,8 @@ export default function ManufacturersPage() {
                 <Field
                   label={
                     form.id
-                      ? `Chave TACACS+ padrão ${form.has_tacacs_key ? "(já definida — em branco = manter)" : "(em branco = manter)"}`
-                      : "Chave TACACS+ padrão"
+                      ? `${t("Chave TACACS+ padrão")} ${form.has_tacacs_key ? t("(já definida — em branco = manter)") : t("(em branco = manter)")}`
+                      : t("Chave TACACS+ padrão")
                   }
                   hint={t("Chave herdada pelos equipamentos TACACS+ deste fabricante. Guardada cifrada.")}
                 >

@@ -126,7 +126,7 @@ export default function SmtpSettingsPage() {
             />
           </Field>
           <Field
-            label={query.data?.has_password ? "Senha (em branco = manter)" : "Senha"}
+            label={query.data?.has_password ? t("Senha (em branco = manter)") : t("Senha")}
             hint={t("Guardada cifrada (Fernet).")}
           >
             <input

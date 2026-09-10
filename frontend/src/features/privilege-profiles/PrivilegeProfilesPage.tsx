@@ -118,7 +118,7 @@ export default function PrivilegeProfilesPage() {
                 </div>
                 <code className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{p.group_name}</code>
               </div>
-              <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">{p.description || "—"}</p>
+              <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">{p.description ? t(p.description) : "—"}</p>
               <div className="space-y-1 text-xs">
                 {p.attrs.map((a) => (
                   <div key={a.id} className="flex gap-2 font-mono text-slate-600 dark:text-slate-300">
