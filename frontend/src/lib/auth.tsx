@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { api } from "./api";
+import { normalizeLang, useI18n, type Lang } from "./i18n";
 
 export type Role = "superadmin" | "admin" | "operator" | "auditor";
 
@@ -19,6 +20,7 @@ export interface Me {
   role: Role;
   is_active: boolean;
   timezone: string;
+  language: Lang;
   mfa_enabled: boolean;
   mfa_recovery_codes_remaining: number;
   last_login_at: string | null;
@@ -43,6 +45,8 @@ interface AuthCtx {
   verifyMfa: (mfaToken: string, code: string, rememberDevice?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** Persiste o idioma no perfil do usuário e aplica na UI. */
+  setLanguage: (lang: Lang) => Promise<void>;
   /** true se o papel do usuário é >= ao menor papel informado (hierárquico). */
   can: (...roles: Role[]) => boolean;
 }
@@ -52,6 +56,7 @@ const Ctx = createContext<AuthCtx | null>(null);
 const RANK: Record<Role, number> = { auditor: 1, operator: 2, admin: 3, superadmin: 4 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { setLang } = useI18n();
   const [user, setUser] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // idioma da UI segue o do usuário logado
+  useEffect(() => {
+    if (user?.language) setLang(normalizeLang(user.language));
+  }, [user?.language, setLang]);
 
   const login = useCallback(async (username: string, password: string): Promise<LoginResult> => {
     const res = await api.post<SessionResponse>("/auth/login", { username, password });
@@ -92,6 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(me);
   }, []);
 
+  const setLanguage = useCallback(
+    async (lang: Lang) => {
+      setLang(lang); // aplica já
+      const me = await api.patch<Me>("/auth/me", { language: lang }).catch(() => null);
+      if (me) setUser(me);
+    },
+    [setLang],
+  );
+
   const can = useCallback(
     (...roles: Role[]) => {
       if (!user) return false;
@@ -103,8 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, loading, login, verifyMfa, logout, refresh, can }),
-    [user, loading, login, verifyMfa, logout, refresh, can],
+    () => ({ user, loading, login, verifyMfa, logout, refresh, setLanguage, can }),
+    [user, loading, login, verifyMfa, logout, refresh, setLanguage, can],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

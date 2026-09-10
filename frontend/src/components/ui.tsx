@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "../lib/i18n";
 
 /* ---------------- Card / headers ---------------- */
 
@@ -229,20 +230,19 @@ export function Pagination({
   onPage: (p: number) => void;
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const t = useT();
   return (
     <div className="flex items-center justify-between px-1 py-3 text-sm text-slate-500 dark:text-slate-400">
-      <span>
-        {total} registro{total === 1 ? "" : "s"}
-      </span>
+      <span>{t(total === 1 ? "{n} registro" : "{n} registros", { n: total })}</span>
       <div className="flex items-center gap-2">
         <Button variant="ghost" onClick={() => onPage(page - 1)} disabled={page <= 1}>
-          Anterior
+          {t("Anterior")}
         </Button>
         <span>
           {page} / {pages}
         </span>
         <Button variant="ghost" onClick={() => onPage(page + 1)} disabled={page >= pages}>
-          Próxima
+          {t("Próxima")}
         </Button>
       </div>
     </div>

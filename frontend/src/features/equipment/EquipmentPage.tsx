@@ -16,6 +16,7 @@ import { api, ApiError, type Page } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { fmtDate } from "../../lib/format";
 import type { AaaProtocol, Equipment, Manufacturer } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 interface FormState {
   id?: number;
@@ -61,6 +62,7 @@ const STATUS_TONE: Record<Equipment["status"], "green" | "amber" | "red"> = {
 };
 
 export default function EquipmentPage() {
+  const t = useT();
   const { can } = useAuth();
   const canDelete = can("admin");
   const qc = useQueryClient();
@@ -117,20 +119,20 @@ export default function EquipmentPage() {
       return api.post("/equipment", body);
     },
     onSuccess: () => {
-      toast("ok", "Equipamento salvo");
+      toast("ok", t("Equipamento salvo"));
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const remove = useMutation({
     mutationFn: (eq: Equipment) => api.del(`/equipment/${eq.id}`),
     onSuccess: () => {
-      toast("ok", "Equipamento removido");
+      toast("ok", t("Equipamento removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
   });
 
   const orderedManufacturers = [...(manufacturers.data ?? [])].sort((a, b) =>
@@ -154,8 +156,8 @@ export default function EquipmentPage() {
   return (
     <div>
       <PageHeader
-        title="Equipamentos"
-        subtitle="Clientes RADIUS (NAS)"
+        title={t("Equipamentos")}
+        subtitle={t("Clientes RADIUS (NAS)")}
         actions={
           writable && (
             <Button
@@ -304,7 +306,7 @@ export default function EquipmentPage() {
                           })
                         }
                       >
-                        Editar
+                        {t("Editar")}
                       </button>
                       {canDelete && (
                         <button
@@ -313,7 +315,7 @@ export default function EquipmentPage() {
                             if (confirm(`Remover ${eq.name}?`)) remove.mutate(eq);
                           }}
                         >
-                          Excluir
+                          {t("Excluir")}
                         </button>
                       )}
                     </div>
@@ -564,10 +566,10 @@ export default function EquipmentPage() {
             </div>
             <div className="col-span-2 flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setForm(null)}>
-                Cancelar
+                {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>
-                Salvar
+                {t("Salvar")}
               </Button>
             </div>
           </form>

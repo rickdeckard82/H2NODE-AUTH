@@ -15,6 +15,7 @@ import { api, ApiError, type Page } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { fmtDate } from "../../lib/format";
 import type { AuthGroup, AuthUser, PrivilegeProfile } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 interface FormState {
   id?: number;
@@ -40,6 +41,7 @@ const empty: FormState = {
 };
 
 export default function AuthUsersPage() {
+  const t = useT();
   const { can } = useAuth();
   const canDelete = can("admin");
   const qc = useQueryClient();
@@ -85,26 +87,26 @@ export default function AuthUsersPage() {
       return api.post("/auth-users", { ...body, username: f.username, password: f.password });
     },
     onSuccess: () => {
-      toast("ok", "Usuário salvo");
+      toast("ok", t("Usuário salvo"));
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const toggle = useMutation({
     mutationFn: (u: AuthUser) => api.patch(`/auth-users/${u.id}`, { is_active: !u.is_active }),
     onSuccess: invalidate,
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro")),
   });
 
   const remove = useMutation({
     mutationFn: (u: AuthUser) => api.del(`/auth-users/${u.id}`),
     onSuccess: () => {
-      toast("ok", "Usuário removido");
+      toast("ok", t("Usuário removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
   });
 
   const resetPw = useMutation({
@@ -114,17 +116,17 @@ export default function AuthUsersPage() {
       setPwTarget(null);
       setNewPw("");
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro")),
   });
 
   return (
     <div>
       <PageHeader
-        title="Usuários de autenticação"
-        subtitle="Contas que autenticam nos equipamentos via RADIUS"
+        title={t("Usuários de autenticação")}
+        subtitle={t("Contas que autenticam nos equipamentos via RADIUS")}
         actions={
           writable && (
-            <Button onClick={() => setForm({ ...empty })}>Novo usuário</Button>
+            <Button onClick={() => setForm({ ...empty })}>{t("Novo usuário")}</Button>
           )
         }
       />
@@ -205,7 +207,7 @@ export default function AuthUsersPage() {
                           })
                         }
                       >
-                        Editar
+                        {t("Editar")}
                       </button>
                       <button
                         className="text-slate-600 hover:underline dark:text-slate-300"
@@ -226,7 +228,7 @@ export default function AuthUsersPage() {
                             if (confirm(`Remover ${u.username}?`)) remove.mutate(u);
                           }}
                         >
-                          Excluir
+                          {t("Excluir")}
                         </button>
                       )}
                     </div>
@@ -367,10 +369,10 @@ export default function AuthUsersPage() {
             )}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setForm(null)}>
-                Cancelar
+                {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>
-                Salvar
+                {t("Salvar")}
               </Button>
             </div>
           </form>
@@ -401,7 +403,7 @@ export default function AuthUsersPage() {
           </Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setPwTarget(null)}>
-              Cancelar
+              {t("Cancelar")}
             </Button>
             <Button type="submit" loading={resetPw.isPending}>
               Redefinir

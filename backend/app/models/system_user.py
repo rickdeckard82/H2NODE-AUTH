@@ -32,6 +32,8 @@ class SystemUser(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Fuso IANA para exibir datas no painel (conversão só na apresentação).
     timezone: Mapped[str] = mapped_column(String(64), default="America/Sao_Paulo")
+    # Idioma da interface: "pt-BR" (padrão) ou "en-US".
+    language: Mapped[str] = mapped_column(String(8), default="pt-BR")
     # Fernet. NULL => 2FA não configurado. `mfa_enabled=False` com secret != NULL
     # é um setup pendente de confirmação (ver /auth/mfa/enable).
     mfa_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)

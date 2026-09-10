@@ -1,5 +1,6 @@
-import { fmtDate } from "./format";
 import { useAuth } from "./auth";
+import { fmtDate } from "./format";
+import { useI18n } from "./i18n";
 
 export const DEFAULT_TZ = "America/Sao_Paulo";
 
@@ -21,9 +22,10 @@ export const TIMEZONES = [
   "UTC",
 ];
 
-/** Formatador de data já preso ao fuso do operador logado. */
+/** Formatador de data já preso ao fuso e ao idioma do operador logado. */
 export function useFmtDate(): (v: string | null | undefined) => string {
   const { user } = useAuth();
+  const { lang } = useI18n();
   const tz = user?.timezone || DEFAULT_TZ;
-  return (v) => fmtDate(v, tz);
+  return (v) => fmtDate(v, tz, lang);
 }

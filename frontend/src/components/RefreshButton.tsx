@@ -1,4 +1,5 @@
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
+import { useT } from "../lib/i18n";
 import { Button } from "./ui";
 
 /**
@@ -8,6 +9,7 @@ import { Button } from "./ui";
  */
 export function RefreshButton({ keys, className }: { keys: string[]; className?: string }) {
   const qc = useQueryClient();
+  const t = useT();
   const fetching =
     useIsFetching({ predicate: (q) => keys.includes(String(q.queryKey[0])) }) > 0;
 
@@ -17,7 +19,7 @@ export function RefreshButton({ keys, className }: { keys: string[]; className?:
       className={className}
       loading={fetching}
       onClick={() => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }))}
-      title="Recarregar os dados desta tela"
+      title={t("Recarregar os dados desta tela")}
     >
       {!fetching && (
         <svg
@@ -36,7 +38,7 @@ export function RefreshButton({ keys, className }: { keys: string[]; className?:
           <path d="M3 21v-5h5" />
         </svg>
       )}
-      Atualizar
+      {t("Atualizar")}
     </Button>
   );
 }

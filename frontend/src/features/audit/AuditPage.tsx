@@ -6,6 +6,7 @@ import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
 import type { AuditEntry } from "../../lib/types";
 import { shortUA } from "../../lib/ua";
+import { useT } from "../../lib/i18n";
 
 type Tone = "green" | "amber" | "red" | "blue" | "slate";
 
@@ -78,6 +79,7 @@ function deviceLabel(e: AuditEntry): string {
 }
 
 export default function AuditPage() {
+  const t = useT();
   const fmtDate = useFmtDate();
   const [view, setView] = useState<View>("actions");
   const [entityType, setEntityType] = useState("");
@@ -123,7 +125,7 @@ export default function AuditPage() {
   return (
     <div>
       <PageHeader
-        title="Auditoria"
+        title={t("Auditoria")}
         subtitle={
           isDevices
             ? "Dispositivos memorizados no 2FA (ativos) e o histórico de memorização/remoção"
@@ -329,7 +331,7 @@ export default function AuditPage() {
         )}
       </Card>
 
-      <Modal open={!!detail} onClose={() => setDetail(null)} title="Detalhe da auditoria" wide>
+      <Modal open={!!detail} onClose={() => setDetail(null)} title={t("Detalhe da auditoria")} wide>
         {detail && (
           <div className="grid gap-3 md:grid-cols-2">
             <div>

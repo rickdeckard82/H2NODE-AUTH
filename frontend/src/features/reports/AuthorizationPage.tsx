@@ -6,8 +6,10 @@ import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
 import type { CommandEvent } from "../../lib/types";
 import { emptyFilters, ReportFilters, toIso, type ReportFilterState } from "./ReportFilters";
+import { useT } from "../../lib/i18n";
 
 export default function AuthorizationPage() {
+  const t = useT();
   const fmt = useFmtDate();
   const [filters, setFilters] = useState<ReportFilterState>(emptyFilters);
   const [page, setPage] = useState(1);
@@ -43,8 +45,8 @@ export default function AuthorizationPage() {
   return (
     <div>
       <PageHeader
-        title="Authorization"
-        subtitle="Comandos executados nos equipamentos, com o IP de origem de quem executou"
+        title={t("Authorization")}
+        subtitle={t("Comandos executados nos equipamentos, com o IP de origem de quem executou")}
         actions={<RefreshButton keys={["authz"]} />}
       />
 
@@ -54,7 +56,7 @@ export default function AuthorizationPage() {
         showNas
         right={
           <Button variant="ghost" onClick={downloadCsv}>
-            Exportar CSV
+            {t("Exportar CSV")}
           </Button>
         }
       />

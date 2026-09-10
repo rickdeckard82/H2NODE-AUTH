@@ -10,6 +10,7 @@ import { RefreshButton } from "../../components/RefreshButton";
 import { Card, PageHeader, Spinner } from "../../components/ui";
 import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
+import { useT } from "../../lib/i18n";
 
 interface Stats {
   active_sessions: number;
@@ -103,6 +104,7 @@ function Stat({
 }
 
 export default function DashboardPage() {
+  const t = useT();
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => api.get<Stats>("/accounting/stats") });
   const failures = useQuery({
     queryKey: ["recent-failures"],
@@ -124,8 +126,8 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="Painel"
-        subtitle="Visão geral do AAA — últimos 7 dias"
+        title={t("Painel")}
+        subtitle={t("Visão geral do AAA — últimos 7 dias")}
         actions={<RefreshButton keys={["stats", "recent-failures", "recent-successes"]} />}
       />
 
@@ -180,14 +182,14 @@ export default function DashboardPage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <AuthEventList
-              title="Falhas de autenticação recentes"
+              title={t("Falhas de autenticação recentes")}
               tone="rose"
               events={failures.data?.items}
               loading={failures.isLoading}
               emptyText="Nenhuma falha recente"
             />
             <AuthEventList
-              title="Sucessos de autenticação recentes"
+              title={t("Sucessos de autenticação recentes")}
               tone="emerald"
               events={successes.data?.items}
               loading={successes.isLoading}

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button, Card, Field, PageHeader, Spinner, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import type { SmtpSettings } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 interface FormState {
   host: string;
@@ -29,6 +30,7 @@ const empty: FormState = {
 };
 
 export default function SmtpSettingsPage() {
+  const t = useT();
   const qc = useQueryClient();
   const toast = useToast();
   const [form, setForm] = useState<FormState>(empty);
@@ -73,7 +75,7 @@ export default function SmtpSettingsPage() {
       toast("ok", "Configuração SMTP salva");
       qc.invalidateQueries({ queryKey: ["smtp-settings"] });
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const test = useMutation({
@@ -87,8 +89,8 @@ export default function SmtpSettingsPage() {
   return (
     <div>
       <PageHeader
-        title="Servidor SMTP"
-        subtitle="Usado para enviar o convite de registro (criação de senha) aos usuários do painel"
+        title={t("Servidor SMTP")}
+        subtitle={t("Usado para enviar o convite de registro (criação de senha) aos usuários do painel")}
       />
 
       <Card className="mb-4">
@@ -188,7 +190,7 @@ export default function SmtpSettingsPage() {
           </div>
           <div className="col-span-2 flex justify-end">
             <Button type="submit" loading={save.isPending}>
-              Salvar
+              {t("Salvar")}
             </Button>
           </div>
         </form>

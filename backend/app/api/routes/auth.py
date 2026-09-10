@@ -1,4 +1,5 @@
 from datetime import timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -29,6 +30,7 @@ from app.schemas.auth import (
     InviteOut,
     LoginIn,
     MeOut,
+    MeUpdateIn,
     MfaCodeIn,
     MfaDisableIn,
     MfaEnableOut,
@@ -297,6 +299,27 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
 
 @router.get("/me", response_model=MeOut)
 def me(user: SystemUser = Depends(get_current_user)) -> MeOut:
+    return MeOut.model_validate(user)
+
+
+@router.patch("/me", response_model=MeOut, dependencies=[Depends(enforce_csrf)])
+def update_me(
+    body: MeUpdateIn,
+    db: Session = Depends(get_db), user: SystemUser = Depends(get_current_user),
+) -> MeOut:
+    """Preferências do próprio usuário — idioma da interface e fuso horário."""
+    if body.language is not None:
+        user.language = body.language
+    if body.timezone is not None:
+        try:
+            ZoneInfo(body.timezone)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, "fuso horário inválido"
+            ) from exc
+        user.timezone = body.timezone
+    db.commit()
+    db.refresh(user)
     return MeOut.model_validate(user)
 
 

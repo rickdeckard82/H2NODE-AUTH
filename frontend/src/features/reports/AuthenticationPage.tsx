@@ -6,8 +6,10 @@ import { api, type Page } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
 import type { AuthEvent } from "../../lib/types";
 import { emptyFilters, ReportFilters, toIso, type ReportFilterState } from "./ReportFilters";
+import { useT } from "../../lib/i18n";
 
 export default function AuthenticationPage() {
+  const t = useT();
   const fmt = useFmtDate();
   const [filters, setFilters] = useState<ReportFilterState>(emptyFilters);
   const [accepted, setAccepted] = useState<"" | "true" | "false">("");
@@ -46,8 +48,8 @@ export default function AuthenticationPage() {
   return (
     <div>
       <PageHeader
-        title="Authentication"
-        subtitle="Tentativas de login nos equipamentos (RADIUS e TACACS+), com IP de origem e destino"
+        title={t("Authentication")}
+        subtitle={t("Tentativas de login nos equipamentos (RADIUS e TACACS+), com IP de origem e destino")}
         actions={<RefreshButton keys={["authn"]} />}
       />
 
@@ -87,7 +89,7 @@ export default function AuthenticationPage() {
               </select>
             </label>
             <Button variant="ghost" onClick={downloadCsv}>
-              Exportar CSV
+              {t("Exportar CSV")}
             </Button>
           </>
         }

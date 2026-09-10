@@ -1,8 +1,12 @@
-export function fmtDate(v: string | null | undefined, tz?: string): string {
+export function fmtDate(
+  v: string | null | undefined,
+  tz?: string,
+  locale = "pt-BR",
+): string {
   if (!v) return "—";
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("pt-BR", {
+  return d.toLocaleString(locale, {
     dateStyle: "short",
     timeStyle: "short",
     ...(tz ? { timeZone: tz } : {}),

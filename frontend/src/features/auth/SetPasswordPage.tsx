@@ -5,6 +5,7 @@ import { Logo } from "../../components/Logo";
 import { Button, Field, Spinner } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { useT } from "../../lib/i18n";
 
 interface InviteInfo {
   username: string;
@@ -17,6 +18,7 @@ export default function SetPasswordPage() {
   const token = params.get("token") ?? "";
   const navigate = useNavigate();
   const { user, refresh } = useAuth();
+  const t = useT();
 
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -27,16 +29,16 @@ export default function SetPasswordPage() {
 
   useEffect(() => {
     if (!token) {
-      setLoadError("Link inválido: token ausente.");
+      setLoadError(t("Link inválido: token ausente."));
       return;
     }
     api
       .get<InviteInfo>(`/auth/invite/${token}`)
       .then(setInvite)
       .catch((e) =>
-        setLoadError(e instanceof ApiError ? e.detail : "Convite inválido ou expirado"),
+        setLoadError(e instanceof ApiError ? e.detail : t("Convite inválido ou expirado")),
       );
-  }, [token]);
+  }, [token, t]);
 
   if (user) return <Navigate to="/" replace />;
 
@@ -44,7 +46,7 @@ export default function SetPasswordPage() {
     e.preventDefault();
     setError(null);
     if (password !== confirm) {
-      setError("As senhas não coincidem");
+      setError(t("As senhas não coincidem"));
       return;
     }
     setBusy(true);
@@ -53,7 +55,7 @@ export default function SetPasswordPage() {
       await refresh();
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : "Falha ao definir a senha");
+      setError(err instanceof ApiError ? err.detail : t("Falha ao definir a senha"));
     } finally {
       setBusy(false);
     }
@@ -77,10 +79,9 @@ export default function SetPasswordPage() {
           {invite && (
             <form onSubmit={onSubmit} className="space-y-3">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Olá, <strong>{invite.full_name}</strong>. Defina a senha da sua conta (
-                {invite.username}) para concluir o cadastro.
+                {t("Olá, {nome}. Defina a senha da sua conta ({login}) para concluir o cadastro.", { nome: invite.full_name, login: invite.username })}
               </p>
-              <Field label="Nova senha" hint="Mínimo 10 caracteres.">
+              <Field label={t("Nova senha")} hint={t("Mínimo 10 caracteres.")}>
                 <input
                   className="input"
                   type="password"
@@ -92,7 +93,7 @@ export default function SetPasswordPage() {
                   autoFocus
                 />
               </Field>
-              <Field label="Confirmar senha" error={error ?? undefined}>
+              <Field label={t("Confirmar senha")} error={error ?? undefined}>
                 <input
                   className="input"
                   type="password"
@@ -104,7 +105,7 @@ export default function SetPasswordPage() {
                 />
               </Field>
               <Button type="submit" className="w-full" loading={busy}>
-                Criar senha e entrar
+                {t("Criar senha e entrar")}
               </Button>
             </form>
           )}

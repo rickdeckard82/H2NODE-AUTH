@@ -5,9 +5,11 @@ import { Logo } from "../../components/Logo";
 import { Button, Field } from "../../components/ui";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { useT } from "../../lib/i18n";
 
 export default function LoginPage() {
   const { user, loading, login, verifyMfa } = useAuth();
+  const t = useT();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +34,7 @@ export default function LoginPage() {
         navigate("/", { replace: true });
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : "Falha ao entrar");
+      setError(err instanceof ApiError ? err.detail : t("Falha ao entrar"));
     } finally {
       setBusy(false);
     }
@@ -47,7 +49,7 @@ export default function LoginPage() {
       await verifyMfa(mfaToken, code, rememberDevice);
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : "Código inválido");
+      setError(err instanceof ApiError ? err.detail : t("Código inválido"));
     } finally {
       setBusy(false);
     }
@@ -64,11 +66,11 @@ export default function LoginPage() {
             </div>
             <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
               {useRecovery
-                ? "Digite um dos seus códigos de recuperação (uso único)."
-                : "Digite o código de 6 dígitos do seu aplicativo autenticador."}
+                ? t("Digite um dos seus códigos de recuperação (uso único).")
+                : t("Digite o código de 6 dígitos do seu aplicativo autenticador.")}
             </p>
             <Field
-              label={useRecovery ? "Código de recuperação" : "Código de verificação"}
+              label={useRecovery ? t("Código de recuperação") : t("Código de verificação")}
               error={error ?? undefined}
             >
               <input
@@ -90,7 +92,7 @@ export default function LoginPage() {
                 checked={rememberDevice}
                 onChange={(e) => setRememberDevice(e.target.checked)}
               />
-              Confiar neste dispositivo (não pedir o código por 30 dias)
+              {t("Confiar neste dispositivo (não pedir o código por 30 dias)")}
             </label>
             <Button
               type="submit"
@@ -98,7 +100,7 @@ export default function LoginPage() {
               loading={busy}
               disabled={useRecovery ? code.trim().length < 6 : code.length !== 6}
             >
-              Verificar
+              {t("Verificar")}
             </Button>
             <button
               type="button"
@@ -109,7 +111,7 @@ export default function LoginPage() {
                 setError(null);
               }}
             >
-              {useRecovery ? "Usar o código do autenticador" : "Usar um código de recuperação"}
+              {useRecovery ? t("Usar o código do autenticador") : t("Usar um código de recuperação")}
             </button>
             <button
               type="button"
@@ -122,7 +124,7 @@ export default function LoginPage() {
                 setRememberDevice(false);
               }}
             >
-              Voltar
+              {t("Voltar")}
             </button>
           </form>
         ) : (
@@ -133,7 +135,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-3">
-              <Field label="Usuário">
+              <Field label={t("Usuário")}>
                 <input
                   className="input"
                   autoComplete="username"
@@ -143,7 +145,7 @@ export default function LoginPage() {
                   autoFocus
                 />
               </Field>
-              <Field label="Senha" error={error ?? undefined}>
+              <Field label={t("Senha")} error={error ?? undefined}>
                 <input
                   className="input"
                   type="password"
@@ -156,7 +158,7 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" className="mt-5 w-full" loading={busy}>
-              Entrar
+              {t("Entrar")}
             </Button>
           </form>
         )}

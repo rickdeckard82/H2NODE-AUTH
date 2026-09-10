@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.system_user import SystemRole
@@ -35,9 +37,15 @@ class MeOut(BaseModel):
     role: SystemRole
     is_active: bool
     timezone: str
+    language: str = "pt-BR"
     mfa_enabled: bool
     mfa_recovery_codes_remaining: int = 0
     last_login_at: UtcDatetime | None
+
+
+class MeUpdateIn(BaseModel):
+    language: Literal["pt-BR", "en-US"] | None = None
+    timezone: str | None = Field(default=None, max_length=64)
 
 
 class SessionOut(BaseModel):

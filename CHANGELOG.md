@@ -33,6 +33,13 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
 - **Auditoria** ganha a aba **“Dispositivos 2FA”**: dispositivos memorizados
   ativos (`GET /audit/trusted-devices`) + histórico de memorização/remoção
   (`entity_type = mfa_trusted_device`).
+- **Idioma da interface** (`app_system_user.language`, migração `0016`): `pt-BR`
+  (padrão) ou `en-US`. Definido no cadastro do usuário do painel (ao lado do
+  fuso) e trocável pelo próprio no menu do topo (`PATCH /auth/me`). Infra i18n
+  própria (`lib/i18n`, dicionário `pt-BR` por identidade + `en-US`); datas via
+  `toLocaleString` no idioma ativo. Cobertura inicial: menu, cabeçalho, fluxo de
+  login/2FA/senha, títulos das telas, botões e avisos comuns — o restante recai
+  no pt-BR.
 - **Configuração → LGPD** (`app_lgpd_settings`, migração `0015`, só superadmin):
   nome/razão social e e-mail do Encarregado exibidos no Aviso de Privacidade
   (que passa a ler `GET /settings/legal`, público), e prazos de retenção em

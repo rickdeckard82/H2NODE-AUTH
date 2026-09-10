@@ -76,6 +76,7 @@ def create_user(
     user = SystemUser(
         username=body.username, email=body.email, full_name=body.full_name,
         role=body.role, is_active=body.is_active, timezone=body.timezone,
+        language=body.language,
         password_hash=hash_password(body.password) if body.password else None,
     )
     db.add(user)
@@ -156,6 +157,8 @@ def update_user(
         user.is_active = body.is_active
     if body.timezone is not None:
         user.timezone = body.timezone
+    if body.language is not None:
+        user.language = body.language
     if body.password:
         user.password_hash = hash_password(body.password)
 

@@ -5,8 +5,9 @@ import { ChangePasswordModal } from "../components/ChangePasswordModal";
 import { ICONS, type IconName } from "../components/icons";
 import { Logo } from "../components/Logo";
 import { TwoFactorModal } from "../components/TwoFactorModal";
-import { Button } from "../components/ui";
+import { Button, useToast } from "../components/ui";
 import { useAuth, type Role } from "../lib/auth";
+import { LANGS, useI18n } from "../lib/i18n";
 
 interface NavLeaf {
   to: string;
@@ -74,7 +75,9 @@ const leafClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, logout, can } = useAuth();
+  const { user, logout, can, setLanguage } = useAuth();
+  const { lang, t } = useI18n();
+  const toast = useToast();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -118,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {open && (
         <button
           type="button"
-          aria-label="Fechar menu"
+          aria-label={t("Fechar menu")}
           className="fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm lg:hidden"
           onClick={() => setOpen(false)}
         />
@@ -133,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="text-lg font-bold tracking-tight">Pulse RADIUS</span>
           <button
             type="button"
-            aria-label="Fechar menu"
+            aria-label={t("Fechar menu")}
             className="ml-auto rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden"
             onClick={() => setOpen(false)}
           >
@@ -156,7 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className={leafClass}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  {e.label}
+                  {t(e.label)}
                 </NavLink>
               );
             }
@@ -170,7 +173,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-expanded={isOpen(e)}
                 >
                   <GroupIcon className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 text-left">{e.label}</span>
+                  <span className="flex-1 text-left">{t(e.label)}</span>
                   <svg
                     className={`h-3.5 w-3.5 transition-transform ${isOpen(e) ? "rotate-90" : ""}`}
                     viewBox="0 0 20 20"
@@ -191,7 +194,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                           className={leafClass}
                         >
                           <Icon className="h-4 w-4 shrink-0" />
-                          {c.label}
+                          {t(c.label)}
                         </NavLink>
                       );
                     })}
@@ -209,7 +212,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
           <button
             type="button"
-            aria-label="Abrir menu"
+            aria-label={t("Abrir menu")}
             className="-ml-1 rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 lg:hidden"
             onClick={() => setOpen(true)}
           >
@@ -230,7 +233,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{user?.role}</div>
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full z-20 mt-2 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+              <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
                 <button
                   type="button"
                   className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
@@ -239,7 +242,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     setChangePassword(true);
                   }}
                 >
-                  Alterar senha
+                  {t("Alterar senha")}
                 </button>
                 <button
                   type="button"
@@ -249,12 +252,38 @@ export function AppShell({ children }: { children: ReactNode }) {
                     setTwoFactor(true);
                   }}
                 >
-                  {user?.mfa_enabled ? "2FA (ativo)" : "Ativar 2FA"}
+                  {user?.mfa_enabled ? t("2FA (ativo)") : t("Ativar 2FA")}
                 </button>
+                <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
+                <div className="px-3 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  {t("Idioma")}
+                </div>
+                {LANGS.map((l) => (
+                  <button
+                    key={l.value}
+                    type="button"
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 ${
+                      lang === l.value
+                        ? "font-semibold text-brand-700 dark:text-brand-300"
+                        : "text-slate-700 dark:text-slate-200"
+                    }`}
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      if (lang !== l.value) {
+                        setLanguage(l.value).then(() =>
+                          toast("ok", t("Idioma da interface atualizado")),
+                        );
+                      }
+                    }}
+                  >
+                    {l.label}
+                    {lang === l.value && <span aria-hidden>✓</span>}
+                  </button>
+                ))}
               </div>
             )}
             <Button variant="ghost" onClick={doLogout}>
-              Sair
+              {t("Sair")}
             </Button>
           </div>
           <ChangePasswordModal open={changePassword} onClose={() => setChangePassword(false)} />
@@ -262,13 +291,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         {needsMfaNudge && (
           <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-            Sua conta tem privilégios de {user?.role} e ainda não tem 2FA ativo.{" "}
+            {t("Sua conta tem privilégios de {role} e ainda não tem 2FA ativo.", { role: user?.role ?? "" })}{" "}
             <button
               type="button"
               className="font-semibold underline underline-offset-2"
               onClick={() => setTwoFactor(true)}
             >
-              Ativar agora
+              {t("Ativar agora")}
             </button>
           </div>
         )}

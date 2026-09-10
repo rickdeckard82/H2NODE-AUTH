@@ -1,3 +1,4 @@
+from typing import Literal
 from zoneinfo import available_timezones
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -6,6 +7,8 @@ from app.models.system_user import SystemRole
 from app.schemas.common import UtcDatetime
 
 _TZS = available_timezones()
+
+Language = Literal["pt-BR", "en-US"]
 
 
 def _check_tz(v: str | None) -> str | None:
@@ -21,6 +24,7 @@ class SystemUserBase(BaseModel):
     role: SystemRole = SystemRole.operator
     is_active: bool = True
     timezone: str = Field(default="America/Sao_Paulo", max_length=64)
+    language: Language = "pt-BR"
 
     _v_tz = field_validator("timezone")(_check_tz)
 
@@ -37,6 +41,7 @@ class SystemUserUpdate(BaseModel):
     role: SystemRole | None = None
     is_active: bool | None = None
     timezone: str | None = Field(default=None, max_length=64)
+    language: Language | None = None
     password: str | None = Field(default=None, min_length=10, max_length=128)
 
     _v_tz = field_validator("timezone")(_check_tz)

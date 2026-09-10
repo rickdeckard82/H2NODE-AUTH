@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button, Card, Field, PageHeader, Spinner, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { useFmtDate } from "../../lib/datetime";
+import { useT } from "../../lib/i18n";
 
 interface LgpdSettings {
   org_name: string;
@@ -61,6 +62,7 @@ function RetentionField({
 }
 
 export default function LgpdSettingsPage() {
+  const t = useT();
   const qc = useQueryClient();
   const toast = useToast();
   const fmtDate = useFmtDate();
@@ -90,7 +92,7 @@ export default function LgpdSettingsPage() {
       toast("ok", "Configuração LGPD salva");
       qc.invalidateQueries({ queryKey: ["lgpd-settings"] });
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   if (query.isLoading) return <Spinner className="h-6 w-6 text-brand-600" />;
@@ -98,8 +100,8 @@ export default function LgpdSettingsPage() {
   return (
     <div>
       <PageHeader
-        title="LGPD"
-        subtitle="Identificação do controlador exibida no Aviso de Privacidade e prazos de retenção de dados"
+        title={t("LGPD")}
+        subtitle={t("Identificação do controlador exibida no Aviso de Privacidade e prazos de retenção de dados")}
       />
 
       <Card className="mb-4">
@@ -189,7 +191,7 @@ export default function LgpdSettingsPage() {
 
           <div className="flex justify-end">
             <Button type="submit" loading={save.isPending}>
-              Salvar
+              {t("Salvar")}
             </Button>
           </div>
         </form>

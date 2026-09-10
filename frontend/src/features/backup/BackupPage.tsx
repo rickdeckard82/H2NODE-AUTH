@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Button, Card, Field, PageHeader, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
+import { useT } from "../../lib/i18n";
 
 const CONFIRM_WORD = "RESTAURAR";
 
@@ -12,6 +13,7 @@ interface RestoreResult {
 }
 
 export default function BackupPage() {
+  const t = useT();
   const toast = useToast();
   const [includeAccounting, setIncludeAccounting] = useState(true);
   const [encryptExport, setEncryptExport] = useState(true);
@@ -61,8 +63,8 @@ export default function BackupPage() {
   return (
     <div>
       <PageHeader
-        title="Backup e restauração"
-        subtitle="Cópia completa do banco (RADIUS + painel) para recuperação em caso de falha"
+        title={t("Backup e restauração")}
+        subtitle={t("Cópia completa do banco (RADIUS + painel) para recuperação em caso de falha")}
       />
 
       <Card className="mb-4">

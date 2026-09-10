@@ -7,10 +7,12 @@ import { useFmtDate } from "../../lib/datetime";
 import { fmtBytes, fmtDuration } from "../../lib/format";
 import type { CommandEvent, Session } from "../../lib/types";
 import { emptyFilters, ReportFilters, toIso, type ReportFilterState } from "../reports/ReportFilters";
+import { useT } from "../../lib/i18n";
 
 type View = "commands" | "sessions";
 
 export default function AccountingPage() {
+  const t = useT();
   const fmt = useFmtDate();
   const [view, setView] = useState<View>("commands");
   const [filters, setFilters] = useState<ReportFilterState>(emptyFilters);
@@ -55,8 +57,8 @@ export default function AccountingPage() {
   return (
     <div>
       <PageHeader
-        title="Accounting"
-        subtitle="Comandos executados nos equipamentos e sessões de login (radacct)"
+        title={t("Accounting")}
+        subtitle={t("Comandos executados nos equipamentos e sessões de login (radacct)")}
         actions={<RefreshButton keys={["acct-commands", "acct-sessions"]} />}
       />
 
@@ -108,7 +110,7 @@ export default function AccountingPage() {
               </label>
             )}
             <Button variant="ghost" onClick={downloadCsv}>
-              Exportar CSV
+              {t("Exportar CSV")}
             </Button>
           </>
         }

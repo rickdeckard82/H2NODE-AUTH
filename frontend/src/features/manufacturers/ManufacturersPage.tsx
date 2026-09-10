@@ -5,6 +5,7 @@ import { Badge, Button, Card, Field, Modal, PageHeader, Spinner, useToast } from
 import { api, ApiError } from "../../lib/api";
 import { fmtDate } from "../../lib/format";
 import { VENDOR_KINDS, type AaaProtocol, type Manufacturer, type VendorKind } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 interface FormState {
   id?: number;
@@ -47,6 +48,7 @@ const KIND_HINT: Record<VendorKind, string> = {
 };
 
 export default function ManufacturersPage() {
+  const t = useT();
   const qc = useQueryClient();
   const toast = useToast();
   const [form, setForm] = useState<FormState | null>(null);
@@ -93,28 +95,28 @@ export default function ManufacturersPage() {
       });
     },
     onSuccess: () => {
-      toast("ok", "Fabricante salvo");
+      toast("ok", t("Fabricante salvo"));
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const remove = useMutation({
     mutationFn: (m: Manufacturer) => api.del(`/manufacturers/${m.id}`),
     onSuccess: () => {
-      toast("ok", "Fabricante removido");
+      toast("ok", t("Fabricante removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
   });
 
   return (
     <div>
       <PageHeader
-        title="Grupo de equipamentos"
-        subtitle="Fabricante / grupo: define a tradução de VSA e o segredo RADIUS padrão herdado pelos equipamentos"
-        actions={<Button onClick={() => setForm({ ...empty })}>Novo grupo</Button>}
+        title={t("Grupo de equipamentos")}
+        subtitle={t("Fabricante / grupo: define a tradução de VSA e o segredo RADIUS padrão herdado pelos equipamentos")}
+        actions={<Button onClick={() => setForm({ ...empty })}>{t("Novo grupo")}</Button>}
       />
 
       {list.isLoading ? (
@@ -197,7 +199,7 @@ export default function ManufacturersPage() {
                           })
                         }
                       >
-                        Editar
+                        {t("Editar")}
                       </button>
                       <button
                         className="text-rose-600 hover:underline dark:text-rose-400"
@@ -205,7 +207,7 @@ export default function ManufacturersPage() {
                           if (confirm(`Remover o fabricante ${m.display_name}?`)) remove.mutate(m);
                         }}
                       >
-                        Excluir
+                        {t("Excluir")}
                       </button>
                     </div>
                   </td>
@@ -378,10 +380,10 @@ export default function ManufacturersPage() {
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setForm(null)}>
-                Cancelar
+                {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>
-                Salvar
+                {t("Salvar")}
               </Button>
             </div>
           </form>

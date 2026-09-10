@@ -14,6 +14,7 @@ import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { fmtDate } from "../../lib/format";
 import type { AuthGroup, AuthGroupCidr } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 interface FormState {
   id?: number;
@@ -25,6 +26,7 @@ interface FormState {
 const empty: FormState = { name: "", description: "", cidrs: [] };
 
 export default function UserGroupsPage() {
+  const t = useT();
   const { can } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
@@ -54,20 +56,20 @@ export default function UserGroupsPage() {
       return f.id ? api.patch(`/auth-groups/${f.id}`, body) : api.post("/auth-groups", body);
     },
     onSuccess: () => {
-      toast("ok", "Grupo salvo");
+      toast("ok", t("Grupo salvo"));
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const remove = useMutation({
     mutationFn: (g: AuthGroup) => api.del(`/auth-groups/${g.id}`),
     onSuccess: () => {
-      toast("ok", "Grupo removido");
+      toast("ok", t("Grupo removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
   });
 
   function addRow() {
@@ -77,9 +79,9 @@ export default function UserGroupsPage() {
   return (
     <div>
       <PageHeader
-        title="Grupos de usuário"
-        subtitle="Restringem a autenticação por IP de origem: fora das faixas do grupo, o RADIUS rejeita"
-        actions={writable && <Button onClick={() => setForm({ ...empty })}>Novo grupo</Button>}
+        title={t("Grupos de usuário")}
+        subtitle={t("Restringem a autenticação por IP de origem: fora das faixas do grupo, o RADIUS rejeita")}
+        actions={writable && <Button onClick={() => setForm({ ...empty })}>{t("Novo grupo")}</Button>}
       />
 
       {list.isLoading ? (
@@ -130,7 +132,7 @@ export default function UserGroupsPage() {
                         })
                       }
                     >
-                      Editar
+                      {t("Editar")}
                     </Button>
                     <Button
                       variant="danger"
@@ -138,7 +140,7 @@ export default function UserGroupsPage() {
                         if (confirm(`Remover o grupo ${g.name}?`)) remove.mutate(g);
                       }}
                     >
-                      Excluir
+                      {t("Excluir")}
                     </Button>
                   </div>
                 )}
@@ -240,10 +242,10 @@ export default function UserGroupsPage() {
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setForm(null)}>
-                Cancelar
+                {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>
-                Salvar
+                {t("Salvar")}
               </Button>
             </div>
           </form>

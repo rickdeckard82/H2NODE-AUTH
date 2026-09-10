@@ -14,6 +14,7 @@ import {
 import { api, ApiError, type Page } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { DEFAULT_TZ, TIMEZONES, useFmtDate } from "../../lib/datetime";
+import { DEFAULT_LANG, LANGS, useT, type Lang } from "../../lib/i18n";
 import type { SystemUser } from "../../lib/types";
 
 type Role = SystemUser["role"];
@@ -27,6 +28,7 @@ interface FormState {
   role: Role;
   is_active: boolean;
   timezone: string;
+  language: Lang;
   password: string;
   sendInvite: boolean;
 }
@@ -38,11 +40,13 @@ const empty: FormState = {
   role: "operator",
   is_active: true,
   timezone: DEFAULT_TZ,
+  language: DEFAULT_LANG,
   password: "",
   sendInvite: true,
 };
 
 export default function SystemUsersPage() {
+  const t = useT();
   const { user } = useAuth();
   const fmtDate = useFmtDate();
   const qc = useQueryClient();
@@ -66,6 +70,7 @@ export default function SystemUsersPage() {
           role: f.role,
           is_active: f.is_active,
           timezone: f.timezone,
+          language: f.language,
         };
         if (f.password) body.password = f.password;
         return api.patch(`/system-users/${f.id}`, body);
@@ -77,24 +82,25 @@ export default function SystemUsersPage() {
         role: f.role,
         is_active: f.is_active,
         timezone: f.timezone,
+        language: f.language,
         password: f.sendInvite ? null : f.password,
       });
     },
     onSuccess: (_, f) => {
-      toast("ok", f.sendInvite && !f.id ? "Usuário criado — convite enviado por e-mail" : "Usuário salvo");
+      toast("ok", f.sendInvite && !f.id ? "Usuário criado — convite enviado por e-mail" : t("Usuário salvo"));
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const remove = useMutation({
     mutationFn: (u: SystemUser) => api.del(`/system-users/${u.id}`),
     onSuccess: () => {
-      toast("ok", "Usuário removido");
+      toast("ok", t("Usuário removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
   });
 
   const resendInvite = useMutation({
@@ -115,9 +121,9 @@ export default function SystemUsersPage() {
   return (
     <div>
       <PageHeader
-        title="Usuários do painel"
-        subtitle="Contas de acesso a este painel (não confundir com usuários de autenticação)"
-        actions={<Button onClick={() => setForm({ ...empty })}>Novo usuário</Button>}
+        title={t("Usuários do painel")}
+        subtitle={t("Contas de acesso a este painel (não confundir com usuários de autenticação)")}
+        actions={<Button onClick={() => setForm({ ...empty })}>{t("Novo usuário")}</Button>}
       />
 
       <Card className="mb-3">
@@ -185,12 +191,13 @@ export default function SystemUsersPage() {
                           role: u.role,
                           is_active: u.is_active,
                           timezone: u.timezone ?? DEFAULT_TZ,
+                          language: (u.language as Lang) ?? DEFAULT_LANG,
                           password: "",
                           sendInvite: false,
                         })
                       }
                     >
-                      Editar
+                      {t("Editar")}
                     </button>
                     {!u.has_password && (
                       <button
@@ -218,7 +225,7 @@ export default function SystemUsersPage() {
                           if (confirm(`Remover ${u.username}?`)) remove.mutate(u);
                         }}
                       >
-                        Excluir
+                        {t("Excluir")}
                       </button>
                     )}
                   </div>
@@ -292,22 +299,37 @@ export default function SystemUsersPage() {
                 required
               />
             </Field>
-            <Field label="Fuso horário" hint="Usado para exibir as datas no painel.">
-              <select
-                className="input"
-                value={form.timezone}
-                onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-              >
-                {(TIMEZONES.includes(form.timezone)
-                  ? TIMEZONES
-                  : [form.timezone, ...TIMEZONES]
-                ).map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Fuso horário" hint="Usado para exibir as datas no painel.">
+                <select
+                  className="input"
+                  value={form.timezone}
+                  onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+                >
+                  {(TIMEZONES.includes(form.timezone)
+                    ? TIMEZONES
+                    : [form.timezone, ...TIMEZONES]
+                  ).map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Idioma padrão" hint="Idioma inicial da interface deste usuário.">
+                <select
+                  className="input"
+                  value={form.language}
+                  onChange={(e) => setForm({ ...form, language: e.target.value as Lang })}
+                >
+                  {LANGS.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
             {!form.id && (
               <div className="flex gap-4 text-sm">
                 <label className="flex items-center gap-2">
@@ -358,10 +380,10 @@ export default function SystemUsersPage() {
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setForm(null)}>
-                Cancelar
+                {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>
-                Salvar
+                {t("Salvar")}
               </Button>
             </div>
           </form>

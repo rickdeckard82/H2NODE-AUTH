@@ -1,10 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import { useT } from "../lib/i18n";
 import { Button, Field, Modal, useToast } from "./ui";
 
 export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const toast = useToast();
+  const t = useT();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -20,18 +22,18 @@ export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose:
   const save = useMutation({
     mutationFn: () => api.patch("/auth/me/password", { current_password: current, new_password: next }),
     onSuccess: () => {
-      toast("ok", "Senha alterada");
+      toast("ok", t("Senha alterada"));
       reset();
       onClose();
     },
-    onError: (e) => setError(e instanceof ApiError ? e.detail : "Erro ao alterar a senha"),
+    onError: (e) => setError(e instanceof ApiError ? e.detail : t("Erro ao alterar a senha")),
   });
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     if (next !== confirm) {
-      setError("As senhas não coincidem");
+      setError(t("As senhas não coincidem"));
       return;
     }
     save.mutate();
@@ -44,10 +46,10 @@ export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose:
         reset();
         onClose();
       }}
-      title="Alterar senha"
+      title={t("Alterar senha")}
     >
       <form className="space-y-3" onSubmit={onSubmit}>
-        <Field label="Senha atual">
+        <Field label={t("Senha atual")}>
           <input
             className="input"
             type="password"
@@ -58,7 +60,7 @@ export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose:
             autoFocus
           />
         </Field>
-        <Field label="Nova senha" hint="Mínimo 10 caracteres.">
+        <Field label={t("Nova senha")} hint={t("Mínimo 10 caracteres.")}>
           <input
             className="input"
             type="password"
@@ -69,7 +71,7 @@ export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose:
             required
           />
         </Field>
-        <Field label="Confirmar nova senha" error={error ?? undefined}>
+        <Field label={t("Confirmar nova senha")} error={error ?? undefined}>
           <input
             className="input"
             type="password"
@@ -82,10 +84,10 @@ export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose:
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
-            Cancelar
+            {t("Cancelar")}
           </Button>
           <Button type="submit" loading={save.isPending}>
-            Salvar
+            {t("Salvar")}
           </Button>
         </div>
       </form>

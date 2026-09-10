@@ -115,6 +115,7 @@ export interface SystemUser {
   role: "superadmin" | "admin" | "operator" | "auditor";
   is_active: boolean;
   timezone: string;
+  language: "pt-BR" | "en-US";
   has_password: boolean;
   mfa_enabled: boolean;
   last_login_at: string | null;

@@ -12,6 +12,7 @@ import {
 } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import type { Manufacturer, PrivilegeProfile, ProfileAttr } from "../../lib/types";
+import { useT } from "../../lib/i18n";
 
 interface FormState {
   id?: number;
@@ -24,6 +25,7 @@ interface FormState {
 }
 
 export default function PrivilegeProfilesPage() {
+  const t = useT();
   const qc = useQueryClient();
   const toast = useToast();
   const [form, setForm] = useState<FormState | null>(null);
@@ -64,16 +66,16 @@ export default function PrivilegeProfilesPage() {
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao salvar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const remove = useMutation({
     mutationFn: (p: PrivilegeProfile) => api.del(`/privilege-profiles/${p.id}`),
     onSuccess: () => {
-      toast("ok", "Perfil removido");
+      toast("ok", t("Perfil removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
   });
 
   function mfrName(id: number) {
@@ -92,8 +94,8 @@ export default function PrivilegeProfilesPage() {
   return (
     <div>
       <PageHeader
-        title="Perfis de privilégio"
-        subtitle="Mapeiam um perfil abstrato para atributos RADIUS de cada fabricante (radgroupreply)"
+        title={t("Perfis de privilégio")}
+        subtitle={t("Mapeiam um perfil abstrato para atributos RADIUS de cada fabricante (radgroupreply)")}
         actions={
           <Button
             onClick={() =>
@@ -145,7 +147,7 @@ export default function PrivilegeProfilesPage() {
                     })
                   }
                 >
-                  Editar
+                  {t("Editar")}
                 </Button>
                 {!p.is_builtin && (
                   <Button
@@ -154,7 +156,7 @@ export default function PrivilegeProfilesPage() {
                       if (confirm(`Remover perfil ${p.name}?`)) remove.mutate(p);
                     }}
                   >
-                    Excluir
+                    {t("Excluir")}
                   </Button>
                 )}
               </div>
@@ -302,10 +304,10 @@ export default function PrivilegeProfilesPage() {
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setForm(null)}>
-                Cancelar
+                {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>
-                Salvar
+                {t("Salvar")}
               </Button>
             </div>
           </form>
