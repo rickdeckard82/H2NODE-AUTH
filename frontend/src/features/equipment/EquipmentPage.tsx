@@ -168,9 +168,7 @@ export default function EquipmentPage() {
                     typeof manufacturerFilter === "number" ? manufacturerFilter : "",
                 })
               }
-            >
-              Novo equipamento
-            </Button>
+            >{t("Novo equipamento")}</Button>
           )
         }
       />
@@ -194,7 +192,7 @@ export default function EquipmentPage() {
             setPage(1);
           }}
         >
-          <option value="all">Todos os fabricantes</option>
+          <option value="all">{t("Todos os fabricantes")}</option>
           {orderedManufacturers.map((m) => (
             <option key={m.id} value={m.id}>
               {m.display_name}
@@ -240,7 +238,7 @@ export default function EquipmentPage() {
                     </Badge>
                     {eq.effective_protocol === "radius" &&
                       !eq.radius_require_message_authenticator && (
-                        <Badge tone="amber">sem Message-Authenticator</Badge>
+                        <Badge tone="amber">{t("sem Message-Authenticator")}</Badge>
                       )}
                   </div>
                 </td>
@@ -248,28 +246,28 @@ export default function EquipmentPage() {
                   {eq.effective_protocol === "tacacs" ? (
                     <>
                       {eq.tacacs_key_source === "equipment" && (
-                        <Badge tone="slate">chave própria</Badge>
+                        <Badge tone="slate">{t("chave própria")}</Badge>
                       )}
                       {eq.tacacs_key_source === "manufacturer" && (
-                        <Badge tone="green">chave herdada do grupo</Badge>
+                        <Badge tone="green">{t("chave herdada do grupo")}</Badge>
                       )}
                       {eq.tacacs_key_source === "none" && (
-                        <Badge tone="red">sem chave TACACS+</Badge>
+                        <Badge tone="red">{t("sem chave TACACS+")}</Badge>
                       )}
                     </>
                   ) : (
                     <>
-                      {eq.secret_source === "equipment" && <Badge tone="slate">próprio</Badge>}
+                      {eq.secret_source === "equipment" && <Badge tone="slate">{t("próprio")}</Badge>}
                       {eq.secret_source === "manufacturer" && (
-                        <Badge tone="green">herdado do fabricante</Badge>
+                        <Badge tone="green">{t("herdado do fabricante")}</Badge>
                       )}
-                      {eq.secret_source === "none" && <Badge tone="red">sem segredo</Badge>}
+                      {eq.secret_source === "none" && <Badge tone="red">{t("sem segredo")}</Badge>}
                     </>
                   )}
                 </td>
                 <td className="td">{eq.site || "—"}</td>
                 <td className="td">
-                  <Badge tone={STATUS_TONE[eq.status]}>{eq.status}</Badge>
+                  <Badge tone={STATUS_TONE[eq.status]}>{t(eq.status)}</Badge>
                 </td>
                 <td className="td">{fmtDate(eq.updated_at)}</td>
                 <td className="td text-right">
@@ -277,8 +275,8 @@ export default function EquipmentPage() {
                     <div className="flex justify-end gap-2">
                       {eq.effective_protocol === "radius" && eq.secret_source !== "none" && (
                         <RevealSecretButton
-                          title={`Segredo RADIUS — ${eq.name}`}
-                          hint="Esta consulta fica registrada na auditoria."
+                          title={t("Segredo RADIUS — {nome}", { nome: eq.name })}
+                          hint={t("Esta consulta fica registrada na auditoria.")}
                           load={() => api.get(`/equipment/${eq.id}/secret`)}
                         />
                       )}
@@ -312,7 +310,7 @@ export default function EquipmentPage() {
                         <button
                           className="text-rose-600 hover:underline dark:text-rose-400"
                           onClick={() => {
-                            if (confirm(`Remover ${eq.name}?`)) remove.mutate(eq);
+                            if (confirm(t("Remover {nome}?", { nome: eq.name }))) remove.mutate(eq);
                           }}
                         >
                           {t("Excluir")}
@@ -345,7 +343,7 @@ export default function EquipmentPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? "Editar equipamento" : "Novo equipamento"}
+        title={form?.id ? t("Editar equipamento") : t("Novo equipamento")}
         wide
       >
         {form && (
@@ -356,7 +354,7 @@ export default function EquipmentPage() {
               save.mutate(form);
             }}
           >
-            <Field label="Nome">
+            <Field label={t("Nome")}>
               <input
                 className="input"
                 value={form.name}
@@ -364,7 +362,7 @@ export default function EquipmentPage() {
                 required
               />
             </Field>
-            <Field label="IP de gerência" hint="Deve bater com o NAS-IP-Address do request">
+            <Field label={t("IP de gerência")} hint={t("Deve bater com o NAS-IP-Address do request")}>
               <input
                 className="input font-mono"
                 value={form.mgmt_ip}
@@ -373,12 +371,12 @@ export default function EquipmentPage() {
               />
             </Field>
             <Field
-              label="Fabricante"
+              label={t("Fabricante")}
               hint={
                 selectedManufacturer
                   ? selectedManufacturer.has_secret
-                    ? "tem segredo RADIUS padrão"
-                    : "sem segredo padrão — informe um abaixo"
+                    ? t("tem segredo RADIUS padrão")
+                    : t("sem segredo padrão — informe um abaixo")
                   : undefined
               }
             >
@@ -389,17 +387,17 @@ export default function EquipmentPage() {
                 required
               >
                 <option value="" disabled>
-                  Selecione…
+                  {t("Selecione…")}
                 </option>
                 {orderedManufacturers.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.display_name}
-                    {m.has_secret ? "  ·  segredo padrão" : ""}
+                    {m.has_secret ? `  ·  ${t("segredo padrão")}` : ""}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Shortname (identificador RADIUS)">
+            <Field label={t("Shortname (identificador RADIUS)")}>
               <input
                 className="input"
                 value={form.shortname}
@@ -408,21 +406,21 @@ export default function EquipmentPage() {
                 required
               />
             </Field>
-            <Field label="Modelo">
+            <Field label={t("Modelo")}>
               <input
                 className="input"
                 value={form.model}
                 onChange={(e) => setForm({ ...form, model: e.target.value })}
               />
             </Field>
-            <Field label="Site / localização">
+            <Field label={t("Site / localização")}>
               <input
                 className="input"
                 value={form.site}
                 onChange={(e) => setForm({ ...form, site: e.target.value })}
               />
             </Field>
-            <Field label="Porta CoA">
+            <Field label={t("Porta CoA")}>
               <input
                 className="input"
                 type="number"
@@ -430,7 +428,7 @@ export default function EquipmentPage() {
                 onChange={(e) => setForm({ ...form, coa_port: Number(e.target.value) })}
               />
             </Field>
-            <Field label="Estado">
+            <Field label={t("Estado")}>
               <select
                 className="input"
                 value={form.status}
@@ -438,17 +436,17 @@ export default function EquipmentPage() {
                   setForm({ ...form, status: e.target.value as Equipment["status"] })
                 }
               >
-                <option value="active">active</option>
-                <option value="maintenance">maintenance</option>
-                <option value="disabled">disabled</option>
+                <option value="active">{t("active")}</option>
+                <option value="maintenance">{t("maintenance")}</option>
+                <option value="disabled">{t("disabled")}</option>
               </select>
             </Field>
             <Field
-              label="Protocolo AAA"
+              label={t("Protocolo AAA")}
               hint={
                 form.aaa_protocol
                   ? undefined
-                  : `herda do grupo (${selectedManufacturer?.aaa_protocol ?? "radius"})`
+                  : t("herda do grupo ({proto})", { proto: selectedManufacturer?.aaa_protocol ?? "radius" })
               }
             >
               <select
@@ -458,20 +456,20 @@ export default function EquipmentPage() {
                   setForm({ ...form, aaa_protocol: e.target.value as "" | AaaProtocol })
                 }
               >
-                <option value="">herdar do grupo</option>
-                <option value="radius">radius</option>
-                <option value="tacacs">tacacs</option>
+                <option value="">{t("herdar do grupo")}</option>
+                <option value="radius">{t("radius")}</option>
+                <option value="tacacs">{t("tacacs")}</option>
               </select>
             </Field>
             <div className="col-span-2">
               <Field
-                label="Segredo RADIUS"
+                label={t("Segredo RADIUS")}
                 hint={
                   form.inherit_secret
-                    ? "vai herdar o segredo padrão do fabricante"
+                    ? t("vai herdar o segredo padrão do fabricante")
                     : selectedManufacturer && !selectedManufacturer.has_secret
-                      ? "o fabricante não tem segredo padrão — este campo é obrigatório"
-                      : "em branco = herda o segredo padrão do fabricante. Guardado cifrado (Fernet)."
+                      ? t("o fabricante não tem segredo padrão — este campo é obrigatório")
+                      : t("em branco = herda o segredo padrão do fabricante. Guardado cifrado (Fernet).")
                 }
               >
                 <input
@@ -510,13 +508,13 @@ export default function EquipmentPage() {
                       })
                     }
                   />
-                  Exigir Message-Authenticator (proteção contra BlastRADIUS)
+                  {t("Exigir Message-Authenticator (proteção contra BlastRADIUS)")}
                 </label>
                 {!form.radius_require_message_authenticator && (
                   <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                    Desmarque só para equipamentos com firmware antigo que ainda não enviam esse
-                    atributo (ex.: RouterOS anterior aos patches de 2024) — reduz a proteção
-                    contra o ataque BlastRADIUS só para este NAS. Prefira atualizar o firmware.
+                    {t(
+                      "Desmarque só para equipamentos com firmware antigo que ainda não enviam esse atributo (ex.: RouterOS anterior aos patches de 2024) — reduz a proteção contra o ataque BlastRADIUS só para este NAS. Prefira atualizar o firmware.",
+                    )}
                   </p>
                 )}
               </div>
@@ -524,11 +522,11 @@ export default function EquipmentPage() {
             {effProto === "tacacs" && (
               <div className="col-span-2">
                 <Field
-                  label="Chave TACACS+"
+                  label={t("Chave TACACS+")}
                   hint={
                     form.inherit_tacacs_key
-                      ? "vai herdar a chave padrão do grupo"
-                      : "em branco = herda a chave padrão do grupo. Guardada cifrada (Fernet)."
+                      ? t("vai herdar a chave padrão do grupo")
+                      : t("em branco = herda a chave padrão do grupo. Guardada cifrada (Fernet).")
                   }
                 >
                   <input
@@ -556,7 +554,7 @@ export default function EquipmentPage() {
               </div>
             )}
             <div className="col-span-2">
-              <Field label="Descrição">
+              <Field label={t("Descrição")}>
                 <input
                   className="input"
                   value={form.description}

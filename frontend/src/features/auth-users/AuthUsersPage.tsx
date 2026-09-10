@@ -112,7 +112,7 @@ export default function AuthUsersPage() {
   const resetPw = useMutation({
     mutationFn: () => api.post(`/auth-users/${pwTarget!.id}/reset-password`, { password: newPw }),
     onSuccess: () => {
-      toast("ok", "Senha redefinida");
+      toast("ok", t("Senha redefinida"));
       setPwTarget(null);
       setNewPw("");
     },
@@ -147,13 +147,13 @@ export default function AuthUsersPage() {
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="th">Login</th>
+              <th className="th">{t("Login")}</th>
               <th className="th">{t("Nome")}</th>
-              <th className="th">Perfil</th>
-              <th className="th">Grupo</th>
+              <th className="th">{t("Perfil")}</th>
+              <th className="th">{t("Grupo")}</th>
               <th className="th">{t("Estado")}</th>
-              <th className="th">Expira</th>
-              <th className="th">Último acesso</th>
+              <th className="th">{t("Expira")}</th>
+              <th className="th">{t("Último acesso")}</th>
               <th className="th" />
             </tr>
           </thead>
@@ -181,9 +181,9 @@ export default function AuthUsersPage() {
                 </td>
                 <td className="td">
                   {u.is_active ? (
-                    <Badge tone="green">ativo</Badge>
+                    <Badge tone="green">{t("ativo")}</Badge>
                   ) : (
-                    <Badge tone="red">inativo</Badge>
+                    <Badge tone="red">{t("inativo")}</Badge>
                   )}
                 </td>
                 <td className="td">{u.expires_at ? fmtDate(u.expires_at) : "—"}</td>
@@ -213,19 +213,19 @@ export default function AuthUsersPage() {
                         className="text-slate-600 hover:underline dark:text-slate-300"
                         onClick={() => setPwTarget(u)}
                       >
-                        Senha
+                        {t("Senha")}
                       </button>
                       <button
                         className="text-amber-600 hover:underline dark:text-amber-400"
                         onClick={() => toggle.mutate(u)}
                       >
-                        {u.is_active ? "Desativar" : "Ativar"}
+                        {u.is_active ? t("Desativar") : t("Ativar")}
                       </button>
                       {canDelete && (
                         <button
                           className="text-rose-600 hover:underline dark:text-rose-400"
                           onClick={() => {
-                            if (confirm(`Remover ${u.username}?`)) remove.mutate(u);
+                            if (confirm(t("Remover {nome}?", { nome: u.username }))) remove.mutate(u);
                           }}
                         >
                           {t("Excluir")}
@@ -239,7 +239,7 @@ export default function AuthUsersPage() {
             {list.data?.items.length === 0 && (
               <tr>
                 <td className="td text-slate-400 dark:text-slate-500" colSpan={8}>
-                  Nenhum usuário encontrado.
+                  {t("Nenhum usuário encontrado.")}
                 </td>
               </tr>
             )}
@@ -258,7 +258,7 @@ export default function AuthUsersPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? "Editar usuário" : "Novo usuário de autenticação"}
+        title={form?.id ? t("Editar usuário") : t("Novo usuário de autenticação")}
       >
         {form && (
           <form
@@ -268,7 +268,7 @@ export default function AuthUsersPage() {
               save.mutate(form);
             }}
           >
-            <Field label="Login (username no equipamento)">
+            <Field label={t("Login (username no equipamento)")}>
               <input
                 className="input"
                 value={form.username}
@@ -279,14 +279,14 @@ export default function AuthUsersPage() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nome completo">
+              <Field label={t("Nome completo")}>
                 <input
                   className="input"
                   value={form.full_name}
                   onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                 />
               </Field>
-              <Field label="E-mail">
+              <Field label={t("E-mail")}>
                 <input
                   className="input"
                   type="email"
@@ -295,7 +295,7 @@ export default function AuthUsersPage() {
                 />
               </Field>
             </div>
-            <Field label="Perfil de privilégio">
+            <Field label={t("Perfil de privilégio")}>
               <select
                 className="input"
                 value={form.privilege_profile_id}
@@ -305,7 +305,7 @@ export default function AuthUsersPage() {
                 required
               >
                 <option value="" disabled>
-                  Selecione…
+                  {t("Selecione…")}
                 </option>
                 {profiles.data?.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -315,8 +315,8 @@ export default function AuthUsersPage() {
               </select>
             </Field>
             <Field
-              label="Grupo de usuário (restrição de IP de origem)"
-              hint="Opcional. Se definido, só autentica de IPs nas faixas do grupo."
+              label={t("Grupo de usuário (restrição de IP de origem)")}
+              hint={t("Opcional. Se definido, só autentica de IPs nas faixas do grupo.")}
             >
               <select
                 className="input"
@@ -328,7 +328,7 @@ export default function AuthUsersPage() {
                   })
                 }
               >
-                <option value="">— sem grupo (sem restrição de IP) —</option>
+                <option value="">{t("— sem grupo (sem restrição de IP) —")}</option>
                 {groups.data?.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -338,7 +338,7 @@ export default function AuthUsersPage() {
               </select>
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Expira em (opcional)">
+              <Field label={t("Expira em (opcional)")}>
                 <input
                   className="input"
                   type="datetime-local"
@@ -352,11 +352,11 @@ export default function AuthUsersPage() {
                   checked={form.is_active}
                   onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
                 />
-                Conta ativa
+                {t("Conta ativa")}
               </label>
             </div>
             {!form.id && (
-              <Field label="Senha" hint="Mínimo 12 caracteres. Armazenada como hash SSHA2-512.">
+              <Field label={t("Senha")} hint={t("Mínimo 12 caracteres. Armazenada como hash SSHA2-512.")}>
                 <input
                   className="input"
                   type="password"
@@ -382,7 +382,7 @@ export default function AuthUsersPage() {
       <Modal
         open={!!pwTarget}
         onClose={() => setPwTarget(null)}
-        title={`Redefinir senha — ${pwTarget?.username ?? ""}`}
+        title={t("Redefinir senha — {nome}", { nome: pwTarget?.username ?? "" })}
       >
         <form
           className="space-y-3"
@@ -391,7 +391,7 @@ export default function AuthUsersPage() {
             resetPw.mutate();
           }}
         >
-          <Field label="Nova senha" hint="Mínimo 12 caracteres.">
+          <Field label={t("Nova senha")} hint={t("Mínimo 12 caracteres.")}>
             <input
               className="input"
               type="password"
@@ -406,7 +406,7 @@ export default function AuthUsersPage() {
               {t("Cancelar")}
             </Button>
             <Button type="submit" loading={resetPw.isPending}>
-              Redefinir
+              {t("Redefinir")}
             </Button>
           </div>
         </form>

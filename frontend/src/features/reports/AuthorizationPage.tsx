@@ -101,8 +101,7 @@ export default function AuthorizationPage() {
             {list.data?.items.length === 0 && (
               <tr>
                 <td className="td text-slate-400 dark:text-slate-500" colSpan={6}>
-                  Nenhum comando registrado para o filtro. Os equipamentos precisam enviar o
-                  comando via Accounting (ver docs/device-config).
+                  {t("Nenhum comando registrado para o filtro. Os equipamentos precisam enviar o comando via Accounting (ver docs/device-config).")}
                 </td>
               </tr>
             )}

@@ -106,7 +106,7 @@ export default function SystemUsersPage() {
   const resendInvite = useMutation({
     mutationFn: (u: SystemUser) => api.post<{ detail: string }>(`/system-users/${u.id}/resend-invite`),
     onSuccess: (r) => toast("ok", r.detail),
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao reenviar convite"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao reenviar convite")),
   });
 
   const resetMfa = useMutation({
@@ -115,7 +115,7 @@ export default function SystemUsersPage() {
       toast("ok", r.detail);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao resetar 2FA"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao resetar 2FA")),
   });
 
   return (
@@ -163,7 +163,7 @@ export default function SystemUsersPage() {
               <tr key={u.id}>
                 <td className="td font-medium">
                   {u.username}
-                  {u.id === user?.id && <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">(você)</span>}
+                  {u.id === user?.id && <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{t("(você)")}</span>}
                 </td>
                 <td className="td">{u.full_name}</td>
                 <td className="td">{u.email}</td>
@@ -172,8 +172,8 @@ export default function SystemUsersPage() {
                 </td>
                 <td className="td">
                   <div className="flex flex-wrap gap-1">
-                    {u.is_active ? <Badge tone="green">ativo</Badge> : <Badge tone="red">inativo</Badge>}
-                    {!u.has_password && <Badge tone="amber">convite pendente</Badge>}
+                    {u.is_active ? <Badge tone="green">{t("ativo")}</Badge> : <Badge tone="red">{t("inativo")}</Badge>}
+                    {!u.has_password && <Badge tone="amber">{t("convite pendente")}</Badge>}
                     {u.mfa_enabled && <Badge tone="blue">2FA</Badge>}
                   </div>
                 </td>
@@ -204,25 +204,25 @@ export default function SystemUsersPage() {
                         className="text-brand-600 hover:underline dark:text-brand-400"
                         onClick={() => resendInvite.mutate(u)}
                       >
-                        Reenviar convite
+                        {t("Reenviar convite")}
                       </button>
                     )}
                     {u.mfa_enabled && u.id !== user?.id && (
                       <button
                         className="text-amber-600 hover:underline dark:text-amber-400"
                         onClick={() => {
-                          if (confirm(`Resetar o 2FA de ${u.username}? Ele(a) terá que configurar de novo.`))
+                          if (confirm(t("Resetar o 2FA de {nome}? A pessoa terá que configurar de novo.", { nome: u.username })))
                             resetMfa.mutate(u);
                         }}
                       >
-                        Resetar 2FA
+                        {t("Resetar 2FA")}
                       </button>
                     )}
                     {u.id !== user?.id && (
                       <button
                         className="text-rose-600 hover:underline dark:text-rose-400"
                         onClick={() => {
-                          if (confirm(`Remover ${u.username}?`)) remove.mutate(u);
+                          if (confirm(t("Remover {nome}?", { nome: u.username }))) remove.mutate(u);
                         }}
                       >
                         {t("Excluir")}
@@ -247,7 +247,7 @@ export default function SystemUsersPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? "Editar usuário" : "Novo usuário do painel"}
+        title={form?.id ? t("Editar usuário") : t("Novo usuário do painel")}
       >
         {form && (
           <form
@@ -258,7 +258,7 @@ export default function SystemUsersPage() {
             }}
           >
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Usuário">
+              <Field label={t("Usuário")}>
                 <input
                   className="input"
                   value={form.username}
@@ -268,7 +268,7 @@ export default function SystemUsersPage() {
                   required
                 />
               </Field>
-              <Field label="Papel">
+              <Field label={t("Papel")}>
                 <select
                   className="input"
                   value={form.role}
@@ -282,7 +282,7 @@ export default function SystemUsersPage() {
                 </select>
               </Field>
             </div>
-            <Field label="Nome completo">
+            <Field label={t("Nome completo")}>
               <input
                 className="input"
                 value={form.full_name}
@@ -290,7 +290,7 @@ export default function SystemUsersPage() {
                 required
               />
             </Field>
-            <Field label="E-mail">
+            <Field label={t("E-mail")}>
               <input
                 className="input"
                 type="email"
@@ -300,7 +300,7 @@ export default function SystemUsersPage() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Fuso horário" hint="Usado para exibir as datas no painel.">
+              <Field label={t("Fuso horário")} hint={t("Usado para exibir as datas no painel.")}>
                 <select
                   className="input"
                   value={form.timezone}
@@ -316,7 +316,7 @@ export default function SystemUsersPage() {
                   ))}
                 </select>
               </Field>
-              <Field label="Idioma padrão" hint="Idioma inicial da interface deste usuário.">
+              <Field label={t("Idioma padrão")} hint={t("Idioma inicial da interface deste usuário.")}>
                 <select
                   className="input"
                   value={form.language}
@@ -338,7 +338,7 @@ export default function SystemUsersPage() {
                     checked={form.sendInvite}
                     onChange={() => setForm({ ...form, sendInvite: true, password: "" })}
                   />
-                  Enviar convite por e-mail
+                  {t("Enviar convite por e-mail")}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -346,14 +346,14 @@ export default function SystemUsersPage() {
                     checked={!form.sendInvite}
                     onChange={() => setForm({ ...form, sendInvite: false })}
                   />
-                  Definir senha agora
+                  {t("Definir senha agora")}
                 </label>
               </div>
             )}
             {form.id || !form.sendInvite ? (
               <Field
                 label={form.id ? "Nova senha (opcional)" : "Senha"}
-                hint="Mínimo 10 caracteres. Hash Argon2id."
+                hint={t("Mínimo 10 caracteres. Hash Argon2id.")}
               >
                 <input
                   className="input"
@@ -366,8 +366,9 @@ export default function SystemUsersPage() {
               </Field>
             ) : (
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                O usuário receberá um e-mail para criar a própria senha (requer SMTP
-                configurado em Configurações).
+                {t(
+                  "O usuário receberá um e-mail para criar a própria senha (requer SMTP configurado em Configurações).",
+                )}
               </p>
             )}
             <label className="flex items-center gap-2 text-sm">
@@ -376,7 +377,7 @@ export default function SystemUsersPage() {
                 checked={form.is_active}
                 onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
               />
-              Conta ativa
+              {t("Conta ativa")}
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setForm(null)}>

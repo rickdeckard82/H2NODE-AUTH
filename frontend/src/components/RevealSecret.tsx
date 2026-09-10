@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../lib/api";
+import { useT } from "../lib/i18n";
 import { Button, Modal, Spinner, useToast } from "./ui";
 
 export function RevealSecretButton({
@@ -7,7 +8,7 @@ export function RevealSecretButton({
   hint,
   load,
   field = "radius_secret",
-  label = "Ver senha",
+  label,
 }: {
   title: string;
   hint?: string;
@@ -16,6 +17,7 @@ export function RevealSecretButton({
   label?: string;
 }) {
   const toast = useToast();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [secret, setSecret] = useState<string | null | undefined>(undefined);
@@ -29,7 +31,7 @@ export function RevealSecretButton({
       setSecret(res[field] ?? null);
     } catch (e) {
       setOpen(false);
-      toast("err", e instanceof ApiError ? e.detail : "Erro ao consultar o segredo");
+      toast("err", e instanceof ApiError ? e.detail : t("Erro ao consultar o segredo"));
     } finally {
       setLoading(false);
     }
@@ -38,7 +40,7 @@ export function RevealSecretButton({
   async function copy() {
     if (!secret) return;
     await navigator.clipboard.writeText(secret);
-    toast("ok", "Copiado");
+    toast("ok", t("Copiado"));
   }
 
   return (
@@ -48,7 +50,7 @@ export function RevealSecretButton({
         className="text-brand-600 hover:underline dark:text-brand-400"
         onClick={reveal}
       >
-        {label}
+        {label ?? t("Ver senha")}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={title}>
         {loading ? (
@@ -61,13 +63,13 @@ export function RevealSecretButton({
             {hint && <p className="text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Fechar
+                {t("Fechar")}
               </Button>
-              <Button onClick={copy}>Copiar</Button>
+              <Button onClick={copy}>{t("Copiar")}</Button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum segredo definido.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t("Nenhum segredo definido.")}</p>
         )}
       </Modal>
     </>

@@ -53,21 +53,24 @@ function pretty(json: string | null) {
   }
 }
 
+type Tr = (key: string, vars?: Record<string, string | number>) => string;
+
 /** Rótulo + tom para um evento de dispositivo 2FA. */
-function deviceEvent(e: AuditEntry): { label: string; tone: Tone } {
+function deviceEvent(e: AuditEntry, t: Tr): { label: string; tone: Tone } {
   const meta = { ...safeParse(e.after_json), ...safeParse(e.before_json) };
   const reason = meta.reason as string | undefined;
   const why =
     reason === "mfa_disabled"
-      ? " · 2FA desativado"
+      ? ` · ${t("2FA desativado")}`
       : reason === "password_changed"
-        ? " · senha alterada"
+        ? ` · ${t("senha alterada")}`
         : "";
-  if (e.action === "trust_device") return { label: "Memorizado", tone: "green" };
-  if (e.action === "revoke_trusted_device") return { label: `Removido${why}`, tone: "amber" };
+  if (e.action === "trust_device") return { label: t("Memorizado"), tone: "green" };
+  if (e.action === "revoke_trusted_device")
+    return { label: `${t("Removido")}${why}`, tone: "amber" };
   if (e.action === "revoke_trusted_devices") {
     const n = meta.count ? ` (${meta.count})` : "";
-    return { label: `Removidos todos${n}${why}`, tone: "red" };
+    return { label: `${t("Removidos todos")}${n}${why}`, tone: "red" };
   }
   return { label: e.action, tone: "slate" };
 }
@@ -118,8 +121,8 @@ export default function AuditPage() {
   }
 
   const tabs: [View, string][] = [
-    ["actions", "Ações administrativas"],
-    ["devices", "Dispositivos 2FA"],
+    ["actions", t("Ações administrativas")],
+    ["devices", t("Dispositivos 2FA")],
   ];
 
   return (
@@ -128,8 +131,8 @@ export default function AuditPage() {
         title={t("Auditoria")}
         subtitle={
           isDevices
-            ? "Dispositivos memorizados no 2FA (ativos) e o histórico de memorização/remoção"
-            : "Todas as ações administrativas realizadas no painel"
+            ? t("Dispositivos memorizados no 2FA (ativos) e o histórico de memorização/remoção")
+            : t("Todas as ações administrativas realizadas no painel")
         }
         actions={<RefreshButton keys={["audit", "audit-trusted-devices"]} />}
       />
@@ -153,7 +156,7 @@ export default function AuditPage() {
       <Card className="mb-3 flex flex-wrap gap-2">
         <input
           className="input max-w-[180px]"
-          placeholder={isDevices ? "Usuário" : "Autor"}
+          placeholder={isDevices ? t("Usuário") : t("Autor")}
           value={actor}
           onChange={(e) => {
             setActor(e.target.value);
@@ -170,12 +173,12 @@ export default function AuditPage() {
                 setPage(1);
               }}
             >
-              <option value="">Toda entidade</option>
-              <option value="auth_user">auth_user</option>
-              <option value="equipment">equipment</option>
-              <option value="privilege_profile">privilege_profile</option>
-              <option value="system_user">system_user</option>
-              <option value="mfa_trusted_device">mfa_trusted_device</option>
+              <option value="">{t("Toda entidade")}</option>
+              <option value="auth_user">{t("auth_user")}</option>
+              <option value="equipment">{t("equipment")}</option>
+              <option value="privilege_profile">{t("privilege_profile")}</option>
+              <option value="system_user">{t("system_user")}</option>
+              <option value="mfa_trusted_device">{t("mfa_trusted_device")}</option>
             </select>
             <select
               className="input max-w-[160px]"
@@ -185,12 +188,12 @@ export default function AuditPage() {
                 setPage(1);
               }}
             >
-              <option value="">Toda ação</option>
-              <option value="create">create</option>
-              <option value="update">update</option>
-              <option value="delete">delete</option>
-              <option value="login">login</option>
-              <option value="reset_password">reset_password</option>
+              <option value="">{t("Toda ação")}</option>
+              <option value="create">{t("create")}</option>
+              <option value="update">{t("update")}</option>
+              <option value="delete">{t("delete")}</option>
+              <option value="login">{t("login")}</option>
+              <option value="reset_password">{t("reset_password")}</option>
             </select>
           </>
         )}
@@ -199,9 +202,9 @@ export default function AuditPage() {
       {isDevices && (
         <Card className="mb-3 overflow-x-auto p-0">
           <div className="flex items-baseline justify-between gap-3 px-3 pt-3">
-            <h3 className="font-semibold">Dispositivos memorizados (ativos)</h3>
+            <h3 className="font-semibold">{t("Dispositivos memorizados (ativos)")}</h3>
             <span className="text-xs text-slate-400 dark:text-slate-500">
-              {activeDevices.length} {activeDevices.length === 1 ? "dispositivo" : "dispositivos"}
+              {t(activeDevices.length === 1 ? "{n} dispositivo" : "{n} dispositivos", { n: activeDevices.length })}
             </span>
           </div>
           <table className="mt-2 min-w-full divide-y divide-slate-200 dark:divide-slate-800">
@@ -232,7 +235,7 @@ export default function AuditPage() {
                   <td className="td">{d.last_used_at ? fmtDate(d.last_used_at) : "—"}</td>
                   <td className="td">
                     {d.expired ? (
-                      <Badge tone="red">expirado</Badge>
+                      <Badge tone="red">{t("expirado")}</Badge>
                     ) : (
                       fmtDate(d.expires_at)
                     )}
@@ -253,7 +256,7 @@ export default function AuditPage() {
 
       <Card className="overflow-x-auto p-0">
         {isDevices && (
-          <h3 className="px-3 pb-2 pt-3 font-semibold">Histórico de eventos</h3>
+          <h3 className="px-3 pb-2 pt-3 font-semibold">{t("Histórico de eventos")}</h3>
         )}
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
@@ -282,7 +285,7 @@ export default function AuditPage() {
               </tr>
             )}
             {list.data?.items.map((e) => {
-              const ev = isDevices ? deviceEvent(e) : null;
+              const ev = isDevices ? deviceEvent(e, t) : null;
               return (
                 <tr key={e.id}>
                   <td className="td">{fmtDate(e.created_at)}</td>
@@ -335,13 +338,13 @@ export default function AuditPage() {
         {detail && (
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <div className="label">Antes</div>
+              <div className="label">{t("Antes")}</div>
               <pre className="max-h-80 overflow-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
                 {pretty(detail.before_json)}
               </pre>
             </div>
             <div>
-              <div className="label">Depois</div>
+              <div className="label">{t("Depois")}</div>
               <pre className="max-h-80 overflow-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
                 {pretty(detail.after_json)}
               </pre>

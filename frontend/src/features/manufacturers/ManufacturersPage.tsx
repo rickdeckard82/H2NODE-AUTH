@@ -126,12 +126,12 @@ export default function ManufacturersPage() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
-                <th className="th">Identificador</th>
+                <th className="th">{t("Identificador")}</th>
                 <th className="th">{t("Nome")}</th>
-                <th className="th">Família (VSA)</th>
-                <th className="th">Vendor ID</th>
-                <th className="th">Segredo / chave padrão</th>
-                <th className="th">Equipamentos</th>
+                <th className="th">{t("Família (VSA)")}</th>
+                <th className="th">{t("Vendor ID")}</th>
+                <th className="th">{t("Segredo / chave padrão")}</th>
+                <th className="th">{t("Equipamentos")}</th>
                 <th className="th">{t("Atualizado")}</th>
                 <th className="th" />
               </tr>
@@ -153,9 +153,9 @@ export default function ManufacturersPage() {
                         {m.aaa_protocol === "tacacs" ? "TACACS+" : "RADIUS"}
                       </Badge>
                       {(m.aaa_protocol === "tacacs" ? m.has_tacacs_key : m.has_secret) ? (
-                        <Badge tone="green">definido</Badge>
+                        <Badge tone="green">{t("definido")}</Badge>
                       ) : (
-                        <Badge tone="amber">não definido</Badge>
+                        <Badge tone="amber">{t("não definido")}</Badge>
                       )}
                     </div>
                   </td>
@@ -165,17 +165,17 @@ export default function ManufacturersPage() {
                     <div className="flex justify-end gap-2">
                       {m.has_secret && (
                         <RevealSecretButton
-                          title={`Segredo RADIUS — ${m.display_name}`}
-                          hint="Esta consulta fica registrada na auditoria."
+                          title={t("Segredo RADIUS — {nome}", { nome: m.display_name })}
+                          hint={t("Esta consulta fica registrada na auditoria.")}
                           load={() => api.get(`/manufacturers/${m.id}/secret`)}
                         />
                       )}
                       {m.has_tacacs_key && (
                         <RevealSecretButton
-                          title={`Chave TACACS+ — ${m.display_name}`}
-                          hint="Esta consulta fica registrada na auditoria."
+                          title={t("Chave TACACS+ — {nome}", { nome: m.display_name })}
+                          hint={t("Esta consulta fica registrada na auditoria.")}
                           field="tacacs_key"
-                          label="Ver chave"
+                          label={t("Ver chave")}
                           load={() => api.get(`/manufacturers/${m.id}/secret`)}
                         />
                       )}
@@ -204,7 +204,7 @@ export default function ManufacturersPage() {
                       <button
                         className="text-rose-600 hover:underline dark:text-rose-400"
                         onClick={() => {
-                          if (confirm(`Remover o fabricante ${m.display_name}?`)) remove.mutate(m);
+                          if (confirm(t("Remover o fabricante {nome}?", { nome: m.display_name }))) remove.mutate(m);
                         }}
                       >
                         {t("Excluir")}
@@ -216,7 +216,7 @@ export default function ManufacturersPage() {
               {list.data?.length === 0 && (
                 <tr>
                   <td className="td text-slate-400 dark:text-slate-500" colSpan={8}>
-                    Nenhum fabricante cadastrado.
+                    {t("Nenhum fabricante cadastrado.")}
                   </td>
                 </tr>
               )}
@@ -228,7 +228,7 @@ export default function ManufacturersPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? "Editar fabricante" : "Novo fabricante"}
+        title={form?.id ? t("Editar fabricante") : t("Novo fabricante")}
       >
         {form && (
           <form
@@ -239,7 +239,7 @@ export default function ManufacturersPage() {
             }}
           >
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Identificador (slug)" hint="minúsculas, sem espaços — imutável">
+              <Field label={t("Identificador (slug)")} hint={t("minúsculas, sem espaços — imutável")}>
                 <input
                   className="input font-mono"
                   value={form.name}
@@ -249,7 +249,7 @@ export default function ManufacturersPage() {
                   required
                 />
               </Field>
-              <Field label="Nome de exibição">
+              <Field label={t("Nome de exibição")}>
                 <input
                   className="input"
                   value={form.display_name}
@@ -260,7 +260,7 @@ export default function ManufacturersPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Família (tradução de VSA)" hint={KIND_HINT[form.vendor_kind]}>
+              <Field label={t("Família (tradução de VSA)")} hint={t(KIND_HINT[form.vendor_kind])}>
                 <select
                   className="input"
                   value={form.vendor_kind}
@@ -275,7 +275,7 @@ export default function ManufacturersPage() {
                   ))}
                 </select>
               </Field>
-              <Field label="RADIUS Vendor ID (opcional)">
+              <Field label={t("RADIUS Vendor ID (opcional)")}>
                 <input
                   className="input"
                   type="number"
@@ -284,8 +284,8 @@ export default function ManufacturersPage() {
                 />
               </Field>
               <Field
-                label="Protocolo AAA"
-                hint="MikroTik só fala RADIUS; Huawei/Juniper/Datacom podem falar TACACS+."
+                label={t("Protocolo AAA")}
+                hint={t("MikroTik só fala RADIUS; Huawei/Juniper/Datacom podem falar TACACS+.")}
               >
                 <select
                   className="input"
@@ -294,8 +294,8 @@ export default function ManufacturersPage() {
                     setForm({ ...form, aaa_protocol: e.target.value as AaaProtocol })
                   }
                 >
-                  <option value="radius">radius</option>
-                  <option value="tacacs">tacacs</option>
+                  <option value="radius">{t("radius")}</option>
+                  <option value="tacacs">{t("tacacs")}</option>
                 </select>
               </Field>
             </div>
@@ -308,7 +308,7 @@ export default function ManufacturersPage() {
                       ? `Segredo RADIUS padrão ${form.has_secret ? "(já definido — em branco = manter)" : "(em branco = manter)"}`
                       : "Segredo RADIUS padrão"
                   }
-                  hint="Shared secret herdado pelos equipamentos deste fabricante que não tiverem um próprio. Guardado cifrado."
+                  hint={t("Shared secret herdado pelos equipamentos deste fabricante que não tiverem um próprio. Guardado cifrado.")}
                 >
                   <input
                     className="input font-mono"
@@ -329,7 +329,7 @@ export default function ManufacturersPage() {
                         setForm({ ...form, clear_secret: e.target.checked, radius_secret: "" })
                       }
                     />
-                    Remover o segredo padrão deste fabricante
+                    {t("Remover o segredo padrão deste fabricante")}
                   </label>
                 )}
               </>
@@ -343,7 +343,7 @@ export default function ManufacturersPage() {
                       ? `Chave TACACS+ padrão ${form.has_tacacs_key ? "(já definida — em branco = manter)" : "(em branco = manter)"}`
                       : "Chave TACACS+ padrão"
                   }
-                  hint="Chave herdada pelos equipamentos TACACS+ deste fabricante. Guardada cifrada."
+                  hint={t("Chave herdada pelos equipamentos TACACS+ deste fabricante. Guardada cifrada.")}
                 >
                   <input
                     className="input font-mono"
@@ -364,13 +364,13 @@ export default function ManufacturersPage() {
                         setForm({ ...form, clear_tacacs_key: e.target.checked, tacacs_key: "" })
                       }
                     />
-                    Remover a chave TACACS+ padrão deste fabricante
+                    {t("Remover a chave TACACS+ padrão deste fabricante")}
                   </label>
                 )}
               </>
             )}
 
-            <Field label="Notas">
+            <Field label={t("Notas")}>
               <input
                 className="input"
                 value={form.notes}

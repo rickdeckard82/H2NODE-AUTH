@@ -38,7 +38,7 @@ export default function BackupPage() {
       a.click();
       URL.revokeObjectURL(url);
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Falha ao gerar o backup"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Falha ao gerar o backup")),
   });
 
   const restore = useMutation({
@@ -55,7 +55,7 @@ export default function BackupPage() {
       if (fileRef.current) fileRef.current.value = "";
       toast(r.warning ? "err" : "ok", r.warning ?? "Backup restaurado. Faça login novamente.");
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Falha ao restaurar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Falha ao restaurar")),
   });
 
   const canRestore = !!file && confirm === CONFIRM_WORD && !restore.isPending;
@@ -68,12 +68,15 @@ export default function BackupPage() {
       />
 
       <Card className="mb-4">
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Baixar backup</h2>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("Baixar backup")}</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Gera um arquivo <code>.sql</code> com o esquema e os dados de todas as tabelas
-          (usuários de autenticação, equipamentos, fabricantes, perfis, grupos, usuários do
-          painel e auditoria). <strong>Não inclui</strong> os segredos do <code>.env</code>
-          {" "}(<code>JWT_SECRET</code>, <code>FERNET_KEY</code>, senhas do MySQL) — guarde-os à parte.
+          {t(
+            "Gera um arquivo .sql com o esquema e os dados de todas as tabelas (usuários de autenticação, equipamentos, fabricantes, perfis, grupos, usuários do painel e auditoria).",
+          )}{" "}
+          <strong>{t("Não inclui")}</strong>{" "}
+          {t(
+            "os segredos do .env (JWT_SECRET, FERNET_KEY, senhas do MySQL) — guarde-os à parte.",
+          )}
         </p>
         <label className="mt-3 flex items-center gap-2 text-sm">
           <input
@@ -81,7 +84,7 @@ export default function BackupPage() {
             checked={includeAccounting}
             onChange={(e) => setIncludeAccounting(e.target.checked)}
           />
-          Incluir histórico de accounting (<code>radacct</code> / <code>radpostauth</code>) — pode ser grande
+          {t("Incluir histórico de accounting (radacct / radpostauth) — pode ser grande")}
         </label>
         <label className="mt-2 flex items-center gap-2 text-sm">
           <input
@@ -89,34 +92,36 @@ export default function BackupPage() {
             checked={encryptExport}
             onChange={(e) => setEncryptExport(e.target.checked)}
           />
-          Cifrar o arquivo com o <code>FERNET_KEY</code> do servidor (recomendado — o dump contém
-          senhas e segredos RADIUS em claro)
+          {t(
+            "Cifrar o arquivo com o FERNET_KEY do servidor (recomendado — o dump contém senhas e segredos RADIUS em claro)",
+          )}
         </label>
         <div className="mt-4">
           <Button onClick={() => download.mutate()} loading={download.isPending}>
-            Baixar backup {encryptExport ? "(.sql.enc)" : "(.sql)"}
+            {t("Baixar backup")} {encryptExport ? "(.sql.enc)" : "(.sql)"}
           </Button>
         </div>
       </Card>
 
       <Card>
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Restaurar backup</h2>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("Restaurar backup")}</h2>
 
         <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-          <p className="font-semibold">Operação destrutiva e irreversível.</p>
+          <p className="font-semibold">{t("Operação destrutiva e irreversível.")}</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">
-            <li>Todas as tabelas são apagadas e recriadas a partir do arquivo.</li>
-            <li>Baixe um backup atual antes de continuar.</li>
+            <li>{t("Todas as tabelas são apagadas e recriadas a partir do arquivo.")}</li>
+            <li>{t("Baixe um backup atual antes de continuar.")}</li>
             <li>
-              Restaure apenas em um stack com o <strong>mesmo <code>FERNET_KEY</code></strong>; caso
-              contrário os segredos RADIUS dos equipamentos ficam ilegíveis.
+              {t(
+                "Restaure apenas em um stack com o mesmo FERNET_KEY; caso contrário os segredos RADIUS dos equipamentos ficam ilegíveis.",
+              )}
             </li>
-            <li>Ao terminar, a sua sessão pode ser invalidada — faça login novamente.</li>
+            <li>{t("Ao terminar, a sua sessão pode ser invalidada — faça login novamente.")}</li>
           </ul>
         </div>
 
         <div className="mt-3 space-y-3">
-          <Field label="Arquivo de backup (.sql ou .sql.enc)">
+          <Field label={t("Arquivo de backup (.sql ou .sql.enc)")}>
             <input
               ref={fileRef}
               type="file"
@@ -125,7 +130,7 @@ export default function BackupPage() {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </Field>
-          <Field label={`Digite ${CONFIRM_WORD} para confirmar`}>
+          <Field label={t("Digite {palavra} para confirmar", { palavra: CONFIRM_WORD })}>
             <input
               className="input max-w-xs"
               value={confirm}
@@ -139,19 +144,19 @@ export default function BackupPage() {
             disabled={!canRestore}
             loading={restore.isPending}
             onClick={() => {
-              if (window.confirm("Confirma a restauração? O banco atual será substituído.")) {
+              if (window.confirm(t("Confirma a restauração? O banco atual será substituído."))) {
                 restore.mutate();
               }
             }}
           >
-            Restaurar backup
+            {t("Restaurar backup")}
           </Button>
         </div>
 
         {result && (
           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-800/50">
             <p>
-              Restauração concluída: {result.statements} instruções aplicadas
+              {t("Restauração concluída: {n} instruções aplicadas", { n: result.statements })}
               {result.dump_schema_version && ` (schema ${result.dump_schema_version})`}.
             </p>
             {result.warning && (

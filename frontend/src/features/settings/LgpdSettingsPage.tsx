@@ -42,6 +42,7 @@ function RetentionField({
   value: number;
   onChange: (v: number) => void;
 }) {
+  const t = useT();
   return (
     <Field label={label} hint={hint}>
       <div className="flex items-center gap-2">
@@ -54,7 +55,9 @@ function RetentionField({
           onChange={(e) => onChange(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
         />
         <span className="text-sm text-slate-500 dark:text-slate-400">
-          dias{value > 0 ? ` (~${Math.round((value / 30) * 10) / 10} meses)` : ""}
+          {value > 0
+            ? t("dias (~{n} meses)", { n: Math.round((value / 30) * 10) / 10 })
+            : t("dias")}
         </span>
       </div>
     </Field>
@@ -89,7 +92,7 @@ export default function LgpdSettingsPage() {
   const save = useMutation({
     mutationFn: (f: FormState) => api.put<LgpdSettings>("/settings/lgpd", f),
     onSuccess: () => {
-      toast("ok", "Configuração LGPD salva");
+      toast("ok", t("Configuração LGPD salva"));
       qc.invalidateQueries({ queryKey: ["lgpd-settings"] });
     },
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
@@ -114,22 +117,22 @@ export default function LgpdSettingsPage() {
         >
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Controlador dos dados
+              {t("Controlador dos dados")}
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Aparece no{" "}
+              {t("Aparece no")}{" "}
               <a
                 className="text-brand-600 hover:underline dark:text-brand-400"
                 href="/privacidade"
                 target="_blank"
                 rel="noreferrer"
               >
-                Aviso de Privacidade
+                {t("Aviso de Privacidade")}
               </a>{" "}
-              (link no rodapé, acessível sem login).
+              {t("(link no rodapé, acessível sem login).")}
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <Field label="Nome / razão social da empresa">
+              <Field label={t("Nome / razão social da empresa")}>
                 <input
                   className="input"
                   value={form.org_name}
@@ -139,8 +142,8 @@ export default function LgpdSettingsPage() {
                 />
               </Field>
               <Field
-                label="E-mail do Encarregado (DPO)"
-                hint="Para onde os titulares enviam pedidos sobre seus dados."
+                label={t("E-mail do Encarregado (DPO)")}
+                hint={t("Para onde os titulares enviam pedidos sobre seus dados.")}
               >
                 <input
                   className="input"
@@ -156,35 +159,36 @@ export default function LgpdSettingsPage() {
 
           <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Retenção e exclusão automática
+              {t("Retenção e exclusão automática")}
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Dados mais antigos que o prazo são apagados automaticamente, uma vez por dia.
-              <strong> 0 = sem exclusão automática</strong> (mantidos enquanto necessários).
+              {t("Dados mais antigos que o prazo são apagados automaticamente, uma vez por dia.")}{" "}
+              <strong>{t("0 = sem exclusão automática")}</strong>{" "}
+              {t("(mantidos enquanto necessários).")}
             </p>
             <div className="mt-3 space-y-3">
               <RetentionField
-                label="Logins / accounting"
-                hint="Eventos de autenticação (radpostauth), comandos e sessões encerradas (radacct)."
+                label={t("Logins / accounting")}
+                hint={t("Eventos de autenticação (radpostauth), comandos e sessões encerradas (radacct).")}
                 value={form.accounting_retention_days}
                 onChange={(v) => setForm({ ...form, accounting_retention_days: v })}
               />
               <RetentionField
-                label="Auditoria do painel"
-                hint="Log de ações administrativas (app_audit_log)."
+                label={t("Auditoria do painel")}
+                hint={t("Log de ações administrativas (app_audit_log).")}
                 value={form.audit_retention_days}
                 onChange={(v) => setForm({ ...form, audit_retention_days: v })}
               />
               <RetentionField
-                label="Usuários de autenticação"
-                hint="Apaga contas RADIUS/TACACS+ desativadas e sem autenticar há mais que o prazo. Contas ativas nunca são removidas."
+                label={t("Usuários de autenticação")}
+                hint={t("Apaga contas RADIUS/TACACS+ desativadas e sem autenticar há mais que o prazo. Contas ativas nunca são removidas.")}
                 value={form.auth_user_retention_days}
                 onChange={(v) => setForm({ ...form, auth_user_retention_days: v })}
               />
             </div>
             {query.data?.last_purge_at && (
               <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
-                Último expurgo automático: {fmtDate(query.data.last_purge_at)}
+                {t("Último expurgo automático: {data}", { data: fmtDate(query.data.last_purge_at) })}
               </p>
             )}
           </div>

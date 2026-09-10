@@ -62,7 +62,7 @@ export default function PrivilegeProfilesPage() {
         : api.post("/privilege-profiles", body);
     },
     onSuccess: () => {
-      toast("ok", "Perfil salvo — radgroupreply regenerado");
+      toast("ok", t("Perfil salvo — radgroupreply regenerado"));
       setForm(null);
       invalidate();
     },
@@ -101,9 +101,7 @@ export default function PrivilegeProfilesPage() {
             onClick={() =>
               setForm({ name: "", description: "", is_builtin: false, attrs: [], tacacs_priv_level: 1, tacacs_extra_avpairs: "" })
             }
-          >
-            Novo perfil
-          </Button>
+          >{t("Novo perfil")}</Button>
         }
       />
 
@@ -116,7 +114,7 @@ export default function PrivilegeProfilesPage() {
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold">{p.name}</h3>
-                  {p.is_builtin && <Badge>interno</Badge>}
+                  {p.is_builtin && <Badge>{t("interno")}</Badge>}
                 </div>
                 <code className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{p.group_name}</code>
               </div>
@@ -130,7 +128,7 @@ export default function PrivilegeProfilesPage() {
                     </span>
                   </div>
                 ))}
-                {p.attrs.length === 0 && <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Sem atributos</span>}
+                {p.attrs.length === 0 && <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">{t("Sem atributos")}</span>}
               </div>
               <div className="mt-3 flex gap-2">
                 <Button
@@ -153,7 +151,7 @@ export default function PrivilegeProfilesPage() {
                   <Button
                     variant="danger"
                     onClick={() => {
-                      if (confirm(`Remover perfil ${p.name}?`)) remove.mutate(p);
+                      if (confirm(t("Remover o perfil {nome}?", { nome: p.name }))) remove.mutate(p);
                     }}
                   >
                     {t("Excluir")}
@@ -168,7 +166,7 @@ export default function PrivilegeProfilesPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? `Editar perfil` : "Novo perfil de privilégio"}
+        title={form?.id ? t("Editar perfil") : t("Novo perfil de privilégio")}
         wide
       >
         {form && (
@@ -180,7 +178,7 @@ export default function PrivilegeProfilesPage() {
             }}
           >
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nome (gera o grupo profile_<nome>)">
+              <Field label={t("Nome (gera o grupo profile_<nome>)")}>
                 <input
                   className="input"
                   value={form.name}
@@ -190,7 +188,7 @@ export default function PrivilegeProfilesPage() {
                   required
                 />
               </Field>
-              <Field label="Descrição">
+              <Field label={t("Descrição")}>
                 <input
                   className="input"
                   value={form.description}
@@ -202,7 +200,7 @@ export default function PrivilegeProfilesPage() {
             <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
               <div className="label mb-2">TACACS+ (Huawei / Juniper / Datacom)</div>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="priv-lvl (exec)" hint="0–15">
+                <Field label={t("priv-lvl (exec)")} hint="0–15">
                   <input
                     className="input"
                     type="number"
@@ -214,7 +212,7 @@ export default function PrivilegeProfilesPage() {
                     }
                   />
                 </Field>
-                <Field label="AV pairs extra" hint="um por linha, ex.: shell:roles=network-admin">
+                <Field label={t("AV pairs extra")} hint={t("um por linha, ex.: shell:roles=network-admin")}>
                   <textarea
                     className="input h-[38px] font-mono"
                     rows={2}
@@ -229,7 +227,7 @@ export default function PrivilegeProfilesPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <span className="label mb-0">Atributos por fabricante</span>
+                <span className="label mb-0">{t("Atributos por fabricante")}</span>
                 <Button type="button" variant="ghost" onClick={addRow}>
                   + Linha
                 </Button>
@@ -254,7 +252,7 @@ export default function PrivilegeProfilesPage() {
                     </select>
                     <input
                       className="input col-span-5 font-mono"
-                      placeholder="Atributo (ex.: Huawei-Exec-Privilege)"
+                      placeholder={t("Atributo (ex.: Huawei-Exec-Privilege)")}
                       value={a.attribute}
                       onChange={(e) => {
                         const attrs = [...form.attrs];
@@ -274,7 +272,7 @@ export default function PrivilegeProfilesPage() {
                     />
                     <input
                       className="input col-span-2 font-mono"
-                      placeholder="Valor"
+                      placeholder={t("Valor")}
                       value={a.value}
                       onChange={(e) => {
                         const attrs = [...form.attrs];

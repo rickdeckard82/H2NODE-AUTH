@@ -65,8 +65,8 @@ export default function AccountingPage() {
       <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
         {(
           [
-            ["commands", "Comandos"],
-            ["sessions", "Sessões"],
+            ["commands", t("Comandos")],
+            ["sessions", t("Sessões")],
           ] as const
         ).map(([v, label]) => (
           <button
@@ -94,7 +94,7 @@ export default function AccountingPage() {
           <>
             {view === "sessions" && (
               <label className="block">
-                <span className="label">Estado</span>
+                <span className="label">{t("Estado")}</span>
                 <select
                   className="input max-w-[150px]"
                   value={active}
@@ -103,9 +103,9 @@ export default function AccountingPage() {
                     setPage(1);
                   }}
                 >
-                  <option value="">Todas</option>
-                  <option value="true">Ativas</option>
-                  <option value="false">Encerradas</option>
+                  <option value="">{t("Todas")}</option>
+                  <option value="true">{t("Ativas")}</option>
+                  <option value="false">{t("Encerradas")}</option>
                 </select>
               </label>
             )}
@@ -155,8 +155,7 @@ export default function AccountingPage() {
               {commands.data?.items.length === 0 && (
                 <tr>
                   <td className="td text-slate-400 dark:text-slate-500" colSpan={5}>
-                    Nenhum comando registrado. Os equipamentos precisam enviar o comando via
-                    Accounting (ver docs/device-config).
+                    {t("Nenhum comando registrado. Os equipamentos precisam enviar o comando via Accounting (ver docs/device-config).")}
                   </td>
                 </tr>
               )}
@@ -205,7 +204,7 @@ export default function AccountingPage() {
                   </td>
                   <td className="td whitespace-nowrap">{fmt(s.acctstarttime)}</td>
                   <td className="td whitespace-nowrap">
-                    {s.active ? <Badge tone="green">ativa</Badge> : fmt(s.acctstoptime)}
+                    {s.active ? <Badge tone="green">{t("ativa")}</Badge> : fmt(s.acctstoptime)}
                   </td>
                   <td className="td font-mono text-xs">{fmtDuration(s.acctsessiontime)}</td>
                   <td className="td text-xs">
@@ -218,7 +217,7 @@ export default function AccountingPage() {
               {sessions.data?.items.length === 0 && (
                 <tr>
                   <td className="td text-slate-400 dark:text-slate-500" colSpan={8}>
-                    Sem sessões para o filtro.
+                    {t("Sem sessões para o filtro.")}
                   </td>
                 </tr>
               )}

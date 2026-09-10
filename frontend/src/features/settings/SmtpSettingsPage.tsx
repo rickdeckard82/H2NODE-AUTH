@@ -72,7 +72,7 @@ export default function SmtpSettingsPage() {
         from_name: f.from_name || null,
       }),
     onSuccess: () => {
-      toast("ok", "Configuração SMTP salva");
+      toast("ok", t("Configuração SMTP salva"));
       qc.invalidateQueries({ queryKey: ["smtp-settings"] });
     },
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
@@ -81,7 +81,7 @@ export default function SmtpSettingsPage() {
   const test = useMutation({
     mutationFn: () => api.post<{ detail: string }>("/settings/smtp/test", { to: testTo }),
     onSuccess: (r) => toast("ok", r.detail),
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Falha ao enviar"),
+    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Falha ao enviar")),
   });
 
   if (query.isLoading) return <Spinner className="h-6 w-6 text-brand-600" />;
@@ -101,7 +101,7 @@ export default function SmtpSettingsPage() {
             save.mutate(form);
           }}
         >
-          <Field label="Servidor (host)">
+          <Field label={t("Servidor (host)")}>
             <input
               className="input"
               value={form.host}
@@ -109,7 +109,7 @@ export default function SmtpSettingsPage() {
               required
             />
           </Field>
-          <Field label="Porta">
+          <Field label={t("Porta")}>
             <input
               className="input"
               type="number"
@@ -118,7 +118,7 @@ export default function SmtpSettingsPage() {
               required
             />
           </Field>
-          <Field label="Usuário (opcional)" hint="em branco = servidor sem autenticação">
+          <Field label={t("Usuário (opcional)")} hint={t("em branco = servidor sem autenticação")}>
             <input
               className="input"
               value={form.username}
@@ -127,7 +127,7 @@ export default function SmtpSettingsPage() {
           </Field>
           <Field
             label={query.data?.has_password ? "Senha (em branco = manter)" : "Senha"}
-            hint="Guardada cifrada (Fernet)."
+            hint={t("Guardada cifrada (Fernet).")}
           >
             <input
               className="input"
@@ -146,10 +146,10 @@ export default function SmtpSettingsPage() {
                   setForm({ ...form, clear_password: e.target.checked, password: "" })
                 }
               />
-              Remover a senha (autenticar sem senha)
+              {t("Remover a senha (autenticar sem senha)")}
             </label>
           )}
-          <Field label="E-mail do remetente">
+          <Field label={t("E-mail do remetente")}>
             <input
               className="input"
               type="email"
@@ -158,7 +158,7 @@ export default function SmtpSettingsPage() {
               required
             />
           </Field>
-          <Field label="Nome do remetente (opcional)">
+          <Field label={t("Nome do remetente (opcional)")}>
             <input
               className="input"
               value={form.from_name}
@@ -175,7 +175,7 @@ export default function SmtpSettingsPage() {
                   setForm({ ...form, use_tls: e.target.checked, use_ssl: e.target.checked ? false : form.use_ssl })
                 }
               />
-              STARTTLS (porta 587 tipicamente)
+              {t("STARTTLS (porta 587 tipicamente)")}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -185,7 +185,7 @@ export default function SmtpSettingsPage() {
                   setForm({ ...form, use_ssl: e.target.checked, use_tls: e.target.checked ? false : form.use_tls })
                 }
               />
-              SSL/TLS implícito (porta 465 tipicamente)
+              {t("SSL/TLS implícito (porta 465 tipicamente)")}
             </label>
           </div>
           <div className="col-span-2 flex justify-end">
@@ -197,18 +197,18 @@ export default function SmtpSettingsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Enviar e-mail de teste</h2>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("Enviar e-mail de teste")}</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Salve a configuração acima antes de testar.
+          {t("Salve a configuração acima antes de testar.")}
         </p>
         <div className="mt-3 flex flex-wrap items-end gap-2">
-          <Field label="Enviar para">
+          <Field label={t("Enviar para")}>
             <input
               className="input"
               type="email"
               value={testTo}
               onChange={(e) => setTestTo(e.target.value)}
-              placeholder="voce@exemplo.com"
+              placeholder={t("voce@exemplo.com")}
             />
           </Field>
           <Button
@@ -217,7 +217,7 @@ export default function SmtpSettingsPage() {
             loading={test.isPending}
             onClick={() => test.mutate()}
           >
-            Enviar teste
+            {t("Enviar teste")}
           </Button>
         </div>
       </Card>

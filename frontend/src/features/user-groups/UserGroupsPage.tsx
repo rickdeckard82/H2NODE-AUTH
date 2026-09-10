@@ -93,7 +93,7 @@ export default function UserGroupsPage() {
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="font-semibold">{g.name}</h3>
                 <Badge tone={g.member_count ? "blue" : "slate"}>
-                  {g.member_count} usuário{g.member_count === 1 ? "" : "s"}
+                  {t(g.member_count === 1 ? "{n} usuário" : "{n} usuários", { n: g.member_count })}
                 </Badge>
               </div>
               <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
@@ -111,7 +111,7 @@ export default function UserGroupsPage() {
                   ))
                 ) : (
                   <span className="text-rose-600 dark:text-rose-400">
-                    sem faixas — nenhum IP autenticaria neste grupo
+                    {t("sem faixas — nenhum IP autenticaria neste grupo")}
                   </span>
                 )}
               </div>
@@ -137,7 +137,7 @@ export default function UserGroupsPage() {
                     <Button
                       variant="danger"
                       onClick={() => {
-                        if (confirm(`Remover o grupo ${g.name}?`)) remove.mutate(g);
+                        if (confirm(t("Remover o grupo {nome}?", { nome: g.name }))) remove.mutate(g);
                       }}
                     >
                       {t("Excluir")}
@@ -148,7 +148,7 @@ export default function UserGroupsPage() {
             </Card>
           ))}
           {list.data?.length === 0 && (
-            <p className="text-sm text-slate-400 dark:text-slate-500">Nenhum grupo cadastrado.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500">{t("Nenhum grupo cadastrado.")}</p>
           )}
         </div>
       )}
@@ -156,7 +156,7 @@ export default function UserGroupsPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? "Editar grupo" : "Novo grupo de usuário"}
+        title={form?.id ? t("Editar grupo") : t("Novo grupo de usuário")}
         wide
       >
         {form && (
@@ -168,7 +168,7 @@ export default function UserGroupsPage() {
             }}
           >
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nome">
+              <Field label={t("Nome")}>
                 <input
                   className="input"
                   value={form.name}
@@ -177,7 +177,7 @@ export default function UserGroupsPage() {
                   required
                 />
               </Field>
-              <Field label="Descrição">
+              <Field label={t("Descrição")}>
                 <input
                   className="input"
                   value={form.description}
@@ -188,9 +188,9 @@ export default function UserGroupsPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <span className="label mb-0">IPs de origem permitidos</span>
+                <span className="label mb-0">{t("IPs de origem permitidos")}</span>
                 <Button type="button" variant="ghost" onClick={addRow}>
-                  + Faixa
+                  {t("+ Faixa")}
                 </Button>
               </div>
               <div className="space-y-2">
@@ -198,7 +198,7 @@ export default function UserGroupsPage() {
                   <div key={idx} className="grid grid-cols-12 gap-2">
                     <input
                       className="input col-span-5 font-mono"
-                      placeholder="10.0.0.0/24  ou  192.168.1.5"
+                      placeholder={t("10.0.0.0/24  ou  192.168.1.5")}
                       value={c.cidr}
                       onChange={(e) => {
                         const cidrs = [...form.cidrs];
@@ -209,7 +209,7 @@ export default function UserGroupsPage() {
                     />
                     <input
                       className="input col-span-6"
-                      placeholder="observação (opcional)"
+                      placeholder={t("observação (opcional)")}
                       value={c.note ?? ""}
                       onChange={(e) => {
                         const cidrs = [...form.cidrs];
@@ -230,13 +230,12 @@ export default function UserGroupsPage() {
                 ))}
                 {form.cidrs.length === 0 && (
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Sem faixas: enquanto vazio, nenhum usuário do grupo consegue autenticar.
+                    {t("Sem faixas: enquanto vazio, nenhum usuário do grupo consegue autenticar.")}
                   </p>
                 )}
               </div>
               <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                Aceita IPv4/IPv6, com ou sem máscara (IP simples = /32 ou /128). O IP
-                comparado é o de origem do pacote RADIUS.
+                {t("Aceita IPv4/IPv6, com ou sem máscara (IP simples = /32 ou /128). O IP comparado é o de origem do pacote RADIUS.")}
               </p>
             </div>
 

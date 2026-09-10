@@ -59,7 +59,7 @@ export default function AuthenticationPage() {
         right={
           <>
             <label className="block">
-              <span className="label">Protocolo</span>
+              <span className="label">{t("Protocolo")}</span>
               <select
                 className="input max-w-[130px]"
                 value={protocol}
@@ -68,13 +68,13 @@ export default function AuthenticationPage() {
                   setPage(1);
                 }}
               >
-                <option value="">Todos</option>
-                <option value="radius">RADIUS</option>
-                <option value="tacacs">TACACS+</option>
+                <option value="">{t("Todos")}</option>
+                <option value="radius">{t("RADIUS")}</option>
+                <option value="tacacs">{t("TACACS+")}</option>
               </select>
             </label>
             <label className="block">
-              <span className="label">Resultado</span>
+              <span className="label">{t("Resultado")}</span>
               <select
                 className="input max-w-[150px]"
                 value={accepted}
@@ -83,9 +83,9 @@ export default function AuthenticationPage() {
                   setPage(1);
                 }}
               >
-                <option value="">Todos</option>
-                <option value="true">Aceitos</option>
-                <option value="false">Negados</option>
+                <option value="">{t("Todos")}</option>
+                <option value="true">{t("Aceitos")}</option>
+                <option value="false">{t("Negados")}</option>
               </select>
             </label>
             <Button variant="ghost" onClick={downloadCsv}>
