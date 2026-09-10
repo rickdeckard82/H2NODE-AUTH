@@ -41,6 +41,7 @@ const empty: FormState = {
 
 export default function AuthUsersPage() {
   const { can } = useAuth();
+  const canDelete = can("admin");
   const qc = useQueryClient();
   const toast = useToast();
   const writable = can("operator");
@@ -218,14 +219,16 @@ export default function AuthUsersPage() {
                       >
                         {u.is_active ? "Desativar" : "Ativar"}
                       </button>
-                      <button
-                        className="text-rose-600 hover:underline dark:text-rose-400"
-                        onClick={() => {
-                          if (confirm(`Remover ${u.username}?`)) remove.mutate(u);
-                        }}
-                      >
-                        Excluir
-                      </button>
+                      {canDelete && (
+                        <button
+                          className="text-rose-600 hover:underline dark:text-rose-400"
+                          onClick={() => {
+                            if (confirm(`Remover ${u.username}?`)) remove.mutate(u);
+                          }}
+                        >
+                          Excluir
+                        </button>
+                      )}
                     </div>
                   )}
                 </td>

@@ -29,11 +29,19 @@ function Loader() {
   );
 }
 
-function Protected({ roles, children }: { roles?: Role[]; children: ReactNode }) {
-  const { user, loading, can } = useAuth();
+function Protected({
+  roles,
+  exact,
+  children,
+}: {
+  roles?: Role[];
+  exact?: boolean;
+  children: ReactNode;
+}) {
+  const { user, loading, can, roleIn } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (roles && !can(...roles)) return <Navigate to="/" replace />;
+  if (roles && !(exact ? roleIn(...roles) : can(...roles))) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -82,7 +90,14 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: "auth-users", element: <AuthUsersPage /> },
-      { path: "user-groups", element: <UserGroupsPage /> },
+      {
+        path: "user-groups",
+        element: (
+          <Protected roles={["admin", "auditor"]} exact>
+            <UserGroupsPage />
+          </Protected>
+        ),
+      },
       { path: "equipment", element: <EquipmentPage /> },
       {
         path: "manufacturers",
@@ -103,7 +118,14 @@ export const router = createBrowserRouter([
       { path: "auth-log", element: <AuthenticationPage /> },
       { path: "authz-log", element: <AuthorizationPage /> },
       { path: "accounting", element: <AccountingPage /> },
-      { path: "audit", element: <AuditPage /> },
+      {
+        path: "audit",
+        element: (
+          <Protected roles={["admin", "auditor"]} exact>
+            <AuditPage />
+          </Protected>
+        ),
+      },
       {
         path: "system-users",
         element: (

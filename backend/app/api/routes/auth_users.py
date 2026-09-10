@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, enforce_csrf, require_auditor, require_operator
+from app.api.deps import client_ip, enforce_csrf, require_admin, require_auditor, require_operator
 from app.core.db import get_db
 from app.models import AuthUser, AuthUserGroup, PrivilegeProfile, SystemUser
 from app.schemas.auth_user import (
@@ -153,7 +153,7 @@ def reset_password(
                dependencies=[Depends(enforce_csrf)])
 def delete_auth_user(
     user_id: int, request: Request,
-    db: Session = Depends(get_db), actor: SystemUser = Depends(require_operator),
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_admin),
 ) -> None:
     user = db.get(AuthUser, user_id)
     if user is None:

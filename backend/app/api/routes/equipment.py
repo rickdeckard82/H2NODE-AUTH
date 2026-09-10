@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, enforce_csrf, require_auditor, require_operator
+from app.api.deps import client_ip, enforce_csrf, require_admin, require_auditor, require_operator
 from app.core.crypto import decrypt, encrypt
 from app.core.db import get_db
 from app.models import Equipment, Manufacturer, SystemUser
@@ -206,7 +206,7 @@ def update_equipment(
                dependencies=[Depends(enforce_csrf)])
 def delete_equipment(
     equipment_id: int, request: Request,
-    db: Session = Depends(get_db), actor: SystemUser = Depends(require_operator),
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_admin),
 ) -> None:
     eq = db.get(Equipment, equipment_id)
     if eq is None:

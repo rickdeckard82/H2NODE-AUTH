@@ -28,7 +28,7 @@ export default function UserGroupsPage() {
   const { can } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
-  const writable = can("operator");
+  const writable = can("admin"); // criar/editar/excluir grupo é só admin+
 
   const [form, setForm] = useState<FormState | null>(null);
 

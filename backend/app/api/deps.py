@@ -57,6 +57,8 @@ require_auditor = require_roles(SystemRole.auditor, SystemRole.operator, SystemR
 require_operator = require_roles(SystemRole.operator, SystemRole.admin)
 require_admin = require_roles(SystemRole.admin)
 require_superadmin = require_roles()  # só superadmin (lista vazia => cai no check acima)
+# Leitura de auditoria: auditor e admin (o operador não vê a auditoria).
+require_audit_reader = require_roles(SystemRole.auditor, SystemRole.admin)
 
 
 def client_ip(request: Request) -> str | None:

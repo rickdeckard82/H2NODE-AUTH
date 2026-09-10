@@ -4,14 +4,14 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_auditor
+from app.api.deps import require_audit_reader
 from app.core.db import get_db
 from app.models import AuditLog
 from app.schemas.audit import AuditLogOut
 from app.schemas.common import Page
 
 router = APIRouter(
-    prefix="/audit", tags=["audit"], dependencies=[Depends(require_auditor)]
+    prefix="/audit", tags=["audit"], dependencies=[Depends(require_audit_reader)]
 )
 
 

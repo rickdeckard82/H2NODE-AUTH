@@ -163,7 +163,7 @@ def test_disable_auth_user_keeps_row_but_flags_inactive(auth_client, seeded):
     assert r.json()["is_active"] is False
 
 
-def test_operator_cannot_manage_system_users(client, seeded):
+def _operator_client(client, seeded):
     from app.core.security import hash_password
     from app.models import SystemRole, SystemUser
     seeded.add(SystemUser(username="op", email="op@x.com", full_name="Op",
@@ -172,4 +172,55 @@ def test_operator_cannot_manage_system_users(client, seeded):
     seeded.commit()
     login = client.post("/api/auth/login", json={"username": "op", "password": "operator-pass-1"})
     client.headers.update({"X-CSRF-Token": login.json()["csrf_token"]})
-    assert client.get("/api/system-users").status_code == 403
+    return client
+
+
+def test_operator_cannot_manage_system_users(client, seeded):
+    op = _operator_client(client, seeded)
+    assert op.get("/api/system-users").status_code == 403
+
+
+def test_operator_permission_boundaries(auth_client, client, seeded):
+    # o admin cria os recursos que o operador vai tentar mexer
+    mid = first_manufacturer_id(seeded)
+    eq_id = auth_client.post("/api/equipment", json={
+        "name": "op-eq", "mgmt_ip": "10.9.9.9", "manufacturer_id": mid,
+        "shortname": "op-eq", "radius_secret": "s3cr3t-op-123",
+    }).json()["id"]
+    profile_id = auth_client.get("/api/privilege-profiles").json()[0]["id"]
+    au_id = auth_client.post("/api/auth-users", json={
+        "username": "op.victim", "privilege_profile_id": profile_id, "password": "Str0ngPass!x12",
+    }).json()["id"]
+    grp_id = auth_client.post("/api/auth-groups", json={"name": "op-grp"}).json()["id"]
+
+    op = _operator_client(client, seeded)
+
+    # não vê a auditoria
+    assert op.get("/api/audit").status_code == 403
+    # não exclui equipamento nem usuário de autenticação
+    assert op.delete(f"/api/equipment/{eq_id}").status_code == 403
+    assert op.delete(f"/api/auth-users/{au_id}").status_code == 403
+    # não cria/edita/exclui grupo de usuário
+    assert op.post("/api/auth-groups", json={"name": "nope"}).status_code == 403
+    assert op.patch(f"/api/auth-groups/{grp_id}", json={"description": "x"}).status_code == 403
+    assert op.delete(f"/api/auth-groups/{grp_id}").status_code == 403
+
+    # ainda pode: ler grupos (p/ atribuir a usuários), criar usuário, editar equipamento
+    assert op.get("/api/auth-groups").status_code == 200
+    assert op.patch(f"/api/equipment/{eq_id}", json={"site": "lab"}).status_code == 200
+    assert op.post("/api/auth-users", json={
+        "username": "op.created", "privilege_profile_id": profile_id, "password": "Str0ngPass!x12",
+    }).status_code == 201
+
+
+def test_auditor_still_sees_audit_and_user_groups(client, seeded):
+    from app.core.security import hash_password
+    from app.models import SystemRole, SystemUser
+    seeded.add(SystemUser(username="aud", email="aud@x.com", full_name="Aud",
+                          role=SystemRole.auditor, is_active=True,
+                          password_hash=hash_password("auditor-pass-1")))
+    seeded.commit()
+    login = client.post("/api/auth/login", json={"username": "aud", "password": "auditor-pass-1"})
+    client.headers.update({"X-CSRF-Token": login.json()["csrf_token"]})
+    assert client.get("/api/audit").status_code == 200
+    assert client.get("/api/auth-groups").status_code == 200

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, enforce_csrf, require_auditor, require_operator
+from app.api.deps import client_ip, enforce_csrf, require_admin, require_auditor
 from app.core.db import get_db
 from app.models import AuthGroupCidr, AuthUser, AuthUserGroup, SystemUser
 from app.schemas.auth_group import AuthGroupCreate, AuthGroupOut, AuthGroupUpdate, CidrIn
@@ -60,7 +60,7 @@ def list_groups(db: Session = Depends(get_db)) -> list[AuthGroupOut]:
              dependencies=[Depends(enforce_csrf)])
 def create_group(
     body: AuthGroupCreate, request: Request,
-    db: Session = Depends(get_db), actor: SystemUser = Depends(require_operator),
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_admin),
 ) -> AuthGroupOut:
     if db.execute(select(AuthUserGroup).where(AuthUserGroup.name == body.name)).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "já existe grupo com esse nome")
@@ -79,7 +79,7 @@ def create_group(
 @router.patch("/{group_id}", response_model=AuthGroupOut, dependencies=[Depends(enforce_csrf)])
 def update_group(
     group_id: int, body: AuthGroupUpdate, request: Request,
-    db: Session = Depends(get_db), actor: SystemUser = Depends(require_operator),
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_admin),
 ) -> AuthGroupOut:
     g = db.get(AuthUserGroup, group_id)
     if g is None:
@@ -105,7 +105,7 @@ def update_group(
                dependencies=[Depends(enforce_csrf)])
 def delete_group(
     group_id: int, request: Request,
-    db: Session = Depends(get_db), actor: SystemUser = Depends(require_operator),
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_admin),
 ) -> None:
     g = db.get(AuthUserGroup, group_id)
     if g is None:

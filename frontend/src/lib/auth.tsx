@@ -43,7 +43,10 @@ interface AuthCtx {
   verifyMfa: (mfaToken: string, code: string, rememberDevice?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** true se o papel do utilizador é >= ao menor papel informado (hierárquico). */
   can: (...roles: Role[]) => boolean;
+  /** true se o papel do utilizador está exatamente na lista (superadmin sempre). */
+  roleIn: (...roles: Role[]) => boolean;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -101,9 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const roleIn = useCallback(
+    (...roles: Role[]) =>
+      !!user && (user.role === "superadmin" || roles.includes(user.role)),
+    [user],
+  );
+
   const value = useMemo(
-    () => ({ user, loading, login, verifyMfa, logout, refresh, can }),
-    [user, loading, login, verifyMfa, logout, refresh, can],
+    () => ({ user, loading, login, verifyMfa, logout, refresh, can, roleIn }),
+    [user, loading, login, verifyMfa, logout, refresh, can, roleIn],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -62,6 +62,7 @@ const STATUS_TONE: Record<Equipment["status"], "green" | "amber" | "red"> = {
 
 export default function EquipmentPage() {
   const { can } = useAuth();
+  const canDelete = can("admin");
   const qc = useQueryClient();
   const toast = useToast();
   const writable = can("operator");
@@ -305,14 +306,16 @@ export default function EquipmentPage() {
                       >
                         Editar
                       </button>
-                      <button
-                        className="text-rose-600 hover:underline dark:text-rose-400"
-                        onClick={() => {
-                          if (confirm(`Remover ${eq.name}?`)) remove.mutate(eq);
-                        }}
-                      >
-                        Excluir
-                      </button>
+                      {canDelete && (
+                        <button
+                          className="text-rose-600 hover:underline dark:text-rose-400"
+                          onClick={() => {
+                            if (confirm(`Remover ${eq.name}?`)) remove.mutate(eq);
+                          }}
+                        >
+                          Excluir
+                        </button>
+                      )}
                     </div>
                   )}
                 </td>
