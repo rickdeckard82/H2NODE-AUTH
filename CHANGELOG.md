@@ -8,14 +8,14 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
 
 ### Adicionado
 
-- **2FA (TOTP)** para os utilizadores do painel: QR code no cadastro, **códigos
+- **2FA (TOTP)** para os usuários do painel: QR code no cadastro, **códigos
   de recuperação** de uso único e **“lembrar deste dispositivo”** — grava o
   cookie `pr_td` (SHA-256 no banco, tabela `app_mfa_trusted_device`) e o
   navegador pula a 2ª etapa por 30 dias (janela deslizante,
   `MFA_TRUSTED_DEVICE_TTL_DAYS`). Gestão e revogação no modal de 2FA; os
   dispositivos caem ao desativar o 2FA ou trocar a senha.
 - **Bloqueio de login progressivo** (backoff 15 min → 24 h), **revelar segredo
-  RADIUS**, **convite de utilizador por e-mail** (SMTP configurável),
+  RADIUS**, **convite de usuário por e-mail** (SMTP configurável),
   **troca da própria senha** e **backups cifrados**.
 - **Fabricante A10 Networks ACOS** (Thunder / Thunder CGN) via RADIUS e TACACS+.
 - **Exceção por equipamento** à exigência de `Message-Authenticator`
@@ -39,7 +39,7 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
 - **Papéis (RBAC)**: o **operador** deixa de ver Auditoria e Grupos de usuário e
   de excluir usuários de autenticação e equipamentos (`DELETE` passa a exigir
   admin; escrever grupo idem). O **auditor** fica restrito à leitura de
-  equipamentos e dos relatórios AAA — sem a área de utilizadores nem o log de
+  equipamentos e dos relatórios AAA — sem a área de usuários nem o log de
   auditoria. O aviso “ative o 2FA” passa a aparecer também para o operador.
 - Menu lateral vira **gaveta sobreposta** em telas menores (backdrop, trava o
   scroll); área central mais larga (até 1600 px) e sem rolagem horizontal da
@@ -86,7 +86,7 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
   `shell:cmd=` funcionam direto; Huawei/Juniper/Datacom mapeiam o VSA real para
   `Pulse-Command` (ver `docs/RUNBOOK.md`). O comando entra com escape `=XX`
   (anti-injeção) e o backend reverte na leitura.
-- **Fuso horário por Utilizador do sistema** (campo no cadastro, padrão
+- **Fuso horário por Usuário do painel** (campo no cadastro, padrão
   `America/Sao_Paulo`). As datas da API passam a sair em UTC explícito e o painel
   converte na exibição (corrige o "3h adiantado").
 
@@ -135,7 +135,7 @@ Lançamento inicial.
 - Clientes RADIUS resolvidos por SQL em tempo de request (sem reload).
 - Painel seguro: JWT access + refresh com rotação e detecção de reuso, RBAC,
   CSRF (double-submit), cabeçalhos de segurança, rate-limit no login.
-- **Utilizadores do sistema** (papéis superadmin/admin/operator/auditor) e log de
+- **Usuários do painel** (papéis superadmin/admin/operator/auditor) e log de
   auditoria de todas as ações administrativas.
 - Tema claro/escuro automático; menu lateral agrupado com ícones e notas de versão.
 - Aviso de Privacidade (LGPD) em `/privacidade`, linkado no rodapé — textos

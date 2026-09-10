@@ -69,7 +69,7 @@ export default function BackupPage() {
         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Baixar backup</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Gera um arquivo <code>.sql</code> com o esquema e os dados de todas as tabelas
-          (usuários de autenticação, equipamentos, fabricantes, perfis, grupos, utilizadores do
+          (usuários de autenticação, equipamentos, fabricantes, perfis, grupos, usuários do
           painel e auditoria). <strong>Não inclui</strong> os segredos do <code>.env</code>
           {" "}(<code>JWT_SECRET</code>, <code>FERNET_KEY</code>, senhas do MySQL) — guarde-os à parte.
         </p>

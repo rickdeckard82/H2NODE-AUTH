@@ -9,7 +9,7 @@ from app.models.base import Base
 class MfaRecoveryCode(Base):
     """Código de recuperação do 2FA (uso único).
 
-    Gerado em lote quando o utilizador ativa o 2FA. Serve para entrar ou
+    Gerado em lote quando o usuário ativa o 2FA. Serve para entrar ou
     desativar o 2FA quando o dispositivo TOTP é perdido. Guardado apenas como
     hash Argon2 — o valor em claro é mostrado uma única vez na ativação.
     """

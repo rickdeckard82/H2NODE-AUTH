@@ -81,7 +81,7 @@ export default function SystemUsersPage() {
       });
     },
     onSuccess: (_, f) => {
-      toast("ok", f.sendInvite && !f.id ? "Utilizador criado — convite enviado por e-mail" : "Utilizador salvo");
+      toast("ok", f.sendInvite && !f.id ? "Usuário criado — convite enviado por e-mail" : "Usuário salvo");
       setForm(null);
       invalidate();
     },
@@ -91,7 +91,7 @@ export default function SystemUsersPage() {
   const remove = useMutation({
     mutationFn: (u: SystemUser) => api.del(`/system-users/${u.id}`),
     onSuccess: () => {
-      toast("ok", "Utilizador removido");
+      toast("ok", "Usuário removido");
       invalidate();
     },
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : "Erro ao remover"),
@@ -115,9 +115,9 @@ export default function SystemUsersPage() {
   return (
     <div>
       <PageHeader
-        title="Utilizadores do sistema"
+        title="Usuários do painel"
         subtitle="Contas de acesso a este painel (não confundir com usuários de autenticação)"
-        actions={<Button onClick={() => setForm({ ...empty })}>Novo utilizador</Button>}
+        actions={<Button onClick={() => setForm({ ...empty })}>Novo usuário</Button>}
       />
 
       <Card className="mb-3">
@@ -136,7 +136,7 @@ export default function SystemUsersPage() {
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="th">Utilizador</th>
+              <th className="th">Usuário</th>
               <th className="th">Nome</th>
               <th className="th">E-mail</th>
               <th className="th">Papel</th>
@@ -240,7 +240,7 @@ export default function SystemUsersPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? "Editar utilizador" : "Novo utilizador do sistema"}
+        title={form?.id ? "Editar usuário" : "Novo usuário do painel"}
       >
         {form && (
           <form
@@ -251,7 +251,7 @@ export default function SystemUsersPage() {
             }}
           >
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Utilizador">
+              <Field label="Usuário">
                 <input
                   className="input"
                   value={form.username}
@@ -344,7 +344,7 @@ export default function SystemUsersPage() {
               </Field>
             ) : (
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                O utilizador receberá um e-mail para criar a própria senha (requer SMTP
+                O usuário receberá um e-mail para criar a própria senha (requer SMTP
                 configurado em Configurações).
               </p>
             )}

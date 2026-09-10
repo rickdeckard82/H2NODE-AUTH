@@ -151,7 +151,7 @@ export default function AuditPage() {
       <Card className="mb-3 flex flex-wrap gap-2">
         <input
           className="input max-w-[180px]"
-          placeholder={isDevices ? "Utilizador" : "Autor"}
+          placeholder={isDevices ? "Usuário" : "Autor"}
           value={actor}
           onChange={(e) => {
             setActor(e.target.value);
@@ -205,7 +205,7 @@ export default function AuditPage() {
           <table className="mt-2 min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
-                <th className="th">Utilizador</th>
+                <th className="th">Usuário</th>
                 <th className="th">Dispositivo</th>
                 <th className="th">Origem</th>
                 <th className="th">Memorizado</th>
@@ -257,7 +257,7 @@ export default function AuditPage() {
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
               <th className="th">Data</th>
-              <th className="th">{isDevices ? "Utilizador" : "Autor"}</th>
+              <th className="th">{isDevices ? "Usuário" : "Autor"}</th>
               <th className="th">{isDevices ? "Evento" : "Ação"}</th>
               {isDevices ? (
                 <th className="th">Dispositivo</th>

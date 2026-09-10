@@ -58,7 +58,7 @@ export function DonutChart({
         viewBox={`0 0 ${size} ${size}`}
         className="shrink-0"
         role="img"
-        aria-label="Distribuição por utilizador"
+        aria-label="Distribuição por usuário"
       >
         <circle
           cx={cx}

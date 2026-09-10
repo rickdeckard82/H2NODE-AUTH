@@ -133,7 +133,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-3">
-              <Field label="Utilizador">
+              <Field label="Usuário">
                 <input
                   className="input"
                   autoComplete="username"

@@ -57,19 +57,19 @@ export default function PrivacyPage() {
           <Section title="3. Dados pessoais tratados">
             <ul className="list-disc space-y-1.5 pl-5">
               <li>
-                <strong>Utilizadores do painel:</strong> nome, e-mail, nome de
-                utilizador (login), papel/função, data e hora do último acesso e a
+                <strong>Usuários do painel:</strong> nome, e-mail, nome de
+                usuário (login), papel/função, data e hora do último acesso e a
                 senha — armazenada <em>apenas</em> como hash Argon2id, nunca em
                 texto claro.
               </li>
               <li>
                 <strong>Usuários de autenticação nos equipamentos:</strong> nome e
-                e-mail (opcionais), nome de utilizador e a senha — armazenada como
+                e-mail (opcionais), nome de usuário e a senha — armazenada como
                 hash SSHA2-512.
               </li>
               <li>
                 <strong>Registros de autenticação e sessão (accounting):</strong>{" "}
-                nome de utilizador, endereço IP de origem, identificador da estação
+                nome de usuário, endereço IP de origem, identificador da estação
                 (ex.: IP/porta), data e hora de início e término, resultado
                 (aceito/negado) e causa de término.
               </li>
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
                 Registrar e auditar sessões e ações administrativas, para
                 segurança, rastreabilidade e diagnóstico de incidentes.
               </li>
-              <li>Gerir as contas de utilizadores do próprio painel.</li>
+              <li>Gerenciar as contas de usuários do próprio painel.</li>
             </ul>
           </Section>
 

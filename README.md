@@ -11,7 +11,7 @@ com painel web para gestão. Stack: **FreeRADIUS 3.2 + MySQL 8** para o AAA,
 | **Accounting** | Start/Interim/Stop em `radacct`; tentativas de auth em `radpostauth`; dashboard e export CSV. |
 
 O painel permite cadastrar: **usuários de autenticação**, **equipamentos** (agrupados por
-fabricante), **perfis de privilégio** e **utilizadores do próprio sistema**. Toda ação
+fabricante), **perfis de privilégio** e **usuários do próprio painel**. Toda ação
 administrativa é gravada em log de auditoria.
 
 ## Arquitetura

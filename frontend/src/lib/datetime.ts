@@ -3,7 +3,7 @@ import { useAuth } from "./auth";
 
 export const DEFAULT_TZ = "America/Sao_Paulo";
 
-/** Fusos comuns no Brasil + UTC, para o seletor no cadastro do utilizador. */
+/** Fusos comuns no Brasil + UTC, para o seletor no cadastro do usuário. */
 export const TIMEZONES = [
   "America/Sao_Paulo",
   "America/Bahia",

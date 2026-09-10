@@ -130,7 +130,7 @@ automático.
   (`radacct`: início/fim, bytes, duração).
 
 As datas na API saem em UTC explícito; o painel converte para o **fuso de cada
-Utilizador do sistema** (cadastro → *Fuso horário*, padrão `America/Sao_Paulo`).
+Usuário do painel** (cadastro → *Fuso horário*, padrão `America/Sao_Paulo`).
 
 ### Contabilização de comandos (`cmd_acct`)
 

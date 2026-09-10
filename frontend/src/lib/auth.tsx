@@ -43,7 +43,7 @@ interface AuthCtx {
   verifyMfa: (mfaToken: string, code: string, rememberDevice?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
-  /** true se o papel do utilizador é >= ao menor papel informado (hierárquico). */
+  /** true se o papel do usuário é >= ao menor papel informado (hierárquico). */
   can: (...roles: Role[]) => boolean;
 }
 

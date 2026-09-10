@@ -169,7 +169,7 @@ export default function DashboardPage() {
             </Card>
 
             <Card>
-              <h3 className="mb-4 font-semibold">Top utilizadores · 7 dias</h3>
+              <h3 className="mb-4 font-semibold">Top usuários · 7 dias</h3>
               <DonutChart
                 data={d.top_users_7d.map((u) => ({ label: u.username, value: u.sessions }))}
                 unit="sessões"

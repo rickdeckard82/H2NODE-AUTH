@@ -88,7 +88,7 @@ export default function SmtpSettingsPage() {
     <div>
       <PageHeader
         title="Servidor SMTP"
-        subtitle="Usado para enviar o convite de registro (criação de senha) aos utilizadores do painel"
+        subtitle="Usado para enviar o convite de registro (criação de senha) aos usuários do painel"
       />
 
       <Card className="mb-4">
@@ -116,7 +116,7 @@ export default function SmtpSettingsPage() {
               required
             />
           </Field>
-          <Field label="Utilizador (opcional)" hint="em branco = servidor sem autenticação">
+          <Field label="Usuário (opcional)" hint="em branco = servidor sem autenticação">
             <input
               className="input"
               value={form.username}

@@ -1,4 +1,4 @@
-"""Hash de senha (Argon2id) e emissão/validação de JWT para utilizadores do painel."""
+"""Hash de senha (Argon2id) e emissão/validação de JWT para usuários do painel."""
 
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -13,7 +13,7 @@ from app.core.config import settings
 _ph = PasswordHasher()
 
 # Hash real e descartável para igualar o tempo de verificação quando a conta não
-# existe (mitiga enumeração de utilizadores por timing). Calculado uma vez.
+# existe (mitiga enumeração de usuários por timing). Calculado uma vez.
 DUMMY_PASSWORD_HASH = _ph.hash("pulse-radius-timing-equalizer")
 
 

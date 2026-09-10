@@ -10,11 +10,11 @@ from app.models.mfa_trusted_device import MfaTrustedDevice
 
 
 class SystemRole(str, enum.Enum):
-    superadmin = "superadmin"  # tudo, inclusive gerir utilizadores do painel
+    superadmin = "superadmin"  # tudo, inclusive gerenciar usuários do painel
     admin = "admin"            # gere usuários de auth, equipamentos e perfis
     operator = "operator"      # cadastra usuários de auth; leitura de equipamentos
     auditor = "auditor"        # só leitura de equipamentos e relatórios AAA
-                               # (sem área de utilizadores nem log de auditoria)
+                               # (sem área de usuários nem log de auditoria)
 
 
 class SystemUser(Base, TimestampMixin):
@@ -24,7 +24,7 @@ class SystemUser(Base, TimestampMixin):
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(190), unique=True)
     full_name: Mapped[str] = mapped_column(String(190))
-    # NULL => convite de registo pendente (usuário ainda não criou a senha).
+    # NULL => convite de cadastro pendente (usuário ainda não criou a senha).
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[SystemRole] = mapped_column(
         Enum(SystemRole, native_enum=False, length=20), default=SystemRole.operator

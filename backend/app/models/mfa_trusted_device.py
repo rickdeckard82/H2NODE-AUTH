@@ -7,7 +7,7 @@ from app.models.base import Base
 
 
 class MfaTrustedDevice(Base):
-    """Navegador em que o utilizador marcou "lembrar deste dispositivo" ao passar
+    """Navegador em que o usuário marcou "lembrar deste dispositivo" ao passar
     pelo 2FA.
 
     Enquanto o cookie correspondente estiver presente e a linha não tiver

@@ -7,7 +7,7 @@ from app.models.base import Base, TimestampMixin
 
 
 class UserInvite(Base, TimestampMixin):
-    """Convite para o utilizador do painel terminar o registo criando a própria
+    """Convite para o usuário do painel concluir o cadastro criando a própria
     senha. Guardamos só o hash SHA-256 do token — o valor em claro só existe no
     link enviado por e-mail."""
 

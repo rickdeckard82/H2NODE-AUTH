@@ -13,7 +13,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-09",
     changes: [
       "2FA (TOTP) para o painel: QR code no cadastro, códigos de recuperação de uso único e “lembrar deste dispositivo” (pula o código por 30 dias, com gestão e revogação no modal de 2FA).",
-      "Bloqueio de login progressivo, revelar segredo RADIUS, convite de utilizador por e-mail (SMTP), troca da própria senha e backups cifrados.",
+      "Bloqueio de login progressivo, revelar segredo RADIUS, convite de usuário por e-mail (SMTP), troca da própria senha e backups cifrados.",
       "Papéis afinados: o operador não vê Auditoria nem Grupos de usuário e não exclui usuários/equipamentos; o auditor fica só com a leitura de equipamentos e dos relatórios AAA. Aviso para ativar o 2FA também para operador.",
       "Fabricante A10 Networks ACOS (Thunder CGN) via RADIUS e TACACS+; exceção por equipamento à exigência de Message-Authenticator (firmware antigo, BlastRADIUS).",
       "Chave TACACS+ padrão do grupo: revelar, status na lista e herança visível no equipamento; o segredo RADIUS some quando o grupo fala TACACS+.",
@@ -38,7 +38,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       "Relatórios divididos em Authentication (logins), Authorization (comandos executados, com IP de origem) e Accounting (abas Comandos e Sessões). Filtros por usuário / NAS / período e export CSV.",
       "Contabilização de comandos: o FreeRADIUS grava o comando quando o equipamento o envia via Accounting (Cisco/shell:cmd direto; demais fabricantes mapeiam o VSA — ver RUNBOOK).",
-      "Fuso horário por Utilizador do sistema (cadastro → Fuso horário, padrão America/Sao_Paulo). As datas do painel deixam de aparecer adiantadas.",
+      "Fuso horário por usuário do painel (cadastro → Fuso horário, padrão America/Sao_Paulo). As datas do painel deixam de aparecer adiantadas.",
     ],
   },
   {
@@ -64,7 +64,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Cadastro de equipamentos (clientes RADIUS) e de grupos de equipamentos (fabricantes) com segredo RADIUS padrão herdável — trocar o segredo do grupo re-propaga aos equipamentos que o herdam.",
       "Clientes RADIUS resolvidos por SQL em tempo de request (sem reload ao cadastrar equipamento).",
       "Painel seguro: login JWT + refresh com rotação e detecção de reuso, RBAC, proteção CSRF, cabeçalhos de segurança, rate-limit no login.",
-      "Utilizadores do sistema com papéis superadmin / admin / operator / auditor e log de auditoria de todas as ações.",
+      "Usuários do painel com papéis superadmin / admin / operator / auditor e log de auditoria de todas as ações.",
       "Tema claro/escuro automático conforme o navegador; menu lateral agrupado com ícones.",
       "Aviso de Privacidade (LGPD) acessível pelo rodapé, descrevendo o tratamento de nome, e-mail e registros de acesso.",
       "Endurecimento de segurança: bloqueio de conta após tentativas de login, verificação de senha em tempo constante, CSP no HTML, /api/docs e /api/metrics fechados por padrão, senha mínima de 12 para credenciais de equipamento, rate-limit via Redis, radius_svc com privilégio mínimo, dependências atualizadas (0 vulnerabilidades).",

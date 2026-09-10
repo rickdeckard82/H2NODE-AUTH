@@ -15,7 +15,7 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
   verificação de senha em tempo constante (hash descartável) para não vazar a
   existência de contas por timing. `POST /auth/invite/accept`,
   `POST /auth/mfa/verify` e `PATCH /auth/me/password` também têm rate-limit.
-- **2FA (TOTP)**: opcional e self-service para qualquer utilizador do painel
+- **2FA (TOTP)**: opcional e self-service para qualquer usuário do painel
   (`POST /auth/mfa/setup|enable|disable`); o painel avisa `admin`/`superadmin`
   sem 2FA ativo. Ao ativar, o sistema gera **10 códigos de recuperação** de uso
   único (exibidos uma só vez; guardados só como hash Argon2). Cada código vale
@@ -23,7 +23,7 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
   (`POST /auth/mfa/disable`) quando o dispositivo TOTP é perdido; um lote novo
   pode ser gerado a qualquer momento (`POST /auth/mfa/recovery-codes/regenerate`,
   invalida os anteriores). Recovery adicional: um `superadmin` pode resetar o 2FA
-  de outro utilizador (`POST /system-users/{id}/reset-mfa`).
+  de outro usuário (`POST /system-users/{id}/reset-mfa`).
 - **CSRF**: double-submit (`X-CSRF-Token`) em todas as rotas de escrita, além de
   `SameSite=Strict`.
 - **RBAC**: `superadmin > admin > operator > auditor`, checado contra o banco a

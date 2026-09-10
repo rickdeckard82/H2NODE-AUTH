@@ -101,7 +101,7 @@ def resend_invite(
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
     if user.has_password:
-        raise HTTPException(status.HTTP_409_CONFLICT, "utilizador já definiu a senha")
+        raise HTTPException(status.HTTP_409_CONFLICT, "usuário já definiu a senha")
     _send_invite(db, user)
     audit.record(db, action="resend_invite", entity_type="system_user", entity_id=user.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
@@ -114,12 +114,12 @@ def reset_mfa(
     user_id: int, request: Request,
     db: Session = Depends(get_db), actor: SystemUser = Depends(require_superadmin),
 ) -> Message:
-    """Recovery: desativa o 2FA de outro utilizador (perda do dispositivo TOTP)."""
+    """Recovery: desativa o 2FA de outro usuário (perda do dispositivo TOTP)."""
     user = db.get(SystemUser, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
     if not user.mfa_enabled:
-        raise HTTPException(status.HTTP_409_CONFLICT, "2FA não está ativo para este utilizador")
+        raise HTTPException(status.HTTP_409_CONFLICT, "2FA não está ativo para este usuário")
     user.mfa_enabled = False
     user.mfa_secret = None
     twofactor.discard_recovery_codes(user)

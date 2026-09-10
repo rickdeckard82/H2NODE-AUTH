@@ -30,7 +30,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> SystemU
 
 
 def enforce_csrf(request: Request) -> None:
-    """Double-submit cookie: header X-CSRF-Token deve casar com o cookie."""
+    """Double-submit cookie: header X-CSRF-Token deve coincidir com o cookie."""
     if request.method not in _UNSAFE_METHODS:
         return
     cookie = request.cookies.get(settings.csrf_cookie_name)

@@ -18,7 +18,7 @@ router = APIRouter(
 
 @router.get("/trusted-devices", response_model=list[TrustedDeviceRow])
 def list_trusted_devices(db: Session = Depends(get_db)) -> list[TrustedDeviceRow]:
-    """Dispositivos memorizados no 2FA de todos os utilizadores do painel."""
+    """Dispositivos memorizados no 2FA de todos os usuários do painel."""
     now = utcnow()
     rows = db.execute(
         select(MfaTrustedDevice, SystemUser.username)

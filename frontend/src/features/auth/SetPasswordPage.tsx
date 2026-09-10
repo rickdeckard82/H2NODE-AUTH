@@ -78,7 +78,7 @@ export default function SetPasswordPage() {
             <form onSubmit={onSubmit} className="space-y-3">
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Olá, <strong>{invite.full_name}</strong>. Defina a senha da sua conta (
-                {invite.username}) para terminar o registo.
+                {invite.username}) para concluir o cadastro.
               </p>
               <Field label="Nova senha" hint="Mínimo 10 caracteres.">
                 <input

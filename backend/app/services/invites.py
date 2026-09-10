@@ -1,4 +1,4 @@
-"""Convite por e-mail para o utilizador do painel terminar o registo criando a
+"""Convite por e-mail para o usuário do painel concluir o cadastro criando a
 própria senha (SystemUser.password_hash fica NULL até lá)."""
 
 import hashlib
@@ -53,14 +53,14 @@ def send_invite_email(db: Session, user: SystemUser, token: str) -> None:
     text = (
         f"Olá, {user.full_name}.\n\n"
         f"Uma conta foi criada para você no Pulse RADIUS ({user.username}).\n"
-        f"Para terminar o registo e definir sua senha, acesse:\n{link}\n\n"
+        f"Para concluir o cadastro e definir sua senha, acesse:\n{link}\n\n"
         f"Este link expira em {INVITE_TTL_HOURS} horas."
     )
     html = (
         f"<p>Olá, {user.full_name}.</p>"
         f"<p>Uma conta foi criada para você no <strong>Pulse RADIUS</strong> "
-        f"(utilizador <code>{user.username}</code>).</p>"
-        f"<p>Para terminar o registo e definir sua senha, "
+        f"(usuário <code>{user.username}</code>).</p>"
+        f"<p>Para concluir o cadastro e definir sua senha, "
         f'<a href="{link}">clique aqui</a>.</p>'
         f"<p style=\"color:#64748b;font-size:13px\">Este link expira em "
         f"{INVITE_TTL_HOURS} horas. Se você não esperava este e-mail, ignore-o.</p>"

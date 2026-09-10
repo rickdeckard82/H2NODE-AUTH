@@ -1,4 +1,4 @@
-"""2FA para utilizadores do painel: TOTP (RFC 6238) + códigos de recuperação
+"""2FA para usuários do painel: TOTP (RFC 6238) + códigos de recuperação
 + dispositivos confiáveis ("lembrar deste dispositivo")."""
 
 import hashlib
@@ -52,7 +52,7 @@ def _normalize_recovery_code(code: str) -> str:
 
 
 def issue_recovery_codes(user: SystemUser) -> list[str]:
-    """Descarta os códigos anteriores do utilizador e gera um lote novo.
+    """Descarta os códigos anteriores do usuário e gera um lote novo.
 
     Retorna os códigos em claro (para exibir uma única vez); no banco fica só o
     hash. Mexe na coleção ORM — quem chama faz o commit.
@@ -71,9 +71,9 @@ def discard_recovery_codes(user: SystemUser) -> None:
 
 
 def consume_recovery_code(user: SystemUser, code: str) -> bool:
-    """Confere `code` contra os códigos de recuperação não usados do utilizador.
+    """Confere `code` contra os códigos de recuperação não usados do usuário.
 
-    Se casar, marca-o como usado (sem commit) e devolve True.
+    Se coincidir, marca-o como usado (sem commit) e devolve True.
     """
     candidate = _normalize_recovery_code(code)
     if len(candidate) != _RECOVERY_LEN:
@@ -113,7 +113,7 @@ def register_trusted_device(
 
 def trusted_device_valid(user: SystemUser, token: str) -> bool:
     """True se `token` casa com um dispositivo confiável não expirado do
-    utilizador. Nesse caso renova o uso e estende a validade (janela deslizante)."""
+    usuário. Nesse caso renova o uso e estende a validade (janela deslizante)."""
     if not token:
         return False
     wanted = hash_device_token(token)
@@ -127,7 +127,7 @@ def trusted_device_valid(user: SystemUser, token: str) -> bool:
 
 
 def discard_trusted_devices(user: SystemUser) -> int:
-    """Remove todos os dispositivos confiáveis do utilizador; devolve quantos."""
+    """Remove todos os dispositivos confiáveis do usuário; devolve quantos."""
     n = len(user.mfa_trusted_devices)
     user.mfa_trusted_devices.clear()  # delete-orphan remove as linhas no flush
     return n

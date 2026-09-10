@@ -223,7 +223,7 @@ def test_auditor_cannot_see_audit_or_users(client, seeded):
     seeded.commit()
     login = client.post("/api/auth/login", json={"username": "aud", "password": "auditor-pass-1"})
     client.headers.update({"X-CSRF-Token": login.json()["csrf_token"]})
-    # sem acesso a auditoria nem à área de utilizadores
+    # sem acesso a auditoria nem à área de usuários
     assert client.get("/api/audit").status_code == 403
     assert client.get("/api/audit/trusted-devices").status_code == 403
     assert client.get("/api/auth-users").status_code == 403

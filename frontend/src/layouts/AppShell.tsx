@@ -58,7 +58,7 @@ const NAV: NavEntry[] = [
     label: "Configuração",
     icon: "settings",
     children: [
-      { to: "/system-users", label: "Utilizadores do sistema", icon: "userCog", roles: ["superadmin"] },
+      { to: "/system-users", label: "Usuários do painel", icon: "userCog", roles: ["superadmin"] },
       { to: "/settings/smtp", label: "Servidor SMTP", icon: "mail", roles: ["superadmin"] },
       { to: "/backup", label: "Backup e restauração", icon: "database", roles: ["superadmin"] },
     ],
