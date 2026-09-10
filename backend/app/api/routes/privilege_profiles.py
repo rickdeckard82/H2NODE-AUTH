@@ -105,6 +105,11 @@ def update_profile(
         profile.tacacs_extra_avpairs = body.tacacs_extra_avpairs or None
     if body.attrs is not None:
         _validate_manufacturers(db, body.attrs)
+        # Emite os DELETEs das linhas antigas antes de reinserir — senão o flush
+        # tenta inserir um par (profile, manufacturer, attribute) que ainda existe
+        # e bate na constraint uq_profile_attr.
+        profile.attrs.clear()
+        db.flush()
         profile.attrs = [
             PrivilegeProfileAttr(manufacturer_id=a.manufacturer_id, attribute=a.attribute,
                                  op=a.op, value=a.value)
