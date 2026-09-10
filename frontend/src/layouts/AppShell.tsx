@@ -94,7 +94,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [changePassword, setChangePassword] = useState(false);
   const [twoFactor, setTwoFactor] = useState(false);
-  const needsMfaNudge = !!user && (user.role === "superadmin" || user.role === "admin") && !user.mfa_enabled;
+  const needsMfaNudge =
+    !!user &&
+    (user.role === "superadmin" || user.role === "admin" || user.role === "operator") &&
+    !user.mfa_enabled;
 
   const canSee = (c: NavLeaf) =>
     !c.roles || (c.exact ? roleIn(...c.roles) : can(...c.roles));
