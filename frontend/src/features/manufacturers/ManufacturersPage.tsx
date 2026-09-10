@@ -127,12 +127,12 @@ export default function ManufacturersPage() {
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
                 <th className="th">Identificador</th>
-                <th className="th">Nome</th>
+                <th className="th">{t("Nome")}</th>
                 <th className="th">Família (VSA)</th>
                 <th className="th">Vendor ID</th>
                 <th className="th">Segredo / chave padrão</th>
                 <th className="th">Equipamentos</th>
-                <th className="th">Atualizado</th>
+                <th className="th">{t("Atualizado")}</th>
                 <th className="th" />
               </tr>
             </thead>

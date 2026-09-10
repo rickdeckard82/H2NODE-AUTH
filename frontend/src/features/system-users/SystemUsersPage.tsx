@@ -129,7 +129,7 @@ export default function SystemUsersPage() {
       <Card className="mb-3">
         <input
           className="input max-w-xs"
-          placeholder="Buscar…"
+          placeholder={t("Buscar…")}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -142,12 +142,12 @@ export default function SystemUsersPage() {
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="th">Usuário</th>
-              <th className="th">Nome</th>
-              <th className="th">E-mail</th>
-              <th className="th">Papel</th>
-              <th className="th">Estado</th>
-              <th className="th">Último login</th>
+              <th className="th">{t("Usuário")}</th>
+              <th className="th">{t("Nome")}</th>
+              <th className="th">{t("E-mail")}</th>
+              <th className="th">{t("Papel")}</th>
+              <th className="th">{t("Estado")}</th>
+              <th className="th">{t("Último login")}</th>
               <th className="th" />
             </tr>
           </thead>

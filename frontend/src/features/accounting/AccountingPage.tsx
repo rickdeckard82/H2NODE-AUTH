@@ -121,11 +121,11 @@ export default function AccountingPage() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
-                <th className="th">Data</th>
-                <th className="th">NAS</th>
-                <th className="th">Usuário</th>
-                <th className="th">Ação</th>
-                <th className="th">Comando</th>
+                <th className="th">{t("Data")}</th>
+                <th className="th">{t("NAS")}</th>
+                <th className="th">{t("Usuário")}</th>
+                <th className="th">{t("Ação")}</th>
+                <th className="th">{t("Comando")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -176,14 +176,14 @@ export default function AccountingPage() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
-                <th className="th">Usuário</th>
-                <th className="th">NAS</th>
-                <th className="th">Início</th>
-                <th className="th">Fim</th>
-                <th className="th">Duração</th>
-                <th className="th">In / Out</th>
-                <th className="th">Origem</th>
-                <th className="th">Causa</th>
+                <th className="th">{t("Usuário")}</th>
+                <th className="th">{t("NAS")}</th>
+                <th className="th">{t("Início")}</th>
+                <th className="th">{t("Fim")}</th>
+                <th className="th">{t("Duração")}</th>
+                <th className="th">{t("In / Out")}</th>
+                <th className="th">{t("Origem")}</th>
+                <th className="th">{t("Causa")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

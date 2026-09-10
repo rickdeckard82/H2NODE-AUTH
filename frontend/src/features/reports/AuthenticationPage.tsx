@@ -99,12 +99,12 @@ export default function AuthenticationPage() {
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="th">Data</th>
-              <th className="th">Protocolo</th>
-              <th className="th">Usuário</th>
-              <th className="th">Origem</th>
-              <th className="th">Destino</th>
-              <th className="th">Resultado</th>
+              <th className="th">{t("Data")}</th>
+              <th className="th">{t("Protocolo")}</th>
+              <th className="th">{t("Usuário")}</th>
+              <th className="th">{t("Origem")}</th>
+              <th className="th">{t("Destino")}</th>
+              <th className="th">{t("Resultado")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

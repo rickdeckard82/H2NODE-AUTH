@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Card } from "../../components/ui";
+import { useT } from "../../lib/i18n";
 
 export interface ReportFilterState {
   username: string;
@@ -29,21 +30,22 @@ export function ReportFilters({
   right?: ReactNode;
 }) {
   const set = (patch: Partial<ReportFilterState>) => onChange({ ...value, ...patch });
+  const t = useT();
 
   return (
     <Card className="mb-3 flex flex-wrap items-end gap-2">
       <label className="block">
-        <span className="label">Usuário</span>
+        <span className="label">{t("Usuário")}</span>
         <input
           className="input max-w-[180px]"
-          placeholder="Usuário"
+          placeholder={t("Usuário")}
           value={value.username}
           onChange={(e) => set({ username: e.target.value })}
         />
       </label>
       {showNas && (
         <label className="block">
-          <span className="label">IP do NAS</span>
+          <span className="label">{t("IP do NAS")}</span>
           <input
             className="input max-w-[160px]"
             placeholder="10.0.0.1"
@@ -53,7 +55,7 @@ export function ReportFilters({
         </label>
       )}
       <label className="block">
-        <span className="label">De</span>
+        <span className="label">{t("De")}</span>
         <input
           type="datetime-local"
           className="input max-w-[210px]"
@@ -62,7 +64,7 @@ export function ReportFilters({
         />
       </label>
       <label className="block">
-        <span className="label">Até</span>
+        <span className="label">{t("Até")}</span>
         <input
           type="datetime-local"
           className="input max-w-[210px]"

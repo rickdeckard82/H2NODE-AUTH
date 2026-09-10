@@ -207,12 +207,12 @@ export default function AuditPage() {
           <table className="mt-2 min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
-                <th className="th">Usuário</th>
-                <th className="th">Dispositivo</th>
-                <th className="th">Origem</th>
-                <th className="th">Memorizado</th>
-                <th className="th">Último uso</th>
-                <th className="th">Expira</th>
+                <th className="th">{t("Usuário")}</th>
+                <th className="th">{t("Dispositivo")}</th>
+                <th className="th">{t("Origem")}</th>
+                <th className="th">{t("Memorizado")}</th>
+                <th className="th">{t("Último uso")}</th>
+                <th className="th">{t("Expira")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -258,18 +258,18 @@ export default function AuditPage() {
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="th">Data</th>
-              <th className="th">{isDevices ? "Usuário" : "Autor"}</th>
-              <th className="th">{isDevices ? "Evento" : "Ação"}</th>
+              <th className="th">{t("Data")}</th>
+              <th className="th">{isDevices ? t("Usuário") : t("Autor")}</th>
+              <th className="th">{isDevices ? t("Evento") : t("Ação")}</th>
               {isDevices ? (
-                <th className="th">Dispositivo</th>
+                <th className="th">{t("Dispositivo")}</th>
               ) : (
                 <>
-                  <th className="th">Entidade</th>
-                  <th className="th">ID</th>
+                  <th className="th">{t("Entidade")}</th>
+                  <th className="th">{t("ID")}</th>
                 </>
               )}
-              <th className="th">Origem</th>
+              <th className="th">{t("Origem")}</th>
               <th className="th" />
             </tr>
           </thead>

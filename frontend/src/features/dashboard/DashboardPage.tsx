@@ -137,21 +137,21 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat
-              label="Sessões ativas"
+              label={t("Sessões ativas")}
               value={d.active_sessions}
               tone="text-emerald-600 dark:text-emerald-400"
               accent="bg-emerald-500"
             />
-            <Stat label="Sessões (7d)" value={d.sessions_7d} accent="bg-brand-500" />
+            <Stat label={t("Sessões (7d)")} value={d.sessions_7d} accent="bg-brand-500" />
             <Stat
-              label="Logins aceitos (7d)"
+              label={t("Logins aceitos (7d)")}
               value={d.accepts_7d}
               tone="text-brand-600 dark:text-brand-400"
               accent="bg-brand-500"
-              hint={approval !== null ? `${approval}% aprov.` : undefined}
+              hint={approval !== null ? t("{n}% aprov.", { n: approval }) : undefined}
             />
             <Stat
-              label="Logins negados (7d)"
+              label={t("Logins negados (7d)")}
               value={d.rejects_7d}
               tone="text-rose-600 dark:text-rose-400"
               accent="bg-rose-500"
@@ -171,11 +171,11 @@ export default function DashboardPage() {
             </Card>
 
             <Card>
-              <h3 className="mb-4 font-semibold">Top usuários · 7 dias</h3>
+              <h3 className="mb-4 font-semibold">{t("Top usuários · 7 dias")}</h3>
               <DonutChart
                 data={d.top_users_7d.map((u) => ({ label: u.username, value: u.sessions }))}
-                unit="sessões"
-                empty="Sem sessões nos últimos 7 dias"
+                unit={t("sessões")}
+                empty={t("Sem sessões nos últimos 7 dias")}
               />
             </Card>
           </div>
@@ -186,14 +186,14 @@ export default function DashboardPage() {
               tone="rose"
               events={failures.data?.items}
               loading={failures.isLoading}
-              emptyText="Nenhuma falha recente"
+              emptyText={t("Nenhuma falha recente")}
             />
             <AuthEventList
               title={t("Sucessos de autenticação recentes")}
               tone="emerald"
               events={successes.data?.items}
               loading={successes.isLoading}
-              emptyText="Nenhum sucesso recente"
+              emptyText={t("Nenhum sucesso recente")}
             />
           </div>
         </div>

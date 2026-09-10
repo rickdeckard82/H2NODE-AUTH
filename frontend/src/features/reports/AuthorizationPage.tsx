@@ -65,12 +65,12 @@ export default function AuthorizationPage() {
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="th">Data</th>
-              <th className="th">NAS</th>
-              <th className="th">Usuário</th>
-              <th className="th">Origem</th>
-              <th className="th">Ação</th>
-              <th className="th">Comando</th>
+              <th className="th">{t("Data")}</th>
+              <th className="th">{t("NAS")}</th>
+              <th className="th">{t("Usuário")}</th>
+              <th className="th">{t("Origem")}</th>
+              <th className="th">{t("Ação")}</th>
+              <th className="th">{t("Comando")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

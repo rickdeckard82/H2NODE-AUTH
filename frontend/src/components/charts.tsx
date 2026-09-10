@@ -1,4 +1,5 @@
 /* Gráficos leves em SVG puro — sem dependências. */
+import { useI18n } from "../lib/i18n";
 
 export const CHART_COLORS = [
   "#2b6cf6", // brand
@@ -30,6 +31,7 @@ export function DonutChart({
   unit?: string;
   empty?: string;
 }) {
+  const { t } = useI18n();
   const total = data.reduce((s, d) => s + d.value, 0);
   const r = (size - thickness) / 2;
   const cx = size / 2;
@@ -58,7 +60,7 @@ export function DonutChart({
         viewBox={`0 0 ${size} ${size}`}
         className="shrink-0"
         role="img"
-        aria-label="Distribuição por usuário"
+        aria-label={t("Distribuição por usuário")}
       >
         <circle
           cx={cx}
@@ -144,6 +146,7 @@ export function CompareBar({
   accepts: number;
   rejects: number;
 }) {
+  const { t } = useI18n();
   const total = accepts + rejects;
   const aPct = total ? (accepts / total) * 100 : 0;
   const rPct = total ? (rejects / total) * 100 : 0;
@@ -151,9 +154,11 @@ export function CompareBar({
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
-        <h3 className="font-semibold">Aceitos vs. negados (7 dias)</h3>
+        <h3 className="font-semibold">{t("Aceitos vs. negados (7 dias)")}</h3>
         <span className="text-sm text-slate-500 dark:text-slate-400">
-          {total ? `${aPct.toFixed(0)}% de aprovação` : "sem eventos nos últimos 7 dias"}
+          {total
+            ? t("{n}% de aprovação", { n: aPct.toFixed(0) })
+            : t("sem eventos nos últimos 7 dias")}
         </span>
       </div>
 
@@ -179,11 +184,11 @@ export function CompareBar({
       <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          Aceitos <b className="tabular-nums text-slate-800 dark:text-slate-100">{accepts}</b>
+          {t("Aceitos")} <b className="tabular-nums text-slate-800 dark:text-slate-100">{accepts}</b>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-          Negados <b className="tabular-nums text-slate-800 dark:text-slate-100">{rejects}</b>
+          {t("Negados")} <b className="tabular-nums text-slate-800 dark:text-slate-100">{rejects}</b>
         </span>
       </div>
     </div>
@@ -199,11 +204,11 @@ export interface DailyPoint {
   sessions: number;
 }
 
-/** "seg", "ter"… a partir de uma data ISO em UTC. */
-function dayLabel(iso: string): string {
+/** "seg" / "Mon"… a partir de uma data ISO em UTC, no idioma ativo. */
+function dayLabel(iso: string, locale: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("pt-BR", { weekday: "short", timeZone: "UTC" }).replace(".", "");
+  return d.toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" }).replace(".", "");
 }
 
 /** Curva suave (Bézier com pontos de controle no ponto médio). */
@@ -221,6 +226,7 @@ function smoothPath(pts: [number, number][]): string {
 
 /** Barras empilhadas (aceitos + negados) por dia, últimos 7 dias. */
 export function AuthTrendChart({ data }: { data: DailyPoint[] }) {
+  const { t, lang } = useI18n();
   const max = Math.max(1, ...data.map((d) => d.accepts + d.rejects));
   const totA = data.reduce((s, d) => s + d.accepts, 0);
   const totR = data.reduce((s, d) => s + d.rejects, 0);
@@ -229,15 +235,17 @@ export function AuthTrendChart({ data }: { data: DailyPoint[] }) {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3">
-        <h3 className="font-semibold">Autenticações por dia · 7 dias</h3>
+        <h3 className="font-semibold">{t("Autenticações por dia · 7 dias")}</h3>
         <span className="text-sm text-slate-500 dark:text-slate-400">
-          {total ? `${((totA / total) * 100).toFixed(0)}% de aprovação` : "sem eventos"}
+          {total
+            ? t("{n}% de aprovação", { n: ((totA / total) * 100).toFixed(0) })
+            : t("sem eventos")}
         </span>
       </div>
 
       <div className="flex h-44 items-end gap-2 sm:gap-3">
         {data.map((d, i) => {
-          const t = d.accepts + d.rejects;
+          const dayTotal = d.accepts + d.rejects;
           const isToday = i === data.length - 1;
           return (
             <div
@@ -245,12 +253,12 @@ export function AuthTrendChart({ data }: { data: DailyPoint[] }) {
               className="group flex h-full flex-1 flex-col items-center justify-end gap-1.5"
             >
               <span className="text-[11px] tabular-nums text-slate-400 opacity-0 transition-opacity group-hover:opacity-100 dark:text-slate-500">
-                {t || " "}
+                {dayTotal || " "}
               </span>
               <div
                 className="flex w-full max-w-[44px] flex-col-reverse overflow-hidden rounded-md bg-slate-100 ring-1 ring-inset ring-black/[0.03] transition-all dark:bg-slate-800 dark:ring-white/5"
-                style={{ height: `${Math.max((t / max) * 100, 2)}%` }}
-                title={`${dayLabel(d.date)} — ${d.accepts} aceitos · ${d.rejects} negados`}
+                style={{ height: `${Math.max((dayTotal / max) * 100, 2)}%` }}
+                title={`${dayLabel(d.date, lang)} — ${d.accepts} / ${d.rejects}`}
               >
                 <div
                   className="w-full bg-emerald-500 transition-[flex-grow] duration-500"
@@ -268,7 +276,7 @@ export function AuthTrendChart({ data }: { data: DailyPoint[] }) {
                     : "text-slate-400 dark:text-slate-500"
                 }`}
               >
-                {dayLabel(d.date)}
+                {dayLabel(d.date, lang)}
               </span>
             </div>
           );
@@ -278,11 +286,11 @@ export function AuthTrendChart({ data }: { data: DailyPoint[] }) {
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          Aceitos <b className="tabular-nums text-slate-800 dark:text-slate-100">{totA}</b>
+          {t("Aceitos")} <b className="tabular-nums text-slate-800 dark:text-slate-100">{totA}</b>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-          Negados <b className="tabular-nums text-slate-800 dark:text-slate-100">{totR}</b>
+          {t("Negados")} <b className="tabular-nums text-slate-800 dark:text-slate-100">{totR}</b>
         </span>
       </div>
     </div>
@@ -291,6 +299,7 @@ export function AuthTrendChart({ data }: { data: DailyPoint[] }) {
 
 /** Área suave: sessões iniciadas por dia, últimos 7 dias. */
 export function SessionsAreaChart({ data }: { data: DailyPoint[] }) {
+  const { t, lang } = useI18n();
   const W = 300;
   const H = 96;
   const pad = 6;
@@ -308,9 +317,9 @@ export function SessionsAreaChart({ data }: { data: DailyPoint[] }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
-        <h3 className="font-semibold">Sessões por dia · 7 dias</h3>
+        <h3 className="font-semibold">{t("Sessões por dia · 7 dias")}</h3>
         <span className="text-sm text-slate-500 dark:text-slate-400">
-          {total ? `${total} no total · pico ${peak}` : "sem sessões"}
+          {total ? t("{total} no total · pico {pico}", { total, pico: peak }) : t("sem sessões")}
         </span>
       </div>
 
@@ -320,7 +329,7 @@ export function SessionsAreaChart({ data }: { data: DailyPoint[] }) {
         height={H}
         preserveAspectRatio="none"
         role="img"
-        aria-label="Sessões por dia"
+        aria-label={t("Sessões por dia · 7 dias")}
         className="overflow-visible"
       >
         <defs>
@@ -345,7 +354,7 @@ export function SessionsAreaChart({ data }: { data: DailyPoint[] }) {
       <div className="mt-1 flex justify-between text-[11px] capitalize text-slate-400 dark:text-slate-500">
         {data.map((d, i) => (
           <span key={d.date} className={i === data.length - 1 ? "font-semibold" : ""}>
-            {dayLabel(d.date)}
+            {dayLabel(d.date, lang)}
           </span>
         ))}
       </div>

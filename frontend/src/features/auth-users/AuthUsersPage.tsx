@@ -134,7 +134,7 @@ export default function AuthUsersPage() {
       <Card className="mb-3">
         <input
           className="input max-w-xs"
-          placeholder="Buscar por login, nome ou e-mail…"
+          placeholder={t("Buscar por login, nome ou e-mail…")}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -148,10 +148,10 @@ export default function AuthUsersPage() {
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
               <th className="th">Login</th>
-              <th className="th">Nome</th>
+              <th className="th">{t("Nome")}</th>
               <th className="th">Perfil</th>
               <th className="th">Grupo</th>
-              <th className="th">Estado</th>
+              <th className="th">{t("Estado")}</th>
               <th className="th">Expira</th>
               <th className="th">Último acesso</th>
               <th className="th" />

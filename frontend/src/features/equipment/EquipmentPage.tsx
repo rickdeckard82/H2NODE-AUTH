@@ -178,7 +178,7 @@ export default function EquipmentPage() {
       <Card className="mb-3 flex flex-wrap gap-2">
         <input
           className="input max-w-xs"
-          placeholder="Buscar por nome, IP, site…"
+          placeholder={t("Buscar por nome, IP, site…")}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -207,14 +207,14 @@ export default function EquipmentPage() {
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="th">Nome</th>
-              <th className="th">IP de gerência</th>
-              <th className="th">Fabricante</th>
-              <th className="th">AAA</th>
-              <th className="th">Segredo</th>
-              <th className="th">Site</th>
-              <th className="th">Estado</th>
-              <th className="th">Atualizado</th>
+              <th className="th">{t("Nome")}</th>
+              <th className="th">{t("IP de gerência")}</th>
+              <th className="th">{t("Fabricante")}</th>
+              <th className="th">{t("AAA")}</th>
+              <th className="th">{t("Segredo")}</th>
+              <th className="th">{t("Site")}</th>
+              <th className="th">{t("Estado")}</th>
+              <th className="th">{t("Atualizado")}</th>
               <th className="th" />
             </tr>
           </thead>
