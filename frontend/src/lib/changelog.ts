@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.4.0";
+export const APP_VERSION = "0.5.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 /** Mais recente primeiro. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "0.5.0",
+    date: "2026-09-09",
+    changes: [
+      "2FA (TOTP) para o painel: QR code no cadastro, códigos de recuperação de uso único e “lembrar deste dispositivo” (pula o código por 30 dias, com gestão e revogação no modal de 2FA).",
+      "Bloqueio de login progressivo, revelar segredo RADIUS, convite de utilizador por e-mail (SMTP), troca da própria senha e backups cifrados.",
+      "Papéis afinados: o operador não vê Auditoria nem Grupos de usuário e não exclui usuários/equipamentos; o auditor fica só com a leitura de equipamentos e dos relatórios AAA. Aviso para ativar o 2FA também para operador.",
+      "Fabricante A10 Networks ACOS (Thunder CGN) via RADIUS e TACACS+; exceção por equipamento à exigência de Message-Authenticator (firmware antigo, BlastRADIUS).",
+      "Chave TACACS+ padrão do grupo: revelar, status na lista e herança visível no equipamento; o segredo RADIUS some quando o grupo fala TACACS+.",
+      "Tela Authentication com IP de origem/destino e eventos TACACS+.",
+      "Painel repaginado: janela de 7 dias (era 24h), gráfico de barras de autenticações por dia e área de sessões por dia, sucessos e falhas lado a lado com IP de origem, botão Atualizar nas telas de relatórios e auditoria.",
+      "Auditoria ganha a aba “Dispositivos 2FA”: dispositivos memorizados ativos + histórico de memorização/remoção.",
+      "Menu vira gaveta sobreposta em telas menores; área central mais larga e sem rolagem horizontal da página. Correção: “Notas de versão” e demais modais agora abrem centralizados.",
+    ],
+  },
   {
     version: "0.4.0",
     date: "2026-09-04",

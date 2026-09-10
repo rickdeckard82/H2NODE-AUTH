@@ -4,6 +4,54 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [0.5.0] — 2026-09-09
+
+### Adicionado
+
+- **2FA (TOTP)** para os utilizadores do painel: QR code no cadastro, **códigos
+  de recuperação** de uso único e **“lembrar deste dispositivo”** — grava o
+  cookie `pr_td` (SHA-256 no banco, tabela `app_mfa_trusted_device`) e o
+  navegador pula a 2ª etapa por 30 dias (janela deslizante,
+  `MFA_TRUSTED_DEVICE_TTL_DAYS`). Gestão e revogação no modal de 2FA; os
+  dispositivos caem ao desativar o 2FA ou trocar a senha.
+- **Bloqueio de login progressivo** (backoff 15 min → 24 h), **revelar segredo
+  RADIUS**, **convite de utilizador por e-mail** (SMTP configurável),
+  **troca da própria senha** e **backups cifrados**.
+- **Fabricante A10 Networks ACOS** (Thunder / Thunder CGN) via RADIUS e TACACS+.
+- **Exceção por equipamento** à exigência de `Message-Authenticator`
+  (`radius_require_message_authenticator`), para NAS com firmware anterior aos
+  patches de BlastRADIUS.
+- **Chave TACACS+ padrão do grupo**: revelar, status na lista de fabricantes e
+  herança visível na lista de equipamentos; o segredo RADIUS é escondido quando
+  o grupo fala TACACS+.
+- Tela **Authentication** com IP de origem/destino e eventos TACACS+.
+- **Painel** repaginado: janela de **7 dias** (antes 24 h), com série diária
+  (`/accounting/stats` → `daily[7]`), gráfico de barras empilhadas de
+  autenticações por dia e área de sessões por dia; **sucessos e falhas de
+  autenticação lado a lado** com IP de origem; botão **Atualizar** nas telas
+  Authentication / Authorization / Accounting / Auditoria e no Painel.
+- **Auditoria** ganha a aba **“Dispositivos 2FA”**: dispositivos memorizados
+  ativos (`GET /audit/trusted-devices`) + histórico de memorização/remoção
+  (`entity_type = mfa_trusted_device`).
+
+### Alterado
+
+- **Papéis (RBAC)**: o **operador** deixa de ver Auditoria e Grupos de usuário e
+  de excluir usuários de autenticação e equipamentos (`DELETE` passa a exigir
+  admin; escrever grupo idem). O **auditor** fica restrito à leitura de
+  equipamentos e dos relatórios AAA — sem a área de utilizadores nem o log de
+  auditoria. O aviso “ative o 2FA” passa a aparecer também para o operador.
+- Menu lateral vira **gaveta sobreposta** em telas menores (backdrop, trava o
+  scroll); área central mais larga (até 1600 px) e sem rolagem horizontal da
+  página.
+
+### Corrigido
+
+- Modais renderizados via **portal no `<body>`** — “Notas de versão” e afins não
+  ficam mais presos/espremidos dentro da sidebar (que usa `transform`).
+- `index.html` servido com `Cache-Control: no-cache`, evitando SPA velha em
+  cache após deploy.
+
 ## [0.4.0] — 2026-09-04
 
 ### Adicionado
