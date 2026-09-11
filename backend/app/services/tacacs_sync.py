@@ -33,7 +33,15 @@ def resolve_tacacs_key(eq: Equipment, manufacturer: Manufacturer) -> str:
             "Sem chave TACACS+: informe uma no equipamento ou no grupo "
             f"'{manufacturer.name}'."
         )
-    return decrypt(enc)
+    try:
+        return decrypt(enc)
+    except Exception as exc:  # noqa: BLE001 - Fernet levanta InvalidToken, não ValueError
+        # Chave cifrada com outro FERNET_KEY (ex.: restauração de backup entre
+        # stacks) — normaliza p/ ValueError, que build_config() já trata por host.
+        raise ValueError(
+            f"Chave TACACS+ ilegível para '{eq.name}' (FERNET_KEY diferente do "
+            "backup/origem?)."
+        ) from exc
 
 
 def _q(value: str) -> str:

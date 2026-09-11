@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import client_ip, enforce_csrf, require_superadmin
 from app.core.db import engine, get_db
+from app.core.logging import logger
 from app.models import SystemUser
-from app.services import audit, backup
+from app.services import audit, backup, tacacs_sync
 
 router = APIRouter(
     prefix="/backup",
@@ -104,6 +105,20 @@ async def import_backup(
         result = backup.restore_sql(engine, sql_text, current_version=current)
     except backup.BackupError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+
+    # O dump cobre as tabelas (equipamentos, perfis, chaves...), mas o
+    # /etc/tacacs-shared/pulse.cfg que o tac_plus-ng lê é um arquivo derivado,
+    # fora do banco — sem isto ele ficaria com os hosts/perfis de antes da
+    # restauração até a próxima edição de equipamento/perfil no painel.
+    try:
+        result["tacacs_hosts"] = tacacs_sync.regenerate(db)
+    except Exception:  # noqa: BLE001 - não falha a restauração por causa disto
+        logger.exception("tacacs_regenerate_after_restore_failed")
+        result["tacacs_warning"] = (
+            "restauração concluída, mas não foi possível regenerar a config do "
+            "TACACS+ automaticamente — salve um equipamento ou perfil de "
+            "privilégio qualquer no painel para forçar a regeneração."
+        )
 
     # A restauração recriou app_audit_log a partir do arquivo; registra o evento
     # numa sessão nova (a anterior foi fechada acima).
