@@ -107,7 +107,7 @@ accounting {
               (event_time, nasipaddress, username, callingstationid, action, command, acctsessionid) \
             VALUES ( \
               FROM_UNIXTIME(%{%{integer:Event-Timestamp}:-%l}), \
-              '%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', '%{User-Name}', '%{Calling-Station-Id}', \
+              '%{Packet-Src-IP-Address}', '%{User-Name}', '%{Calling-Station-Id}', \
               '%{control:Pulse-Command-Action}', '%{control:Pulse-Command}', '%{Acct-Session-Id}' \
             )}"
     }
@@ -136,7 +136,7 @@ post-auth {
           (username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) \
         VALUES ( \
           '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
-          '%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', '%{Packet-Dst-IP-Address}', 'radius' \
+          '%{Packet-Src-IP-Address}', '%{Packet-Dst-IP-Address}', 'radius' \
         )}"
 
     update {
@@ -150,7 +150,7 @@ post-auth {
               (username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) \
             VALUES ( \
               '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
-              '%{%{NAS-IP-Address}:-%{Packet-Src-IP-Address}}', '%{Packet-Dst-IP-Address}', 'radius' \
+              '%{Packet-Src-IP-Address}', '%{Packet-Dst-IP-Address}', 'radius' \
             )}"
         attr_filter.access_reject
         update reply { &Reply-Message := "Acesso negado" }
