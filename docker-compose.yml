@@ -83,7 +83,7 @@ services:
       start_period: 25s
 
   # ───────────────────────────── TACACS+ ──────────────────────────────
-  # tac_plus-ng com backend MySQL (MAVIS). Cobre Huawei / Juniper / Datacom / A10
+  # tac_plus-ng com backend MySQL (MAVIS). Cobre Huawei / Juniper / Datacom / A10 / ZTE
   # que falam TACACS+ (o MikroTik não tem cliente TACACS+ e fica em RADIUS).
   tacacs:
     build:

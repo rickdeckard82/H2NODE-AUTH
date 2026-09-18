@@ -72,7 +72,7 @@ make up        # sobe db, freeradius, tacacs, backend, frontend
 ```
 
 O backend aplica as migrações e roda o seed automaticamente no start
-(5 fabricantes, perfis `admin-full` / `operator` / `read-only`, uma linha de
+(6 fabricantes, perfis `admin-full` / `operator` / `read-only`, uma linha de
 configuração LGPD com retenções zeradas, e o primeiro `superadmin` a partir de
 `BOOTSTRAP_ADMIN_*`).
 

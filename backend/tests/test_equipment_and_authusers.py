@@ -115,6 +115,20 @@ def test_a10_manufacturer_seeded_with_privilege_attr(auth_client, seeded):
     assert {r.value for r in rows} == {"3", "12", "14"}
 
 
+def test_zte_manufacturer_seeded(auth_client, seeded):
+    from app.models import Manufacturer
+
+    m = seeded.query(Manufacturer).filter_by(name="zte").one()
+    assert m.vendor_kind.value == "zte"
+    assert m.radius_vendor_id == 3902
+
+    # ZTE hoje só fala TACACS+: sem VSA próprio, nenhum atributo de perfil é criado
+    rows = seeded.query(RadGroupReply).filter(
+        RadGroupReply.groupname.like("%"), RadGroupReply.attribute.like("ZTE%")
+    ).all()
+    assert rows == []
+
+
 def test_auth_group_crud_and_user_assignment(auth_client, seeded):
     from app.models import AuthGroupCidr
 

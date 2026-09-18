@@ -1,4 +1,4 @@
-export type VendorKind = "huawei" | "juniper" | "datacom" | "mikrotik" | "a10" | "generic";
+export type VendorKind = "huawei" | "juniper" | "datacom" | "mikrotik" | "a10" | "zte" | "generic";
 
 export type AaaProtocol = "radius" | "tacacs";
 
@@ -8,6 +8,7 @@ export const VENDOR_KINDS: VendorKind[] = [
   "datacom",
   "mikrotik",
   "a10",
+  "zte",
   "generic",
 ];
 

@@ -44,6 +44,7 @@ const KIND_HINT: Record<VendorKind, string> = {
   datacom: "envia Datacom-Privilege-Level",
   mikrotik: "envia Mikrotik-Group",
   a10: "envia A10-Admin-Privilege",
+  zte: "sem VSA definido — use TACACS+ (priv-lvl + AV pairs do perfil)",
   generic: "não filtra VSA — envia todos os atributos do perfil",
 };
 

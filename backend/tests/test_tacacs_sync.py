@@ -115,6 +115,28 @@ def test_equipment_route_tacacs_inheritance(auth_client, seeded):
     assert "TACACS+" in r.json()["detail"]
 
 
+def test_olt_zte_route_tacacs(auth_client, seeded, db):
+    mid = auth_client.post("/api/manufacturers", json={
+        "name": "zte-t", "display_name": "ZTE T", "vendor_kind": "zte",
+        "aaa_protocol": "tacacs", "tacacs_key": "zte-grp-key",
+    }).json()["id"]
+
+    r = auth_client.post("/api/equipment", json={
+        "name": "olt-zte-01", "mgmt_ip": "10.30.30.30", "manufacturer_id": mid,
+        "shortname": "oltzte01",
+    })
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["vendor_kind"] == "zte"
+    assert body["effective_protocol"] == "tacacs"
+    assert body["tacacs_key_source"] == "manufacturer"
+
+    text, n = tacacs_sync.build_config(db)
+    assert n == 1
+    assert "address = 10.30.30.30" in text
+    assert 'key = "zte-grp-key"' in text
+
+
 def test_profile_route_tacacs_fields(auth_client, seeded):
     pid = auth_client.post("/api/privilege-profiles", json={
         "name": "net-admin", "tacacs_priv_level": 15,
