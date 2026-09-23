@@ -80,7 +80,7 @@ export default function UserGroupsPage() {
     <div>
       <PageHeader
         title={t("Grupos de usuário")}
-        subtitle={t("Restringem a autenticação por IP de origem: fora das faixas do grupo, o RADIUS rejeita")}
+        subtitle={t("Restringem de onde o técnico pode logar nos equipamentos: fora das faixas do grupo, o RADIUS rejeita")}
         actions={writable && <Button onClick={() => setForm({ ...empty })}>{t("Novo grupo")}</Button>}
       />
 
@@ -235,7 +235,7 @@ export default function UserGroupsPage() {
                 )}
               </div>
               <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                {t("Aceita IPv4/IPv6, com ou sem máscara (IP simples = /32 ou /128). O IP comparado é o de origem do pacote RADIUS.")}
+                {t("Aceita IPv4/IPv6, com ou sem máscara (IP simples = /32 ou /128). É o IP de onde o técnico conecta (não o IP do equipamento sendo acessado).")}
               </p>
             </div>
 

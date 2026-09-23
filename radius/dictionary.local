@@ -21,6 +21,11 @@
 ATTRIBUTE       Pulse-Command                   3320    string
 ATTRIBUTE       Pulse-Command-Action            3321    string
 
+# Guarda o IP de origem "real" apurado no site `default` (Calling-Station-Id
+# do NAS quando parece um IP válido, senão Packet-Src-IP-Address) para a
+# checagem de allowlist por grupo de usuário — ver authorize em sites-available/default.
+ATTRIBUTE       Pulse-Origin-IP                 3322    string
+
 VENDOR          Datacom                 3709
 
 BEGIN-VENDOR    Datacom

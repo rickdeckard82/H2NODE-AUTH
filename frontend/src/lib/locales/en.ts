@@ -150,8 +150,8 @@ export const en: Record<string, string> = {
     "Vendor / group: sets the VSA translation and the default RADIUS secret inherited by devices",
   "Contas que autenticam nos equipamentos via RADIUS":
     "Accounts that authenticate on devices via RADIUS",
-  "Restringem a autenticação por IP de origem: fora das faixas do grupo, o RADIUS rejeita":
-    "Restrict authentication by source IP: outside the group's ranges, RADIUS rejects",
+  "Restringem de onde o técnico pode logar nos equipamentos: fora das faixas do grupo, o RADIUS rejeita":
+    "Restrict where technicians can log into devices from: outside the group's ranges, RADIUS rejects",
   "Mapeiam um perfil abstrato para atributos RADIUS de cada fabricante (radgroupreply)":
     "Map an abstract profile to per-vendor RADIUS attributes (radgroupreply)",
   "Tentativas de login nos equipamentos (RADIUS e TACACS+), com IP de origem e destino":
@@ -344,8 +344,8 @@ export const en: Record<string, string> = {
   "10.0.0.0/24  ou  192.168.1.5": "10.0.0.0/24  or  192.168.1.5",
   AAA: "AAA",
   "AV pairs extra": "Extra AV pairs",
-  "Aceita IPv4/IPv6, com ou sem máscara (IP simples = /32 ou /128). O IP comparado é o de origem do pacote RADIUS.":
-    "Accepts IPv4/IPv6, with or without a mask (bare IP = /32 or /128). The IP compared is the source of the RADIUS packet.",
+  "Aceita IPv4/IPv6, com ou sem máscara (IP simples = /32 ou /128). É o IP de onde o técnico conecta (não o IP do equipamento sendo acessado).":
+    "Accepts IPv4/IPv6, with or without a mask (bare IP = /32 or /128). It's the IP the technician connects from (not the IP of the device being accessed).",
   Antes: "Before",
   "Ao terminar, a sua sessão pode ser invalidada — faça login novamente.":
     "When it finishes, your session may be invalidated — sign in again.",
