@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import require_auditor
 from app.core.db import get_db
-from app.models import CmdAcct, Equipment, RadAcct, RadPostAuth
+from app.models import CmdAcct, Equipment, Manufacturer, RadAcct, RadPostAuth
+from app.models.manufacturer import AaaProtocol
 from app.schemas.accounting import (
     AccountingStats,
     AuthEventOut,
@@ -163,7 +164,9 @@ def list_authentication(
             id=r.id, username=r.username, reply=r.reply, authdate=r.authdate,
             accepted=r.reply.startswith("Access-Accept"),
             protocol=r.protocol or "radius",
-            source_ip=r.nasipaddress or None, dest_ip=r.serveripaddress or None,
+            # Origem = IP real de onde o técnico conectou (Calling-Station-Id
+            # no RADIUS, rem-addr no TACACS+); Destino = equipamento acessado.
+            source_ip=r.callingstationid or None, dest_ip=r.nasipaddress or None,
             nas_name=nas_names.get(r.nasipaddress or ""),
         )
         for r in rows
@@ -188,7 +191,7 @@ def export_authentication_csv(
     w.writerow(["authdate_utc", "protocol", "username", "source_ip", "dest_ip", "reply"])
     for r in db.execute(stmt).scalars():
         w.writerow([r.authdate, r.protocol or "radius", r.username,
-                    r.nasipaddress or "", r.serveripaddress or "", r.reply])
+                    r.callingstationid or "", r.nasipaddress or "", r.reply])
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]), media_type="text/csv",
@@ -311,6 +314,25 @@ def stats(db: Session = Depends(get_db)) -> AccountingStats:
         .group_by(RadAcct.username).order_by(func.count().desc()).limit(6)
     ).all()
 
+    effective_protocol = func.coalesce(Equipment.aaa_protocol, Manufacturer.aaa_protocol)
+    equipment_tacacs = db.execute(
+        select(func.count()).select_from(Equipment)
+        .join(Manufacturer, Equipment.manufacturer_id == Manufacturer.id)
+        .where(effective_protocol == AaaProtocol.tacacs)
+    ).scalar_one()
+    equipment_radius = db.execute(
+        select(func.count()).select_from(Equipment)
+        .join(Manufacturer, Equipment.manufacturer_id == Manufacturer.id)
+        .where(effective_protocol == AaaProtocol.radius)
+    ).scalar_one()
+
+    top_dev = db.execute(
+        select(RadPostAuth.nasipaddress, func.count().label("n"))
+        .where(RadPostAuth.authdate >= week_ago, _ACCEPT_FILTER)
+        .group_by(RadPostAuth.nasipaddress).order_by(func.count().desc()).limit(6)
+    ).all()
+    nas_names = _nas_names(db)
+
     acc_day = _count_by_day(db, RadPostAuth.authdate, _ACCEPT_FILTER, start=first_day)
     rej_day = _count_by_day(db, RadPostAuth.authdate, _REJECT_FILTER, start=first_day)
     sess_day = _count_by_day(db, RadAcct.acctstarttime, start=first_day)
@@ -328,5 +350,9 @@ def stats(db: Session = Depends(get_db)) -> AccountingStats:
         active_sessions=active, sessions_7d=sessions_7d,
         accepts_7d=accepts_7d, rejects_7d=rejects_7d,
         top_users_7d=[{"username": u, "sessions": n} for u, n in top],
+        equipment_tacacs=equipment_tacacs, equipment_radius=equipment_radius,
+        top_devices_7d=[
+            {"nas_ip": ip, "nas_name": nas_names.get(ip), "logins": n} for ip, n in top_dev
+        ],
         daily=daily,
     )

@@ -26,6 +26,12 @@ ATTRIBUTE       Pulse-Command-Action            3321    string
 # checagem de allowlist por grupo de usuário — ver authorize em sites-available/default.
 ATTRIBUTE       Pulse-Origin-IP                 3322    string
 
+# Igual ao Pulse-Origin-IP, mas só é definido quando o Calling-Station-Id do
+# NAS é mesmo um IPv4 válido (sem fallback para Packet-Src-IP-Address). Grava
+# o IP do técnico em radpostauth.callingstationid — ver post-auth em
+# sites-available/default. Fica indefinido quando o NAS não repassa esse dado.
+ATTRIBUTE       Pulse-Client-IP                 3323    string
+
 VENDOR          Datacom                 3709
 
 BEGIN-VENDOR    Datacom

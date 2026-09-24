@@ -55,6 +55,10 @@ authorize {
     if (&Calling-Station-Id =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/) {
         update control {
             &Pulse-Origin-IP := "%{Calling-Station-Id}"
+            # Sem fallback: só existe quando o valor acima é mesmo um IP do
+            # técnico, para não gravar o IP do equipamento como se fosse a
+            # origem em radpostauth (ver post-auth).
+            &Pulse-Client-IP := "%{Calling-Station-Id}"
         }
     }
 
@@ -136,10 +140,12 @@ accounting {
 # ──────────────────────────── POST-AUTH ──────────────────────────────
 # Nota: NÃO chamamos o módulo `sql` aqui — a query padrão de post-auth grava a
 # senha em claro e não tem IP de origem/destino. Fazemos o INSERT à mão em
-# radpostauth (mesma técnica do cmd_acct acima), com nasipaddress = equipamento,
-# serveripaddress = este servidor, protocol = 'radius' e pass vazio. O User-Name
-# já é validado no `authorize` (regex), e cada %{} dentro de %{sql:...} passa
-# pela função de escape do driver.
+# radpostauth (mesma técnica do cmd_acct acima), com nasipaddress = equipamento
+# acessado, callingstationid = IP real de onde o técnico conectou (mesma regra
+# do allowlist acima: Calling-Station-Id quando é um IPv4 claro, senão vazio),
+# serveripaddress = este servidor, protocol = 'radius' e pass vazio. O
+# User-Name já é validado no `authorize` (regex), e cada %{} dentro de
+# %{sql:...} passa pela função de escape do driver.
 post-auth {
     # Traduz o perfil em VSA do fabricante do NAS que originou o request
     # e remove os VSAs dos demais fabricantes.
@@ -148,10 +154,10 @@ post-auth {
     # Registra a tentativa (sucesso) em radpostauth.
     "%{sql: \
         INSERT INTO radpostauth \
-          (username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) \
+          (username, pass, reply, authdate, nasipaddress, callingstationid, serveripaddress, protocol) \
         VALUES ( \
           '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
-          '%{Packet-Src-IP-Address}', '%{Packet-Dst-IP-Address}', 'radius' \
+          '%{Packet-Src-IP-Address}', '%{%{control:Pulse-Client-IP}:-}', '%{Packet-Dst-IP-Address}', 'radius' \
         )}"
 
     update {
@@ -162,10 +168,10 @@ post-auth {
         # Registra a tentativa (falha) em radpostauth.
         "%{sql: \
             INSERT INTO radpostauth \
-              (username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) \
+              (username, pass, reply, authdate, nasipaddress, callingstationid, serveripaddress, protocol) \
             VALUES ( \
               '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
-              '%{Packet-Src-IP-Address}', '%{Packet-Dst-IP-Address}', 'radius' \
+              '%{Packet-Src-IP-Address}', '%{%{control:Pulse-Client-IP}:-}', '%{Packet-Dst-IP-Address}', 'radius' \
             )}"
         attr_filter.access_reject
         update reply { &Reply-Message := "Acesso negado" }

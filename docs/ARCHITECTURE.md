@@ -55,10 +55,12 @@ em produção.
 2. Enforce de estado: consulta `app_auth_user` — se `is_active = 0` ou `expires_at` vencido → **reject**.
 3. `pap` valida a senha contra `SSHA2-512-Password`.
 4. `post-auth` grava a tentativa em `radpostauth` (INSERT próprio, não o módulo
-   `sql` — sem senha em claro, com `nasipaddress`/`serveripaddress` de origem e
-   destino e `protocol='radius'`). Aceita e negada.
+   `sql` — sem senha em claro, com `nasipaddress` (equipamento acessado),
+   `callingstationid` (IP real do técnico, quando o NAS repassa
+   Calling-Station-Id como IPv4) e `protocol='radius'`). Aceita e negada.
    As de **TACACS+** entram na mesma tabela via `tacacs/authlog_import.py`
-   (`protocol='tacacs'`), lendo o `access.log` do tac_plus-ng.
+   (`protocol='tacacs'`), lendo o `access.log` do tac_plus-ng — `callingstationid`
+   vem do campo `rem-addr` da linha.
 
 ### Authorization (Access-Accept)
 - O grupo `profile_<perfil>` traz em `radgroupreply` **um conjunto de VSAs por fabricante**.

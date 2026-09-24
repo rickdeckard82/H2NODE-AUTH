@@ -10,6 +10,12 @@ Formato padrão da linha de acesso do tac_plus-ng (campos separados por TAB, e o
 
     <YYYY-mm-dd> <HH:MM:SS> <+ZZZZ> <nas-ip>  <user>  <port>  <rem-addr>  <msg>
 
+`rem-addr` é o campo TACACS+ padrão (rem_addr do pacote START) com o IP de onde
+o técnico conectou no equipamento — equivalente ao Calling-Station-Id do RADIUS
+e ao `nac` que o acct_import.py grava em cmd_acct.callingstationid. Vai para
+radpostauth.callingstationid; `nas-ip` (o equipamento acessado) continua em
+nasipaddress.
+
 Só interessam as linhas de autenticação de login — `<msg>` no formato
 "<método> login <succeeded|failed>[ [motivo]]". O método varia por equipamento:
 shell/ascii (login interativo), pap, chap, mschap[v2], enable, "enforced enable",
@@ -43,8 +49,8 @@ _DB = dict(
 
 _INSERT = (
     "INSERT INTO radpostauth "
-    "(username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) "
-    "VALUES (%s, '', %s, %s, %s, NULL, 'tacacs')"
+    "(username, pass, reply, authdate, nasipaddress, callingstationid, serveripaddress, protocol) "
+    "VALUES (%s, '', %s, %s, %s, %s, NULL, 'tacacs')"
 )
 
 # Este servidor (opcional) — preenche o "IP de destino" das linhas TACACS+.
@@ -52,8 +58,8 @@ _SERVER_IP = os.getenv("TACACS_SERVER_IP") or None
 if _SERVER_IP:
     _INSERT = (
         "INSERT INTO radpostauth "
-        "(username, pass, reply, authdate, nasipaddress, serveripaddress, protocol) "
-        "VALUES (%s, '', %s, %s, %s, %s, 'tacacs')"
+        "(username, pass, reply, authdate, nasipaddress, callingstationid, serveripaddress, protocol) "
+        "VALUES (%s, '', %s, %s, %s, %s, %s, 'tacacs')"
     )
 
 _conn = None
@@ -87,7 +93,8 @@ def parse(line: str) -> tuple | None:
         authdate = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
     username = (f[1] if len(f) > 1 else "")[:64]
-    row = [username, reply, authdate, nas_ip[:45]]
+    rem_addr = f[3].strip() if len(f) > 4 else ""
+    row = [username, reply, authdate, nas_ip[:45], rem_addr[:45] or None]
     if _SERVER_IP:
         row.append(_SERVER_IP[:45])
     return tuple(row)

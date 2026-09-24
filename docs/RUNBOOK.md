@@ -120,10 +120,11 @@ automático.
 ## Relatórios (Authentication / Authorization / Accounting)
 
 - **Authentication** — tentativas de login (`radpostauth`): Access-Accept/Reject,
-  com **protocolo** (RADIUS/TACACS+) e **IP de origem** (o equipamento) e **de
-  destino** (o servidor AAA). RADIUS grava direto pelo site `default`; TACACS+ é
-  importado do `access.log` do tac_plus-ng (ver abaixo). O `IP de destino` das
-  linhas TACACS+ só aparece se `TACACS_SERVER_IP` estiver definido.
+  com **protocolo** (RADIUS/TACACS+), **IP de origem** (de onde o técnico
+  conectou — `Calling-Station-Id` no RADIUS, `rem-addr` no TACACS+; fica em
+  branco se o equipamento não repassar esse dado) e **IP de destino** (o
+  equipamento acessado). RADIUS grava direto pelo site `default`; TACACS+ é
+  importado do `access.log` do tac_plus-ng (ver abaixo).
 - **Authorization** — comandos executados (`cmd_acct`), com o IP de origem de quem
   executou.
 - **Accounting** — aba *Comandos* (`cmd_acct`, sem o IP de origem) + aba *Sessões*

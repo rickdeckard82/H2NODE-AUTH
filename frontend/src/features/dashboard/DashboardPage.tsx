@@ -18,6 +18,9 @@ interface Stats {
   accepts_7d: number;
   rejects_7d: number;
   top_users_7d: { username: string; sessions: number }[];
+  equipment_tacacs: number;
+  equipment_radius: number;
+  top_devices_7d: { nas_ip: string; nas_name: string | null; logins: number }[];
   daily: DailyPoint[];
 }
 interface AuthEvent {
@@ -27,6 +30,7 @@ interface AuthEvent {
   authdate: string;
   accepted: boolean;
   source_ip: string | null;
+  dest_ip: string | null;
   nas_name: string | null;
 }
 
@@ -61,7 +65,7 @@ function AuthEventList({
                 <span className="truncate">{e.username || "—"}</span>
               </span>
               <span className="flex shrink-0 flex-wrap items-baseline justify-end gap-x-2 text-xs text-slate-400 dark:text-slate-500">
-                <span className="font-mono">{e.source_ip || "—"}</span>
+                <span className="font-mono">{e.nas_name || e.dest_ip || "—"}</span>
                 <span>{fmtDate(e.authdate)}</span>
               </span>
             </li>
@@ -135,7 +139,7 @@ export default function DashboardPage() {
         <Spinner className="h-6 w-6 text-brand-600" />
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <Stat
               label={t("Sessões ativas")}
               value={d.active_sessions}
@@ -156,6 +160,18 @@ export default function DashboardPage() {
               tone="text-rose-600 dark:text-rose-400"
               accent="bg-rose-500"
             />
+            <Stat
+              label={t("Equipamentos TACACS+")}
+              value={d.equipment_tacacs}
+              tone="text-violet-600 dark:text-violet-400"
+              accent="bg-violet-500"
+            />
+            <Stat
+              label={t("Equipamentos RADIUS")}
+              value={d.equipment_radius}
+              tone="text-cyan-600 dark:text-cyan-400"
+              accent="bg-cyan-500"
+            />
           </div>
 
           <Card className="space-y-5">
@@ -165,7 +181,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-3">
             <Card>
               <SessionsAreaChart data={d.daily} />
             </Card>
@@ -176,6 +192,18 @@ export default function DashboardPage() {
                 data={d.top_users_7d.map((u) => ({ label: u.username, value: u.sessions }))}
                 unit={t("sessões")}
                 empty={t("Sem sessões nos últimos 7 dias")}
+              />
+            </Card>
+
+            <Card>
+              <h3 className="mb-4 font-semibold">{t("Top dispositivos · 7 dias")}</h3>
+              <DonutChart
+                data={d.top_devices_7d.map((dv) => ({
+                  label: dv.nas_name || dv.nas_ip,
+                  value: dv.logins,
+                }))}
+                unit={t("logins")}
+                empty={t("Sem logins nos últimos 7 dias")}
               />
             </Card>
           </div>

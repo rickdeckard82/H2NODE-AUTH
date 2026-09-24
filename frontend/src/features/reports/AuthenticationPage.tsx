@@ -124,13 +124,13 @@ export default function AuthenticationPage() {
                   </Badge>
                 </td>
                 <td className="td font-medium">{e.username || "—"}</td>
+                <td className="td font-mono text-xs">{e.source_ip || "—"}</td>
                 <td className="td">
-                  <span className="font-mono text-xs">{e.source_ip || "—"}</span>
+                  <span className="font-mono text-xs">{e.dest_ip || "—"}</span>
                   {e.nas_name && (
                     <div className="text-xs text-slate-400 dark:text-slate-500">{e.nas_name}</div>
                   )}
                 </td>
-                <td className="td font-mono text-xs">{e.dest_ip || "—"}</td>
                 <td className="td">
                   {e.accepted ? (
                     <Badge tone="green">{e.reply || "Access-Accept"}</Badge>

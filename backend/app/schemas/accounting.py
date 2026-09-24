@@ -56,5 +56,8 @@ class AccountingStats(BaseModel):
     accepts_7d: int
     rejects_7d: int
     top_users_7d: list[dict]
+    equipment_tacacs: int
+    equipment_radius: int
+    top_devices_7d: list[dict]
     # 7 pontos, do mais antigo ao mais recente (contando hoje).
     daily: list[DailyPoint]

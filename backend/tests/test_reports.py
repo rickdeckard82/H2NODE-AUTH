@@ -8,10 +8,11 @@ def _seed_authn(db):
     db.add_all([
         RadPostAuth(username="everton", pass_="", reply="Access-Accept", authdate=now,
                     protocol="radius", nasipaddress="10.0.0.1",
-                    serveripaddress="10.0.0.254"),
+                    callingstationid="192.0.2.10", serveripaddress="10.0.0.254"),
         RadPostAuth(username="everton", pass_="", reply="Access-Reject",
                     authdate=now - timedelta(hours=1), protocol="radius",
-                    nasipaddress="10.0.0.1", serveripaddress="10.0.0.254"),
+                    nasipaddress="10.0.0.1", callingstationid="192.0.2.10",
+                    serveripaddress="10.0.0.254"),
         RadPostAuth(username="joao", pass_="", reply="Access-Accept",
                     authdate=now - timedelta(days=2), protocol="radius"),
         RadPostAuth(username="tacuser", pass_="", reply="Access-Accept",
@@ -42,8 +43,8 @@ def test_authentication_list_and_filter(auth_client, seeded):
     assert r.status_code == 200
     assert r.json()["total"] == 4
     top = r.json()["items"][0]  # mais recente = everton Access-Accept
-    assert top["source_ip"] == "10.0.0.1"
-    assert top["dest_ip"] == "10.0.0.254"
+    assert top["source_ip"] == "192.0.2.10"  # IP do técnico (Calling-Station-Id)
+    assert top["dest_ip"] == "10.0.0.1"  # equipamento acessado
     assert top["protocol"] == "radius"
 
     r = auth_client.get("/api/accounting/authentication", params={"accepted": "false"})
@@ -57,7 +58,8 @@ def test_authentication_list_and_filter(auth_client, seeded):
     r = auth_client.get("/api/accounting/authentication", params={"protocol": "tacacs"})
     assert r.json()["total"] == 1
     assert r.json()["items"][0]["username"] == "tacuser"
-    assert r.json()["items"][0]["dest_ip"] is None
+    assert r.json()["items"][0]["dest_ip"] == "10.0.0.2"  # equipamento
+    assert r.json()["items"][0]["source_ip"] is None  # sem rem-addr conhecido
 
 
 def test_authentication_alias_still_works(auth_client, seeded):
