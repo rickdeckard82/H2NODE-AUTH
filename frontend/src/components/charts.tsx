@@ -87,7 +87,9 @@ export function DonutChart({
                     strokeWidth={thickness}
                     strokeDasharray={`${dash} ${circ - dash}`}
                     strokeDashoffset={-s.offset}
-                  />
+                  >
+                    <title>{`${s.label} — ${s.value} · ${(s.pct * 100).toFixed(0)}%`}</title>
+                  </circle>
                 );
               })}
           </g>
@@ -117,7 +119,7 @@ export function DonutChart({
       {total > 0 ? (
         <ul className="w-full min-w-0 space-y-2 text-sm">
           {segs.map((s, i) => (
-            <li key={i} className="flex items-center gap-2">
+            <li key={i} className="flex items-center gap-2" title={s.label}>
               <span
                 className="h-3 w-3 shrink-0 rounded-full"
                 style={{ backgroundColor: s.color }}

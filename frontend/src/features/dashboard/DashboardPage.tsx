@@ -181,11 +181,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card>
-              <SessionsAreaChart data={d.daily} />
-            </Card>
-
+          <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <h3 className="mb-4 font-semibold">{t("Top usuários · 7 dias")}</h3>
               <DonutChart
@@ -207,6 +203,10 @@ export default function DashboardPage() {
               />
             </Card>
           </div>
+
+          <Card>
+            <SessionsAreaChart data={d.daily} />
+          </Card>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <AuthEventList
