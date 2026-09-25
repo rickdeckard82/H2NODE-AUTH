@@ -381,7 +381,29 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
         <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 sm:p-6 xl:px-8">{children}</main>
-        <AppFooter className="border-t border-slate-200 bg-white px-4 py-4 text-center dark:border-slate-800 dark:bg-slate-900" />
+        <div className="relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            <svg
+              className="animate-wave-drift absolute bottom-0 left-0 h-16 w-[200%] text-brand-600/[0.10] dark:text-brand-400/[0.12]"
+              style={{ animationDuration: "26s" }}
+              viewBox="0 0 2880 120"
+              preserveAspectRatio="none"
+              fill="currentColor"
+            >
+              <path d="M0,55 C240,75 480,35 720,55 C960,75 1200,35 1440,55 C1680,75 1920,35 2160,55 C2400,75 2640,35 2880,55 L2880,120 L0,120 Z" />
+            </svg>
+            <svg
+              className="animate-wave-drift absolute bottom-0 left-0 h-12 w-[200%] text-brand-500/[0.08] dark:text-brand-300/[0.08]"
+              style={{ animationDuration: "38s", animationDirection: "reverse" }}
+              viewBox="0 0 2880 120"
+              preserveAspectRatio="none"
+              fill="currentColor"
+            >
+              <path d="M0,62 C240,42 480,82 720,62 C960,42 1200,82 1440,62 C1680,42 1920,82 2160,62 C2400,42 2640,82 2880,62 L2880,120 L0,120 Z" />
+            </svg>
+          </div>
+          <AppFooter className="relative z-10 px-4 py-4 text-center" />
+        </div>
       </div>
     </div>
   );
