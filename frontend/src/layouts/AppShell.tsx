@@ -265,8 +265,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-
-        <AppFooter className={`px-4 py-3 ${railCollapsed ? "lg:hidden" : ""}`} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-x-clip">
@@ -383,6 +381,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
         <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 sm:p-6 xl:px-8">{children}</main>
+        <AppFooter className="border-t border-slate-200 bg-white px-4 py-4 text-center dark:border-slate-800 dark:bg-slate-900" />
       </div>
     </div>
   );
