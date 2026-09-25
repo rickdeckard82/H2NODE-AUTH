@@ -4,10 +4,15 @@
 Recebe as linhas no stdin (via `tail -n0 -F /var/log/tac_plus-ng/acct.log`).
 Formato definido em tac_plus-ng.cfg (accounting format), campos separados por TAB:
 
-    <ISO-8601>  <accttype>  <nas>  <user>  <nac>  <port>  <service>  <cmd + args>
+    <ISO-8601>  <accttype>  <session_id>  <nas>  <user>  <nac>  <port>  <service>  <cmd + args>
 
 `accttype` ∈ start | stop | update. Comandos de shell chegam em `cmd` com
 `accttype=update`; start/stop de exec chegam com `cmd` vazio.
+
+Muitos NAS só enviam `nac` (rem_addr — IP de quem conectou) no pacote de
+`start`; os `update` de cada comando chegam com `nac` vazio. `session_id`
+(cabeçalho TACACS+, constante durante toda a sessão) permite reaproveitar o
+último `nac` visto naquela sessão para preencher os `update` sem IP próprio.
 """
 
 import datetime
@@ -16,6 +21,10 @@ import sys
 import time
 
 import pymysql
+
+# session_id -> último nac (rem_addr) não vazio visto nessa sessão.
+_NAC_CACHE: dict[str, str] = {}
+_NAC_CACHE_MAX = 5000
 
 _DB = dict(
     host=os.getenv("SQL_HOST", "db"),
@@ -45,15 +54,15 @@ def _cursor():
 
 def parse(line: str) -> tuple | None:
     f = line.rstrip("\n").split("\t")
-    if len(f) < 7:
+    if len(f) < 8:
         return None
     ts_raw = f[0]
     # Tolera o prefixo padrão "YYYY-mm-dd HH:MM:SS +0000 " caso o override de prefix falhe.
     if "T" not in ts_raw and " " in ts_raw:
         first = ts_raw.split(" ")[0]
         ts_raw = first + "T00:00:00"
-    accttype, nas, user, nac, port, service = (f[1:7] + [""] * 6)[:6]
-    cmd = "\t".join(f[7:]).strip() if len(f) > 7 else ""
+    accttype, session_id, nas, user, nac, port, service = (f[1:8] + [""] * 7)[:7]
+    cmd = "\t".join(f[8:]).strip() if len(f) > 8 else ""
     try:
         event_time = datetime.datetime.fromisoformat(ts_raw.split("+")[0].rstrip("Z"))
     except ValueError:
@@ -62,7 +71,18 @@ def parse(line: str) -> tuple | None:
         action, command = "cmd", cmd[:512]
     else:
         action, command = f"exec-{accttype or 'update'}", (service or "")[:512]
-    return (event_time, nas[:15], user[:64], nac[:50], action[:32], command, "")
+
+    if session_id:
+        if nac:
+            if len(_NAC_CACHE) >= _NAC_CACHE_MAX:
+                _NAC_CACHE.pop(next(iter(_NAC_CACHE)))
+            _NAC_CACHE[session_id] = nac
+        else:
+            nac = _NAC_CACHE.get(session_id, "")
+        if accttype == "stop":
+            _NAC_CACHE.pop(session_id, None)
+
+    return (event_time, nas[:15], user[:64], nac[:50], action[:32], command, session_id[:64])
 
 
 def main() -> None:
