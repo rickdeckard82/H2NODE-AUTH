@@ -147,7 +147,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           railCollapsed ? "lg:w-20" : "lg:w-64"
         } ${open ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}
       >
-        <div className={`flex items-center gap-2.5 px-4 py-4 ${railCollapsed ? "lg:justify-center lg:px-2" : ""}`}>
+        <div
+          className={`flex items-center gap-2.5 px-4 py-4 ${
+            railCollapsed ? "lg:flex-col lg:justify-center lg:gap-1 lg:px-2" : ""
+          }`}
+        >
           <Logo className={`h-14 w-14 shrink-0 lg:transition-[height,width] lg:duration-150 ${railCollapsed ? "lg:h-8 lg:w-8" : ""}`} />
           <span className={`text-lg font-bold tracking-tight ${railCollapsed ? "lg:hidden" : ""}`}>Pulse RADIUS</span>
           <button
@@ -165,7 +169,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label={railCollapsed ? t("Expandir menu") : t("Recolher menu")}
             title={railCollapsed ? t("Expandir menu") : t("Recolher menu")}
             className={`hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:flex ${
-              railCollapsed ? "" : "ml-auto"
+              railCollapsed ? "lg:order-first" : "ml-auto"
             }`}
             onClick={() => setRailCollapsed((v) => !v)}
           >
