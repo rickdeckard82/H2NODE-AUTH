@@ -209,7 +209,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-x-clip">
-        <header className="relative flex items-center justify-between overflow-hidden border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+        <header className="relative flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
             <svg
               className="animate-wave-drift absolute bottom-0 left-0 h-16 w-[200%] text-brand-600/[0.10] dark:text-brand-400/[0.12]"
