@@ -86,3 +86,21 @@ body {
     @apply whitespace-nowrap px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200;
   }
 }
+
+/* Ondas decorativas no fundo da tela de login (LoginPage). */
+@keyframes wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-wave-drift {
+  animation: wave-drift linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave-drift {
+    animation: none;
+  }
+}
