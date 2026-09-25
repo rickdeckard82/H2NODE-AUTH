@@ -144,15 +144,15 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[84vw] flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-out dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:shadow-none lg:transition-[width] lg:duration-150 lg:ease-out ${
-          railCollapsed ? "lg:w-20" : "lg:w-64"
+          railCollapsed ? "lg:w-14" : "lg:w-64"
         } ${open ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}
       >
         <div
           className={`flex items-center gap-2.5 px-4 py-4 ${
-            railCollapsed ? "lg:flex-col lg:justify-center lg:gap-1 lg:px-2" : ""
+            railCollapsed ? "lg:flex-col lg:justify-center lg:gap-1 lg:px-1 lg:py-3" : ""
           }`}
         >
-          <Logo className={`h-14 w-14 shrink-0 lg:transition-[height,width] lg:duration-150 ${railCollapsed ? "lg:h-8 lg:w-8" : ""}`} />
+          <Logo className={`h-14 w-14 shrink-0 lg:transition-[height,width] lg:duration-150 ${railCollapsed ? "lg:h-7 lg:w-7" : ""}`} />
           <span className={`text-lg font-bold tracking-tight ${railCollapsed ? "lg:hidden" : ""}`}>Pulse RADIUS</span>
           <button
             type="button"
@@ -190,7 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav
           className={`flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-3 pb-6 ${
-            railCollapsed ? "lg:px-2" : ""
+            railCollapsed ? "lg:px-1" : ""
           }`}
         >
           {entries.map((e) => {
@@ -204,7 +204,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={() => setOpen(false)}
                   title={railCollapsed ? t(e.label) : undefined}
                   className={({ isActive }) =>
-                    leafClass(isActive, railCollapsed ? "lg:justify-center lg:px-2" : "")
+                    leafClass(isActive, railCollapsed ? "lg:justify-center lg:px-1.5" : "")
                   }
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -220,7 +220,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={() => toggle(e.label)}
                   title={railCollapsed ? t(e.label) : undefined}
                   className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 ${
-                    railCollapsed ? "lg:justify-center lg:px-2" : ""
+                    railCollapsed ? "lg:justify-center lg:px-1.5" : ""
                   }`}
                   aria-expanded={isOpen(e)}
                 >
@@ -251,7 +251,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                           onClick={() => setOpen(false)}
                           title={railCollapsed ? t(c.label) : undefined}
                           className={({ isActive }) =>
-                            leafClass(isActive, railCollapsed ? "lg:justify-center lg:px-2" : "")
+                            leafClass(isActive, railCollapsed ? "lg:justify-center lg:px-1.5" : "")
                           }
                         >
                           <Icon className="h-4 w-4 shrink-0" />
