@@ -4,6 +4,47 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [1.0.0] — 2026-09-25
+
+Versão de lançamento: painel e AAA (RADIUS + TACACS+) estáveis para uso em
+produção.
+
+### Adicionado
+
+- **Painel**: indicadores de quantidade de **equipamentos TACACS+** e
+  **RADIUS**, e **“Top dispositivos”** (NAS mais acessado por logins) nos
+  últimos 7 dias, ao lado do “Top usuários”.
+- **Onda animada** decorativa no login, no cabeçalho e no rodapé do painel.
+- **Menu lateral recolhível**: uma faixa só com ícones (o logo diminui mas
+  continua visível, rótulos viram tooltip); a preferência fica salva no
+  navegador (`localStorage`) e só se aplica a partir do breakpoint desktop —
+  o menu em telas menores continua como gaveta.
+- Fabricante **ZTE ZXAN** (OLTs Titan C6xx) via TACACS+.
+
+### Alterado
+
+- **Rodapé** (copyright e link para a Política de Privacidade) sai de dentro
+  da barra lateral — onde sumia junto com o menu recolhido e ficava restrito
+  à largura da sidebar — e passa a ficar sempre ao final da página, em
+  qualquer tela.
+
+### Corrigido
+
+- **Authorization** volta a mostrar o IP de origem em comandos TACACS+ cujo
+  pacote chega sem `rem_addr` próprio (muitos NAS só enviam esse campo no
+  `start` da sessão, não em cada comando): o `session.id` do cabeçalho
+  TACACS+ é usado para reaproveitar o último IP visto naquela sessão.
+- **Allowlist de IP de origem do grupo** passa a checar o IP real do
+  técnico, e não mais o IP do equipamento.
+- **priv-lvl e AV pairs** do perfil de privilégio voltam a ser aplicados no
+  login TACACS+ de qualquer serviço (antes só no `shell`).
+- **Restaurar backup** volta a regenerar o `pulse.cfg` do TACACS+ e não trava
+  mais diante de uma chave ilegível.
+- Migração do banco (Alembic) `0017` com ID de revisão corrigido.
+- `index.html` passa a ir com `Cache-Control: no-cache`, evitando que o
+  navegador fique preso numa versão antiga do painel depois de uma
+  atualização.
+
 ## [0.5.0] — 2026-09-09
 
 ### Adicionado

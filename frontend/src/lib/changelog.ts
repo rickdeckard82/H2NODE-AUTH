@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.5.0";
+export const APP_VERSION = "1.0.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,22 @@ export interface ChangelogEntry {
 
 /** Mais recente primeiro. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.0.0",
+    date: "2026-09-25",
+    changes: [
+      "Versão de lançamento — painel e AAA (RADIUS + TACACS+) estáveis para uso em produção.",
+      "Painel: indicadores de quantidade de equipamentos TACACS+ e RADIUS, e “Top dispositivos” (NAS mais acessado) nos últimos 7 dias, ao lado do “Top usuários”.",
+      "Onda animada decorativa no login, no cabeçalho e no rodapé do painel. Menu lateral pode ser recolhido para uma faixa só com ícones (o logo diminui mas continua visível); a preferência fica salva no navegador.",
+      "Rodapé (copyright e Política de Privacidade) sai da barra lateral — onde sumia com o menu recolhido — e passa a ficar sempre ao final da página, em qualquer tela.",
+      "Novo fabricante ZTE ZXAN (OLTs Titan C6xx) via TACACS+.",
+      "Correção: a tela Authorization volta a mostrar o IP de origem em comandos TACACS+ cujo pacote chega sem IP próprio, reaproveitando o IP do login daquela mesma sessão.",
+      "Correção: a checagem de allowlist de IP de origem do grupo passa a usar o IP real do técnico, e não mais o do equipamento.",
+      "Correção: priv-lvl e AV pairs do perfil de privilégio voltam a ser aplicados no login TACACS+ de qualquer serviço, não só no shell.",
+      "Correção: restaurar um backup volta a regenerar o pulse.cfg do TACACS+ e não trava mais diante de uma chave ilegível.",
+      "index.html passa a ir com Cache-Control: no-cache, evitando que o navegador fique preso numa versão antiga do painel depois de uma atualização.",
+    ],
+  },
   {
     version: "0.5.0",
     date: "2026-09-09",
