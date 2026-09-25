@@ -67,12 +67,12 @@ const NAV: NavEntry[] = [
   },
 ];
 
-const leafClass = ({ isActive }: { isActive: boolean }) =>
+const leafClass = (isActive: boolean, extra = "") =>
   `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium ${
     isActive
       ? "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"
       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-  }`;
+  } ${extra}`;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout, can, setLanguage } = useAuth();
@@ -81,6 +81,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [railCollapsed, setRailCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("pr_sidebar_collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [changePassword, setChangePassword] = useState(false);
   const [twoFactor, setTwoFactor] = useState(false);
@@ -116,6 +123,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [open]);
 
+  // lembra a preferência de menu recolhido (ícones) entre sessões
+  useEffect(() => {
+    try {
+      localStorage.setItem("pr_sidebar_collapsed", railCollapsed ? "1" : "0");
+    } catch {
+      /* private mode / storage bloqueado */
+    }
+  }, [railCollapsed]);
+
   return (
     <div className="min-h-screen overflow-x-clip lg:flex">
       {open && (
@@ -127,26 +143,52 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[84vw] flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-out dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:shadow-none lg:transition-none ${
-          open ? "translate-x-0 shadow-2xl" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[84vw] flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-out dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:shadow-none lg:transition-[width] lg:duration-150 lg:ease-out ${
+          railCollapsed ? "lg:w-20" : "lg:w-64"
+        } ${open ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}
       >
-        <div className="flex items-center gap-2.5 px-4 py-4">
-          <Logo className="h-14 w-14 shrink-0" />
-          <span className="text-lg font-bold tracking-tight">Pulse RADIUS</span>
+        <div className={`flex items-center gap-2.5 px-4 py-4 ${railCollapsed ? "lg:justify-center lg:px-2" : ""}`}>
+          <Logo className={`h-14 w-14 shrink-0 lg:transition-[height,width] lg:duration-150 ${railCollapsed ? "lg:h-8 lg:w-8" : ""}`} />
+          <span className={`text-lg font-bold tracking-tight ${railCollapsed ? "lg:hidden" : ""}`}>Pulse RADIUS</span>
           <button
             type="button"
             aria-label={t("Fechar menu")}
-            className="ml-auto rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden"
+            className={`ml-auto rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden`}
             onClick={() => setOpen(false)}
           >
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M5 5l10 10M15 5L5 15" />
             </svg>
           </button>
+          <button
+            type="button"
+            aria-label={railCollapsed ? t("Expandir menu") : t("Recolher menu")}
+            title={railCollapsed ? t("Expandir menu") : t("Recolher menu")}
+            className={`hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:flex ${
+              railCollapsed ? "" : "ml-auto"
+            }`}
+            onClick={() => setRailCollapsed((v) => !v)}
+          >
+            <svg
+              className={`h-4 w-4 shrink-0 transition-transform duration-150 ${railCollapsed ? "rotate-180" : ""}`}
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12.5 4l-6 6 6 6" />
+              <path d="M7.5 4l-6 6 6 6" transform="translate(6 0)" />
+            </svg>
+          </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-6">
+        <nav
+          className={`flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-3 pb-6 ${
+            railCollapsed ? "lg:px-2" : ""
+          }`}
+        >
           {entries.map((e) => {
             if (!isGroup(e)) {
               const Icon = ICONS[e.icon];
@@ -156,10 +198,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   to={e.to}
                   end={e.to === "/"}
                   onClick={() => setOpen(false)}
-                  className={leafClass}
+                  title={railCollapsed ? t(e.label) : undefined}
+                  className={({ isActive }) =>
+                    leafClass(isActive, railCollapsed ? "lg:justify-center lg:px-2" : "")
+                  }
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  {t(e.label)}
+                  <span className={railCollapsed ? "lg:hidden" : ""}>{t(e.label)}</span>
                 </NavLink>
               );
             }
@@ -169,13 +214,18 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={() => toggle(e.label)}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                  title={railCollapsed ? t(e.label) : undefined}
+                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 ${
+                    railCollapsed ? "lg:justify-center lg:px-2" : ""
+                  }`}
                   aria-expanded={isOpen(e)}
                 >
                   <GroupIcon className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 text-left">{t(e.label)}</span>
+                  <span className={`flex-1 text-left ${railCollapsed ? "lg:hidden" : ""}`}>{t(e.label)}</span>
                   <svg
-                    className={`h-3.5 w-3.5 transition-transform ${isOpen(e) ? "rotate-90" : ""}`}
+                    className={`h-3.5 w-3.5 shrink-0 transition-transform ${isOpen(e) ? "rotate-90" : ""} ${
+                      railCollapsed ? "lg:hidden" : ""
+                    }`}
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -183,7 +233,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </svg>
                 </button>
                 {isOpen(e) && (
-                  <div className="mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 pl-2 dark:border-slate-800">
+                  <div
+                    className={`mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 pl-2 dark:border-slate-800 ${
+                      railCollapsed ? "lg:border-l-0 lg:pl-0" : ""
+                    }`}
+                  >
                     {e.children.map((c) => {
                       const Icon = ICONS[c.icon];
                       return (
@@ -191,10 +245,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                           key={c.to}
                           to={c.to}
                           onClick={() => setOpen(false)}
-                          className={leafClass}
+                          title={railCollapsed ? t(c.label) : undefined}
+                          className={({ isActive }) =>
+                            leafClass(isActive, railCollapsed ? "lg:justify-center lg:px-2" : "")
+                          }
                         >
                           <Icon className="h-4 w-4 shrink-0" />
-                          {t(c.label)}
+                          <span className={railCollapsed ? "lg:hidden" : ""}>{t(c.label)}</span>
                         </NavLink>
                       );
                     })}
@@ -205,7 +262,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <AppFooter className="px-4 py-3" />
+        <AppFooter className={`px-4 py-3 ${railCollapsed ? "lg:hidden" : ""}`} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-x-clip">
