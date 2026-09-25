@@ -175,9 +175,8 @@ export const en: Record<string, string> = {
 
   // ---- Dashboard ----
   "Sessões ativas": "Active sessions",
-  "Sessões (7d)": "Sessions (7d)",
-  "Logins aceitos (7d)": "Accepted logins (7d)",
-  "Logins negados (7d)": "Rejected logins (7d)",
+  "Logins aceitos": "Accepted logins",
+  "Logins negados": "Rejected logins",
   "Equipamentos TACACS+": "TACACS+ devices",
   "Equipamentos RADIUS": "RADIUS devices",
   "Top usuários · 7 dias": "Top users · 7 days",

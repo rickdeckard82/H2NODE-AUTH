@@ -94,7 +94,7 @@ function Stat({
   return (
     <Card className="relative overflow-hidden">
       <span className={`absolute inset-x-0 top-0 h-1 ${accent}`} />
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <span className="block min-h-[2rem] text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </span>
       <div className="mt-1 flex items-baseline gap-2">
@@ -146,16 +146,16 @@ export default function DashboardPage() {
               tone="text-emerald-600 dark:text-emerald-400"
               accent="bg-emerald-500"
             />
-            <Stat label={t("Sessões (7d)")} value={d.sessions_7d} accent="bg-brand-500" />
+            <Stat label={t("Sessões")} value={d.sessions_7d} accent="bg-brand-500" />
             <Stat
-              label={t("Logins aceitos (7d)")}
+              label={t("Logins aceitos")}
               value={d.accepts_7d}
               tone="text-brand-600 dark:text-brand-400"
               accent="bg-brand-500"
               hint={approval !== null ? t("{n}% aprov.", { n: approval }) : undefined}
             />
             <Stat
-              label={t("Logins negados (7d)")}
+              label={t("Logins negados")}
               value={d.rejects_7d}
               tone="text-rose-600 dark:text-rose-400"
               accent="bg-rose-500"
