@@ -17,12 +17,19 @@ import struct
 from collections.abc import Iterator
 
 import pymysql.cursors
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 
 from app.core.crypto import decrypt, encrypt
 
 # Primeira linha do arquivo — usada para validar o upload na restauração.
 MARKER = "-- Pulse RADIUS backup v1"
+
+# Cabeçalho/rodapé no formato do mysqldump: o Pulse Backup (destino do backup
+# por FTP) só confirma que um .sql chegou completo quando acha os dois.
+MYSQLDUMP_HEAD = "-- MySQL dump compatible (Pulse RADIUS)"
+MYSQLDUMP_END = "-- Dump completed"
 
 # Cabeçalho do formato cifrado (ver encrypt_stream/decrypt_to_text). Nunca
 # colide com MARKER: dumps em claro sempre começam com "--".
@@ -116,6 +123,7 @@ def dump_sql(
             f"-- schema_version: {schema_version or 'unknown'}\n"
             f"-- include_accounting: {int(include_accounting)}\n"
             f"-- tables: {len(tables)}\n"
+            f"{MYSQLDUMP_HEAD}\n"
             f"SET NAMES utf8mb4;{_STMT_SEP}"
         )
         yield f"SET FOREIGN_KEY_CHECKS=0;{_STMT_SEP}"
@@ -126,8 +134,16 @@ def dump_sql(
         yield f"SET UNIQUE_CHECKS=1;{_STMT_SEP}"
         yield f"SET FOREIGN_KEY_CHECKS=1;{_STMT_SEP}"
         yield "-- restore complete\n"
+        yield f"{MYSQLDUMP_END} on {_dt.datetime.now(_dt.UTC).isoformat(timespec='seconds')}\n"
     finally:
         raw.close()
+
+
+def read_schema_version(db: Session) -> str | None:
+    try:
+        return db.execute(text("SELECT version_num FROM alembic_version")).scalar()
+    except Exception:  # noqa: BLE001 - tabela ausente / dialeto sem alembic
+        return None
 
 
 def _statements(sql_text: str) -> Iterator[str]:

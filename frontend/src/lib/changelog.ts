@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.0.0";
+export const APP_VERSION = "1.1.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 /** Mais recente primeiro. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.0",
+    date: "2026-10-19",
+    changes: [
+      "Backup automático agendado por FTP/FTPS em Backup e restauração: horário e fuso diários, cifra com a FERNET_KEY (.sql.enc) ou .sql.gz, histórico de accounting opcional, cópias mantidas no FTP, Testar conexão e Executar agora. Nenhuma cópia fica no servidor.",
+      "Opção “Destino só de gravação (Pulse Backup)”: envia direto com o nome final e não apaga nada no FTP — a retenção fica no servidor de backup. O dump passa a ter cabeçalho/rodapé no formato do mysqldump, para o Pulse Backup conferir se chegou completo.",
+      "Novo serviço backup-worker no docker-compose. Execuções registradas na Auditoria (backup_schedule).",
+      "Restaurar backup aceita também o .sql.gz.",
+    ],
+  },
   {
     version: "1.0.0",
     date: "2026-09-25",

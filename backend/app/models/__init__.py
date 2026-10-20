@@ -1,6 +1,7 @@
 from app.models.audit_log import AuditLog
 from app.models.auth_group import AuthGroupCidr, AuthUserGroup
 from app.models.auth_user import AuthUser
+from app.models.backup_schedule import BackupSchedule
 from app.models.base import Base
 from app.models.equipment import Equipment, EquipmentStatus
 from app.models.lgpd_settings import LgpdSettings
@@ -30,6 +31,7 @@ __all__ = [
     "AuthGroupCidr",
     "AuthUser",
     "AuthUserGroup",
+    "BackupSchedule",
     "Equipment",
     "EquipmentStatus",
     "Manufacturer",

@@ -19,6 +19,9 @@ const ACTION_TONE: Record<string, Tone> = {
   trust_device: "green",
   revoke_trusted_device: "amber",
   revoke_trusted_devices: "red",
+  run_request: "blue",
+  backup_success: "green",
+  backup_error: "red",
 };
 
 type View = "actions" | "devices";
@@ -179,6 +182,7 @@ export default function AuditPage() {
               <option value="privilege_profile">{t("privilege_profile")}</option>
               <option value="system_user">{t("system_user")}</option>
               <option value="mfa_trusted_device">{t("mfa_trusted_device")}</option>
+              <option value="backup_schedule">{t("backup_schedule")}</option>
             </select>
             <select
               className="input max-w-[160px]"

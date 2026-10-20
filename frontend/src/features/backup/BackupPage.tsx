@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { Button, Card, Field, PageHeader, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { useT } from "../../lib/i18n";
+import BackupSchedulePanel from "./BackupSchedulePanel";
 
 interface RestoreResult {
   statements: number;
@@ -66,6 +67,8 @@ export default function BackupPage() {
         subtitle={t("Cópia completa do banco (RADIUS + painel) para recuperação em caso de falha")}
       />
 
+      <BackupSchedulePanel />
+
       <Card className="mb-4">
         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t("Baixar backup")}</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -120,12 +123,12 @@ export default function BackupPage() {
         </div>
 
         <div className="mt-3 space-y-3">
-          <Field label={t("Arquivo de backup (.sql ou .sql.enc)")}>
+          <Field label={t("Arquivo de backup (.sql, .sql.gz ou .sql.enc)")}>
             <div className="flex items-center gap-3">
               <input
                 ref={fileRef}
                 type="file"
-                accept=".sql,.enc,application/sql,application/octet-stream,text/plain"
+                accept=".sql,.gz,.enc,application/sql,application/gzip,application/octet-stream,text/plain"
                 className="hidden"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />

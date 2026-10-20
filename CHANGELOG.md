@@ -4,6 +4,26 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [1.1.0] — 2026-10-19
+
+### Adicionado
+
+- **Backup automático agendado por FTP/FTPS** em Backup e restauração: horário
+  e fuso diários, arquivo cifrado com a `FERNET_KEY` (`.sql.enc`) ou `.sql.gz`,
+  histórico de accounting opcional, cópias mantidas no FTP, **Testar conexão**
+  e **Executar agora**. Envia como `.part`, confere o tamanho e renomeia;
+  nenhuma cópia fica no servidor.
+- Opção **Destino só de gravação (Pulse Backup)**: envia direto com o nome
+  final e não apaga nada no FTP — a retenção fica no servidor de backup.
+- Novo serviço **`backup-worker`** no `docker-compose.yml` (mesma imagem do
+  backend). Execuções registradas na Auditoria (`backup_schedule`).
+
+### Alterado
+
+- O dump lógico ganha cabeçalho/rodapé no formato do `mysqldump`, para o
+  Pulse Backup conferir se o `.sql.gz` chegou completo.
+- **Restaurar backup** aceita também o `.sql.gz`.
+
 ## [1.0.0] — 2026-09-25
 
 Versão de lançamento: painel e AAA (RADIUS + TACACS+) estáveis para uso em

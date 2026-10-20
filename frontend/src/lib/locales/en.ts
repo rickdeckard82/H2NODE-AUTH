@@ -356,7 +356,7 @@ export const en: Record<string, string> = {
   "Apaga contas RADIUS/TACACS+ desativadas e sem autenticar há mais que o prazo. Contas ativas nunca são removidas.":
     "Deletes disabled RADIUS/TACACS+ accounts that haven't authenticated for longer than the period. Active accounts are never removed.",
   "Aparece no": "Shown in the",
-  "Arquivo de backup (.sql ou .sql.enc)": "Backup file (.sql or .sql.enc)",
+  "Arquivo de backup (.sql, .sql.gz ou .sql.enc)": "Backup file (.sql, .sql.gz or .sql.enc)",
   Ativar: "Enable",
   Ativas: "Active",
   "Atributo (ex.: Huawei-Exec-Privilege)": "Attribute (e.g. Huawei-Exec-Privilege)",
@@ -562,6 +562,7 @@ export const en: Record<string, string> = {
   login: "login",
   maintenance: "maintenance",
   mfa_trusted_device: "mfa_trusted_device",
+  backup_schedule: "backup_schedule",
   "minúsculas, sem espaços — imutável": "lowercase, no spaces — immutable",
   "não definido": "not set",
   "o fabricante não tem segredo padrão — este campo é obrigatório":
@@ -614,4 +615,54 @@ export const en: Record<string, string> = {
   "Nenhum arquivo escolhido": "No file chosen",
   "Voltar a herdar o segredo do fabricante": "Go back to inheriting the vendor secret",
   "Voltar a herdar a chave do grupo": "Go back to inheriting the group key",
+
+  // ---- Backup automático por FTP ----
+  "Backup automático por FTP": "Scheduled FTP backup",
+  "Envia todo dia, no horário escolhido, o mesmo backup do banco gerado em “Baixar backup” para um servidor FTP/FTPS — inclusive o Pulse Backup. Nenhuma cópia fica neste servidor: o arquivo é apagado assim que enviado.":
+    "Every day at the chosen time, sends the same database backup produced by “Download backup” to an FTP/FTPS server — Pulse Backup included. No copy is kept on this server: the file is deleted as soon as it is sent.",
+  "Última execução": "Last run",
+  "Próxima execução": "Next run",
+  "Último sucesso": "Last success",
+  Sucesso: "Success",
+  "Em andamento": "Running",
+  "Pedida agora, aguardando o worker": "Requested, waiting for the worker",
+  "Agendamento desativado": "Schedule disabled",
+  "Ativar backup diário agendado": "Enable scheduled daily backup",
+  "Horário diário": "Daily time",
+  "Servidor FTP": "FTP server",
+  "Remover a senha guardada": "Remove the stored password",
+  "Pasta no servidor": "Server folder",
+  "Criada se não existir.": "Created if missing.",
+  "Cópias mantidas no FTP": "Copies kept on the FTP server",
+  "Destino só de gravação: a retenção fica a cargo do servidor de backup.":
+    "Write-only destination: retention is handled by the backup server.",
+  "As mais antigas além deste número são apagadas após cada envio.":
+    "Older copies beyond this number are deleted after each upload.",
+  "Usar FTPS (TLS explícito)": "Use FTPS (explicit TLS)",
+  "Destino só de gravação (Pulse Backup)": "Write-only destination (Pulse Backup)",
+  "Cifrar o arquivo com o FERNET_KEY do servidor": "Encrypt the file with the server FERNET_KEY",
+  "Arquivo enviado:": "File sent:",
+  "Restaurável direto em “Restaurar backup” abaixo.": "Can be restored directly in “Restore backup” below.",
+  "Sem cifra, o .sql.gz contém hashes de senha e segredos RADIUS em claro. Use só com FTPS ou com um destino que cifre ao receber (o Pulse Backup cifra e também confere se o dump chegou completo).":
+    "Unencrypted, the .sql.gz holds password hashes and RADIUS secrets in clear text. Use it only over FTPS or with a destination that encrypts on arrival (Pulse Backup encrypts and also checks that the dump arrived complete).",
+  "Destino só de gravação: o arquivo é enviado direto com o nome final (sem .part, conferência de tamanho ou renomeação) e nada é apagado no FTP. O histórico e a retenção ficam no servidor de backup.":
+    "Write-only destination: the file is uploaded straight under its final name (no .part, size check or rename) and nothing is deleted on the FTP server. History and retention stay on the backup server.",
+  "Sem FTPS, a senha FTP e o arquivo trafegam sem criptografia na rede.":
+    "Without FTPS, the FTP password and the file travel unencrypted over the network.",
+  "Testar conexão": "Test connection",
+  "Executar agora": "Run now",
+  "Salve a configuração antes de executar": "Save the settings before running",
+  "Backup automático salvo": "Scheduled backup saved",
+  "Falha na conexão": "Connection failed",
+  "Backup pedido; o envio começa em até 30 segundos.": "Backup requested; the upload starts within 30 seconds.",
+  "Falha ao pedir o backup": "Failed to request the backup",
+
+  // ---- Notas de versão 1.1.0 ----
+  "Backup automático agendado por FTP/FTPS em Backup e restauração: horário e fuso diários, cifra com a FERNET_KEY (.sql.enc) ou .sql.gz, histórico de accounting opcional, cópias mantidas no FTP, Testar conexão e Executar agora. Nenhuma cópia fica no servidor.":
+    "Scheduled FTP/FTPS backup in Backup & restore: daily time and timezone, encryption with the FERNET_KEY (.sql.enc) or .sql.gz, optional accounting history, copies kept on the FTP server, Test connection and Run now. No copy is kept on the server.",
+  "Opção “Destino só de gravação (Pulse Backup)”: envia direto com o nome final e não apaga nada no FTP — a retenção fica no servidor de backup. O dump passa a ter cabeçalho/rodapé no formato do mysqldump, para o Pulse Backup conferir se chegou completo.":
+    "“Write-only destination (Pulse Backup)” option: uploads straight under the final name and deletes nothing on the FTP server — retention stays on the backup server. The dump now carries a mysqldump-style header/footer so Pulse Backup can check it arrived complete.",
+  "Novo serviço backup-worker no docker-compose. Execuções registradas na Auditoria (backup_schedule).":
+    "New backup-worker service in docker-compose. Runs are recorded in Audit (backup_schedule).",
+  "Restaurar backup aceita também o .sql.gz.": "Restore backup also accepts .sql.gz.",
 };

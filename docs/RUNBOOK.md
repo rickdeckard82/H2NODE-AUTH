@@ -74,6 +74,33 @@ Se um equipamento novo não autenticar logo após o cadastro:
 O dump lógico é feito em Python (pymysql), não precisa do binário `mysqldump` no
 container do backend. Restaure só num stack com o **mesmo `FERNET_KEY`**.
 
+### Backup automático agendado por FTP/FTPS (inclusive Pulse Backup)
+
+No mesmo menu, o quadro **Backup automático por FTP** envia todo dia, no horário e
+fuso escolhidos, o mesmo dump do "Baixar backup" para um servidor FTP/FTPS:
+
+- **Arquivo**: `pulse-radius-backup-AAAAMMDD-HHMMSS.sql.enc` (cifrado com a
+  `FERNET_KEY`, padrão) ou `.sql.gz` (em claro, comprimido). Os dois são
+  restauráveis direto em **Restaurar backup**.
+- **Envio**: grava como `.part`, confere o tamanho (`SIZE`) e renomeia; depois
+  apaga as cópias além de **Cópias mantidas**. A pasta é criada se não existir.
+  Nada fica no servidor — o arquivo vai de uma pasta temporária para o FTP e é
+  apagado; sobras de uma execução interrompida somem quando o worker reinicia.
+- **Destino só de gravação (Pulse Backup)**: envia direto com o nome final, sem
+  `SIZE`/`DELE`/`RNFR`, e não apaga nada — a retenção é a do servidor de backup.
+  O dump traz o cabeçalho/rodapé no formato do `mysqldump`, então o Pulse Backup
+  confere se ele chegou completo (no `.sql.gz`; o `.sql.enc` é só guardado).
+- **Testar conexão** usa os dados do formulário sem salvar; **Executar agora**
+  pede uma execução, que o worker pega em até `BACKUP_WORKER_INTERVAL_SECONDS`
+  (30 s). Se o worker estava parado no horário, ainda roda até 6 h depois.
+- Cada execução fica no resumo do quadro e na **Auditoria** (entidade
+  `backup_schedule`, ações `backup_success`/`backup_error`, ator `sistema`).
+
+Quem executa é o serviço `backup-worker` (mesma imagem do backend,
+`python -m app.backup_worker`), que sobe por padrão e precisa de saída para o
+servidor FTP. A senha FTP fica cifrada com a `FERNET_KEY` no banco. Logs:
+`docker compose logs -f backup-worker`.
+
 ### Pela linha de comando (alternativa / automação)
 
 ```bash
@@ -114,8 +141,8 @@ Itens críticos a guardar fora do host: os dumps **e** o `.env` (contém `FERNET
 sem ela os segredos cifrados são irrecuperáveis — e `BACKUP_ENCRYPTION_KEY`, sem a
 qual os `.sql.enc` são irrecuperáveis) e `JWT_SECRET`. O backup do painel (via UI)
 também pode ser cifrado (opção marcada por padrão) com a mesma `FERNET_KEY` do
-backend — mas por ser gerado sob demanda pela UI, **não substitui** o `db-backup`
-automático.
+backend — o "Baixar backup" sob demanda **não substitui** o `db-backup`
+automático; o backup agendado por FTP sim leva uma cópia para fora do host.
 
 ## Relatórios (Authentication / Authorization / Accounting)
 

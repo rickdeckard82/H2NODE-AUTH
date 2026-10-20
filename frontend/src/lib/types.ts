@@ -124,6 +124,28 @@ export interface SystemUser {
   updated_at: string;
 }
 
+export interface BackupSchedule {
+  enabled: boolean;
+  run_time: string;
+  timezone: string;
+  include_accounting: boolean;
+  encrypted: boolean;
+  keep_count: number;
+  ftp_host: string | null;
+  ftp_port: number;
+  ftp_user: string | null;
+  has_ftp_password: boolean;
+  ftp_directory: string | null;
+  ftp_tls: boolean;
+  ftp_write_only: boolean;
+  run_requested_at: string | null;
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  last_status: "running" | "success" | "error" | null;
+  last_message: string | null;
+  next_run_at: string | null;
+}
+
 export interface SmtpSettings {
   id: number;
   host: string;

@@ -183,6 +183,35 @@ services:
       retries: 5
       start_period: 30s
 
+  # ─────────── Backup automático agendado por FTP/FTPS ───────────
+  # Mesma imagem do backend. Horário, destino FTP e retenção são configurados no
+  # painel (Backup e restauração); este worker só consulta a agenda a cada
+  # BACKUP_WORKER_INTERVAL_SECONDS e envia o dump (.sql.enc cifrado com a
+  # FERNET_KEY, ou .sql.gz). Nenhuma cópia fica no servidor.
+  backup-worker:
+    build:
+      context: ./backend
+      args:
+        INSTALL_DEV: ${INSTALL_DEV:-false}
+    restart: unless-stopped
+    command: ["python", "-m", "app.backup_worker"]
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_BACKEND_USER:-backend_svc}:${MYSQL_BACKEND_PASSWORD}@db:3306/${MYSQL_DATABASE:-radius}
+      JWT_SECRET: ${JWT_SECRET:-}
+      FERNET_KEY: ${FERNET_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      BACKUP_WORKER_INTERVAL_SECONDS: ${BACKUP_WORKER_INTERVAL_SECONDS:-30}
+    networks:
+      # edge: saída para o servidor FTP. internal: acesso ao MySQL.
+      - edge
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+      # o backend aplica as migrações (tabela app_backup_schedule) no boot
+      backend:
+        condition: service_healthy
+
   # ─────────────────────────── Frontend ────────────────────────
   # Serve a SPA e encaminha /api -> backend. É o entrypoint HTTP da aplicação:
   # coloque seu reverse proxy (Nginx Proxy Manager, Caddy, LB da nuvem) na frente
