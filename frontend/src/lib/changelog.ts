@@ -16,6 +16,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Opção “Destino só de gravação (Pulse Backup)”: envia direto com o nome final e não apaga nada no FTP — a retenção fica no servidor de backup. O dump passa a ter cabeçalho/rodapé no formato do mysqldump, para o Pulse Backup conferir se chegou completo.",
       "Novo serviço backup-worker no docker-compose. Execuções registradas na Auditoria (backup_schedule).",
       "Restaurar backup aceita também o .sql.gz.",
+      "Correção: em instalação nova o banco não subia (permissão do TACACS+ concedida antes de a tabela existir); a permissão passa a ser aplicada pela migração, inclusive em instalações antigas.",
     ],
   },
   {

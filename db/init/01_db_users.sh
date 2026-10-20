@@ -29,8 +29,8 @@ mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL || { echo "[i
   GRANT SELECT, INSERT, UPDATE, DELETE ON \`${_pr_db}\`.radpostauth TO '${MYSQL_RADIUS_USER}'@'%';
   GRANT INSERT, UPDATE, DELETE         ON \`${_pr_db}\`.nasreload   TO '${MYSQL_RADIUS_USER}'@'%';
   GRANT SELECT, INSERT                 ON \`${_pr_db}\`.cmd_acct    TO '${MYSQL_RADIUS_USER}'@'%';
-  -- TACACS+ (MAVIS): lê o perfil de privilégio do usuário para a autorização.
-  GRANT SELECT ON \`${_pr_db}\`.app_privilege_profile TO '${MYSQL_RADIUS_USER}'@'%';
+  -- TACACS+ (MAVIS) também lê app_privilege_profile: grant na migração 0019
+  -- (a tabela só existe depois do Alembic).
 
   FLUSH PRIVILEGES;
 EOSQL

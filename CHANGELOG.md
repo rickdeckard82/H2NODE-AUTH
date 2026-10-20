@@ -24,6 +24,13 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
   Pulse Backup conferir se o `.sql.gz` chegou completo.
 - **Restaurar backup** aceita também o `.sql.gz`.
 
+### Corrigido
+
+- Instalação nova: o init do MySQL falhava ao dar `GRANT` em
+  `app_privilege_profile` antes de o Alembic criar a tabela. O grant ao
+  `radius_svc` (usado pelo TACACS+/MAVIS) passa para a migração 0019, que
+  também o aplica em stacks criadas antes do TACACS+.
+
 ## [1.0.0] — 2026-09-25
 
 Versão de lançamento: painel e AAA (RADIUS + TACACS+) estáveis para uso em

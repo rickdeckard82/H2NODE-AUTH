@@ -665,4 +665,6 @@ export const en: Record<string, string> = {
   "Novo serviço backup-worker no docker-compose. Execuções registradas na Auditoria (backup_schedule).":
     "New backup-worker service in docker-compose. Runs are recorded in Audit (backup_schedule).",
   "Restaurar backup aceita também o .sql.gz.": "Restore backup also accepts .sql.gz.",
+  "Correção: em instalação nova o banco não subia (permissão do TACACS+ concedida antes de a tabela existir); a permissão passa a ser aplicada pela migração, inclusive em instalações antigas.":
+    "Fix: on a fresh install the database failed to start (TACACS+ permission granted before the table existed); the permission is now applied by a migration, older installs included.",
 };
