@@ -14,6 +14,12 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
   pymysql para colunas binárias (`ip_start`/`ip_end`) não cabe num arquivo
   UTF-8. Os valores binários passam a ir como literal hexadecimal (`X'…'`),
   restaurados byte a byte.
+- **Backup por FTP**: com a faixa de portas passivas bloqueada (firewall
+  liberando só a porta 21), o erro era só `TimeoutError: timed out`; agora
+  indica a porta de dados anunciada no PASV e o que liberar (no Pulse Backup,
+  `30000-30049` via `scripts/ufw-setup.sh device <IP> ftp`). O **Testar
+  conexão** no modo só de gravação passa a abrir o canal de dados — antes
+  passava sem testá-lo.
 
 ## [1.1.0] — 2026-10-19
 

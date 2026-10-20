@@ -13,6 +13,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-10-19",
     changes: [
       "Correção: o backup (manual e automático) falhava com UnicodeEncodeError quando um grupo de usuário tinha faixa de IP com octeto ≥ 128 (ex.: 200.x) ou IPv6; os valores binários passam a ir no dump em hexadecimal.",
+      "Backup por FTP: quando a porta de dados passiva não abre (firewall liberando só a porta 21), o erro passa a indicar a porta e o que liberar no lugar de “TimeoutError: timed out”, e o Testar conexão no modo só de gravação passa a abrir o canal de dados — antes passava mesmo com a faixa passiva bloqueada.",
     ],
   },
   {

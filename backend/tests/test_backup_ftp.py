@@ -18,6 +18,7 @@ class FakeFTP:
     instances: list["FakeFTP"] = []
     files: dict[str, bytes] = {}
     write_only = False
+    data_blocked = False  # firewall fechando a faixa passiva
 
     def __init__(self, timeout=None):
         self.cwd_path = ""
@@ -39,6 +40,16 @@ class FakeFTP:
     def set_pasv(self, value):
         pass
 
+    def makepasv(self):
+        return ("186.233.16.10", 30027)
+
+    def ntransfercmd(self, cmd, rest=None):
+        """Como o ftplib: PASV + conexão de dados ANTES de mandar o comando."""
+        self.makepasv()
+        if FakeFTP.data_blocked:
+            raise TimeoutError("timed out")
+        return None, None
+
     def cwd(self, segment):
         self.cwd_path = "" if segment == "/" else f"{self.cwd_path}/{segment}"
 
@@ -46,6 +57,7 @@ class FakeFTP:
         self.commands.append(f"MKD {segment}")
 
     def storbinary(self, cmd, handle):
+        self.ntransfercmd(cmd)
         self.commands.append(cmd)
         FakeFTP.files[cmd.split(" ", 1)[1]] = handle.read()
 
@@ -72,6 +84,7 @@ class FakeFTP:
         FakeFTP.files[dst] = FakeFTP.files.pop(src)
 
     def nlst(self):
+        self.ntransfercmd("NLST")
         self._deny()
         return list(FakeFTP.files)
 
@@ -91,6 +104,7 @@ def fake_ftp(monkeypatch):
     FakeFTP.instances = []
     FakeFTP.files = {}
     FakeFTP.write_only = False
+    FakeFTP.data_blocked = False
     monkeypatch.setattr(backup_ftp.ftplib, "FTP", FakeFTP)
     monkeypatch.setattr(backup_ftp.ftplib, "FTP_TLS", FakeFTPTLS)
     return FakeFTP
@@ -340,3 +354,21 @@ def test_reset_after_restore_unlocks_running(db):
 def test_describe_error_hints_write_only():
     msg = backup_ftp.describe_error(ftplib.error_perm("550 Not enough privileges."))
     assert "Destino só de gravação" in msg
+
+
+def test_blocked_passive_port_gives_actionable_error(fake_dump):
+    FakeFTP.data_blocked = True
+    with pytest.raises(backup_ftp.BackupFtpError) as exc:
+        backup_ftp.run_backup(None, _cfg(ftp_write_only=True), None)
+    msg = backup_ftp.describe_error(exc.value)
+    assert "186.233.16.10:30027" in msg
+    assert "30000-30049" in msg
+
+
+def test_test_connection_write_only_probes_data_channel(auth_client):
+    """Antes o teste só de gravação passava sem abrir o canal de dados."""
+    FakeFTP.write_only = True
+    FakeFTP.data_blocked = True
+    r = auth_client.post("/api/backup/schedule/test", json={**_BODY, "ftp_write_only": True})
+    assert r.status_code == 502
+    assert "porta de dados passiva" in r.json()["detail"]

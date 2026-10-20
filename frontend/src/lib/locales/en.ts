@@ -667,6 +667,8 @@ export const en: Record<string, string> = {
   "Restaurar backup aceita também o .sql.gz.": "Restore backup also accepts .sql.gz.",
   "Correção: o backup (manual e automático) falhava com UnicodeEncodeError quando um grupo de usuário tinha faixa de IP com octeto ≥ 128 (ex.: 200.x) ou IPv6; os valores binários passam a ir no dump em hexadecimal.":
     "Fix: backups (manual and scheduled) failed with UnicodeEncodeError when a user group had an IP range with an octet ≥ 128 (e.g. 200.x) or IPv6; binary values now go into the dump as hexadecimal.",
+  "Backup por FTP: quando a porta de dados passiva não abre (firewall liberando só a porta 21), o erro passa a indicar a porta e o que liberar no lugar de “TimeoutError: timed out”, e o Testar conexão no modo só de gravação passa a abrir o canal de dados — antes passava mesmo com a faixa passiva bloqueada.":
+    "FTP backup: when the passive data port does not open (firewall allowing only port 21), the error now names the port and what to allow instead of “TimeoutError: timed out”, and Test connection in write-only mode now opens the data channel — it used to pass even with the passive range blocked.",
   "Correção: em instalação nova o banco não subia (permissão do TACACS+ concedida antes de a tabela existir); a permissão passa a ser aplicada pela migração, inclusive em instalações antigas.":
     "Fix: on a fresh install the database failed to start (TACACS+ permission granted before the table existed); the permission is now applied by a migration, older installs included.",
 };

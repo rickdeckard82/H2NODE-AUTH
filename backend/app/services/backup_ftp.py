@@ -119,8 +119,37 @@ def connect(cfg: BackupSchedule, password: str | None = None) -> ftplib.FTP:
     if isinstance(client, ftplib.FTP_TLS):
         client.prot_p()  # canal de dados também cifrado
     client.set_pasv(True)
+    _guard_data_channel(client)
     change_directory(client, cfg.ftp_directory, create=True)
     return client
+
+
+def _guard_data_channel(client: ftplib.FTP) -> None:
+    """Troca o `TimeoutError: timed out` cru por uma mensagem acionável quando a
+    porta de dados anunciada no PASV não abre — o caso típico é o firewall do
+    servidor liberar a porta 21 mas não a faixa passiva."""
+    makepasv, ntransfercmd = client.makepasv, client.ntransfercmd
+    endpoint: dict[str, tuple[str, int]] = {}
+
+    def _makepasv():
+        endpoint["data"] = makepasv()
+        return endpoint["data"]
+
+    def _ntransfercmd(cmd, rest=None):
+        try:
+            return ntransfercmd(cmd, rest)
+        except (TimeoutError, ConnectionRefusedError) as exc:
+            host, port = endpoint.get("data", ("?", 0))
+            raise BackupFtpError(
+                f"o servidor FTP aceitou o login, mas a porta de dados passiva {host}:{port} não "
+                f"respondeu ({type(exc).__name__}). Libere no firewall do servidor FTP a faixa de "
+                "portas passivas para o IP deste servidor — no Pulse Backup, 30000-30049 "
+                "(FTP_PASSIVE_PORTS): scripts/ufw-setup.sh device <IP> ftp. Atrás de NAT, confira "
+                "também o FTP_MASQUERADE_ADDRESS."
+            ) from exc
+
+    client.makepasv = _makepasv  # type: ignore[method-assign]
+    client.ntransfercmd = _ntransfercmd  # type: ignore[method-assign]
 
 
 def ftp_password(cfg: BackupSchedule) -> str:
@@ -197,10 +226,18 @@ def close(client: ftplib.FTP) -> None:
 
 
 def test_connection(cfg: BackupSchedule, password: str | None = None) -> int | None:
-    """Conecta, entra (ou cria) a pasta e conta os backups dela. None = só gravação."""
+    """Conecta, entra (ou cria) a pasta e abre o canal de dados (listando a pasta).
+    Devolve quantos backups há nela; None = só gravação."""
     client = connect(cfg, password)
     try:
-        return None if cfg.ftp_write_only else len(list_backups(client))
+        if not cfg.ftp_write_only:
+            return len(list_backups(client))
+        # Só gravação recusa a listagem, mas o ftplib abre a conexão de dados
+        # (PASV + connect) antes de mandar o NLST: um 550 aqui prova que o canal
+        # de dados funciona; firewall fechado vira o BackupFtpError do guard.
+        with contextlib.suppress(ftplib.error_perm):
+            client.nlst()
+        return None
     finally:
         close(client)
 
