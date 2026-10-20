@@ -75,3 +75,19 @@ def test_decrypt_rejects_corrupted_or_plaintext_input():
     encrypted = b"".join(backup_service.encrypt_stream(iter(["hello"])))
     with pytest.raises(backup_service.BackupError):
         backup_service.decrypt_to_text(encrypted[:-5])  # trunca o último token
+
+
+def test_binary_values_dumped_as_ascii_hex():
+    """IPs >= 128.0.0.0 nas faixas de grupo (LargeBinary) quebravam o dump com
+    UnicodeEncodeError (surrogates) ao gravar/cifrar o arquivo."""
+    from app.services.backup import _literal
+
+    class _Conn:
+        def escape(self, v):  # não deve ser chamado para bytes
+            raise AssertionError("escape chamado para bytes")
+
+    ip = bytes(10) + b"\xff\xff" + bytes([200, 150, 10, 1])
+    lit = _literal(_Conn(), ip)
+    assert lit == "X'00000000000000000000ffffc8960a01'"
+    lit.encode("ascii")
+    assert _literal(_Conn(), b"") == "X''"

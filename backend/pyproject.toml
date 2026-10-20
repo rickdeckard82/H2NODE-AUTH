@@ -7,7 +7,7 @@ packages = ["app"]
 
 [project]
 name = "pulse-radius-backend"
-version = "1.1.0"
+version = "1.1.1"
 description = "API do painel Pulse RADIUS (AAA com FreeRADIUS + MySQL)"
 requires-python = ">=3.12"
 dependencies = [

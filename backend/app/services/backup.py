@@ -63,6 +63,12 @@ def _base_tables(cursor) -> list[str]:
 def _literal(conn, value: object) -> str:
     if value is None:
         return "NULL"
+    if isinstance(value, bytes | bytearray):
+        # Colunas binárias (ex.: ip_start/ip_end das faixas de grupo). O escape
+        # do pymysql devolve `_binary'...'` com bytes crus em surrogateescape,
+        # feito para ir direto ao servidor — num arquivo UTF-8 isso estoura
+        # UnicodeEncodeError com qualquer byte >= 0x80. Hex é ASCII puro.
+        return f"X'{bytes(value).hex()}'"
     # pymysql.Connection.escape cobre str/bytes/int/float/Decimal/datetime/date
     # e devolve o valor já entre aspas quando necessário.
     return conn.escape(value)

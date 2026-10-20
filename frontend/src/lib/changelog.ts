@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.1.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,13 @@ export interface ChangelogEntry {
 
 /** Mais recente primeiro. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.1.1",
+    date: "2026-10-19",
+    changes: [
+      "Correção: o backup (manual e automático) falhava com UnicodeEncodeError quando um grupo de usuário tinha faixa de IP com octeto ≥ 128 (ex.: 200.x) ou IPv6; os valores binários passam a ir no dump em hexadecimal.",
+    ],
+  },
   {
     version: "1.1.0",
     date: "2026-10-19",

@@ -4,6 +4,17 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [1.1.1] — 2026-10-19
+
+### Corrigido
+
+- **Backup** (“Baixar backup” e o automático por FTP) falhava com
+  `UnicodeEncodeError ... surrogates not allowed` quando um grupo de usuário
+  tinha faixa de IP com octeto ≥ 128 (ex.: `200.x`) ou IPv6: o escape do
+  pymysql para colunas binárias (`ip_start`/`ip_end`) não cabe num arquivo
+  UTF-8. Os valores binários passam a ir como literal hexadecimal (`X'…'`),
+  restaurados byte a byte.
+
 ## [1.1.0] — 2026-10-19
 
 ### Adicionado
