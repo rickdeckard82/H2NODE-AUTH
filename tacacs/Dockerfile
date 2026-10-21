@@ -25,7 +25,7 @@ RUN ln -sf "$(command -v make)" /usr/local/bin/gmake \
 FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libssl3 libpcre2-8-0 python3 python3-pymysql inotify-tools \
+      libssl3 libpcre2-8-0 python3 python3-pymysql python3-cryptography inotify-tools \
  && rm -rf /var/lib/apt/lists/* \
  && useradd -r -u 10002 -s /usr/sbin/nologin tacplus \
  && mkdir -p /etc/tacacs-shared /var/log/tac_plus-ng \

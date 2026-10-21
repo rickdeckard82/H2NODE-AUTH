@@ -96,7 +96,7 @@ def main() -> None:
                 with _cursor() as cur:
                     cur.execute(_INSERT, row)
                 break
-            except pymysql.Error as exc:
+            except (pymysql.Error, RuntimeError) as exc:
                 _conn = None
                 if attempt == 2:
                     sys.stderr.write(f"acct_import: {exc}\n")
