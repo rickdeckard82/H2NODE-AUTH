@@ -129,6 +129,20 @@ def test_zte_manufacturer_seeded(auth_client, seeded):
     assert rows == []
 
 
+def test_dell_manufacturer_seeded(auth_client, seeded):
+    from app.models import Manufacturer
+
+    m = seeded.query(Manufacturer).filter_by(name="dell").one()
+    assert m.vendor_kind.value == "dell"
+    assert m.radius_vendor_id == 674
+
+    # Dell hoje só fala TACACS+: sem VSA próprio, nenhum atributo de perfil é criado
+    rows = seeded.query(RadGroupReply).filter(
+        RadGroupReply.groupname.like("%"), RadGroupReply.attribute.like("Dell%")
+    ).all()
+    assert rows == []
+
+
 def test_auth_group_crud_and_user_assignment(auth_client, seeded):
     from app.models import AuthGroupCidr
 

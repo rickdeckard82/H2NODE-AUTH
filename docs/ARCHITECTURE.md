@@ -25,9 +25,9 @@ em produção.
   Senha em **Argon2id**.
 - **`app_manufacturer`** — cadastro de fabricantes (CRUD na página "Fabricantes").
   Campos: `name` (slug), `display_name`, `vendor_kind` (`huawei|juniper|datacom|
-  mikrotik|a10|zte|generic` — controla a tradução de VSA; `zte` hoje não tem VSA
-  mapeado, só TACACS+), `radius_vendor_id`, `radius_secret_enc` (**segredo RADIUS
-  padrão**, Fernet), `notes`. O seed cria os 6 comuns como ponto de partida
+  mikrotik|a10|zte|dell|generic` — controla a tradução de VSA; `zte` e `dell` hoje
+  não têm VSA mapeado, só TACACS+), `radius_vendor_id`, `radius_secret_enc` (**segredo RADIUS
+  padrão**, Fernet), `notes`. O seed cria os 7 comuns como ponto de partida
   (editáveis/removíveis, sem segredo).
 - **`app_privilege_profile`** + **`app_privilege_profile_attr`** — perfil abstrato e o
   mapeamento *(fabricante, atributo, op, valor)*. Fonte de verdade que gera as linhas

@@ -137,6 +137,28 @@ def test_olt_zte_route_tacacs(auth_client, seeded, db):
     assert 'key = "zte-grp-key"' in text
 
 
+def test_switch_dell_route_tacacs(auth_client, seeded, db):
+    mid = auth_client.post("/api/manufacturers", json={
+        "name": "dell-t", "display_name": "Dell T", "vendor_kind": "dell",
+        "aaa_protocol": "tacacs", "tacacs_key": "dell-grp-key",
+    }).json()["id"]
+
+    r = auth_client.post("/api/equipment", json={
+        "name": "dellmogi", "mgmt_ip": "10.100.100.142", "manufacturer_id": mid,
+        "shortname": "dellmogi",
+    })
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["vendor_kind"] == "dell"
+    assert body["effective_protocol"] == "tacacs"
+    assert body["tacacs_key_source"] == "manufacturer"
+
+    text, n = tacacs_sync.build_config(db)
+    assert n == 1
+    assert "address = 10.100.100.142" in text
+    assert 'key = "dell-grp-key"' in text
+
+
 def test_profile_route_tacacs_fields(auth_client, seeded):
     pid = auth_client.post("/api/privilege-profiles", json={
         "name": "net-admin", "tacacs_priv_level": 15,

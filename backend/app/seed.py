@@ -31,6 +31,7 @@ MANUFACTURERS = [
     ("mikrotik", "Mikrotik", VendorKind.mikrotik, 14988),
     ("a10", "A10 Networks", VendorKind.a10, 22610),
     ("zte", "ZTE", VendorKind.zte, 3902),
+    ("dell", "Dell", VendorKind.dell, 674),
 ]
 
 # perfil -> descrição, {vendor_kind (slug) -> (attribute, value)}

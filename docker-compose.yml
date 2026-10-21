@@ -33,8 +33,13 @@ services:
       - db_data:/var/lib/mysql
       # Scripts em db/init rodam UMA vez, na criação do volume, em ordem alfabética.
       - ./db/init:/docker-entrypoint-initdb.d:ro
+    # Publicado SÓ em loopback: freeradius e tacacs (network_mode: host) acessam o
+    # MySQL por 127.0.0.1. Porta publicada exige uma rede não-internal (edge).
+    ports:
+      - "127.0.0.1:${DB_LOCAL_PORT:-3306}:3306"
     networks:
       - internal
+      - edge
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
@@ -48,8 +53,8 @@ services:
       context: ./radius
     restart: unless-stopped
     environment:
-      SQL_HOST: db
-      SQL_PORT: "3306"
+      SQL_HOST: 127.0.0.1
+      SQL_PORT: "${DB_LOCAL_PORT:-3306}"
       SQL_DB: ${MYSQL_DATABASE:-radius}
       SQL_USER: ${MYSQL_RADIUS_USER:-radius_svc}
       SQL_PASSWORD: ${MYSQL_RADIUS_PASSWORD:?set MYSQL_RADIUS_PASSWORD}
@@ -57,17 +62,11 @@ services:
       # auto = exige Message-Authenticator dos NAS que já o enviam (BlastRADIUS).
       # yes = exige de todos; troque só se todo o parque suportar.
       RADIUS_REQUIRE_MA: ${RADIUS_REQUIRE_MA:-auto}
-    ports:
-      # RADIUS_BIND: fixe no IP da interface de gerência para não escutar em todas.
-      - "${RADIUS_BIND:-0.0.0.0}:1812:1812/udp"   # authentication
-      - "${RADIUS_BIND:-0.0.0.0}:1813:1813/udp"   # accounting
+    # Usa a pilha de rede do host: escuta direto em 1812/1813 udp, sem NAT do Docker.
+    # O filtro por origem é o `ufw allow` comum (INPUT), sem precisar de ufw-docker.
+    network_mode: host
     volumes:
       - radius_logs:/var/log/radius
-    networks:
-      # edge: necessário para o Docker entregar o tráfego publicado (1812/1813 udp)
-      #       ao container. internal: acesso ao MySQL/backend.
-      - edge
-      - internal
     depends_on:
       db:
         condition: service_healthy
@@ -83,7 +82,7 @@ services:
       start_period: 25s
 
   # ───────────────────────────── TACACS+ ──────────────────────────────
-  # tac_plus-ng com backend MySQL (MAVIS). Cobre Huawei / Juniper / Datacom / A10 / ZTE
+  # tac_plus-ng com backend MySQL (MAVIS). Cobre Huawei / Juniper / Datacom / A10 / ZTE / Dell
   # que falam TACACS+ (o MikroTik não tem cliente TACACS+ e fica em RADIUS).
   tacacs:
     build:
@@ -91,23 +90,19 @@ services:
       dockerfile: tacacs/Dockerfile
     restart: unless-stopped
     environment:
-      SQL_HOST: db
-      SQL_PORT: "3306"
+      SQL_HOST: 127.0.0.1
+      SQL_PORT: "${DB_LOCAL_PORT:-3306}"
       SQL_DB: ${MYSQL_DATABASE:-radius}
       SQL_USER: ${MYSQL_RADIUS_USER:-radius_svc}
       SQL_PASSWORD: ${MYSQL_RADIUS_PASSWORD:?set MYSQL_RADIUS_PASSWORD}
       # Opcional: IP deste servidor TACACS+, exibido como "IP de destino" das
       # tentativas de login na tela Authentication (o access.log não o traz).
       TACACS_SERVER_IP: ${TACACS_SERVER_IP:-}
-    ports:
-      # TACACS_BIND: fixe no IP de gerência para não escutar em todas as interfaces.
-      - "${TACACS_BIND:-0.0.0.0}:49:49/tcp"
+    # Usa a pilha de rede do host: escuta direto em 49/tcp, sem NAT do Docker.
+    network_mode: host
     volumes:
       - tacacs_conf:/etc/tacacs-shared
       - tacacs_logs:/var/log/tac_plus-ng
-    networks:
-      - edge
-      - internal
     depends_on:
       db:
         condition: service_healthy

@@ -73,7 +73,9 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
    defina `FORWARDED_ALLOW_IPS` com o IP do NPM (não `*`). Sem isso, o IP na
    auditoria pode ser forjado pelo cliente.
 2. **Firewall.** Exponha `WEB_PORT` só para o servidor do NPM; `1812-1813/udp` só
-   para a rede de gerência (`RADIUS_BIND` para fixar a interface). Nada mais.
+   para a rede de gerência, e `49/tcp` idem (freeradius e tacacs usam `network_mode: host`,
+   então o `ufw allow from <rede> to any port …` comum filtra; não precisa de ufw-docker
+   para eles). Nada mais.
 3. **Segredos.** `.env` com permissão `600`, fora de backup não cifrado. Guarde
    `FERNET_KEY` e `JWT_SECRET` em local seguro (sem `FERNET_KEY` os segredos
    cifrados são irrecuperáveis). Rotacione o primeiro admin após o bootstrap.

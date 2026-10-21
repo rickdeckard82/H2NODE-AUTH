@@ -4,6 +4,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 A fonte exibida no painel (menu lateral → clicar na versão) é
 `frontend/src/lib/changelog.ts` — mantenha os dois em sincronia.
 
+## [Não lançado]
+
+### Adicionado
+
+- Fabricante **Dell** (switches Dell EMC Networking N-Series) via TACACS+.
+
+### Alterado
+
+- `freeradius` e `tacacs` passam a usar `network_mode: host` (sem mapeamento de portas):
+  o filtro por origem é o `ufw allow` comum. O MySQL é publicado só em `127.0.0.1`
+  (`DB_LOCAL_PORT`). `RADIUS_BIND`/`TACACS_BIND` deixam de existir. **Antes de
+  atualizar**, crie as regras `ufw allow` para 49/tcp e 1812:1813/udp.
+
 ## [1.1.1] — 2026-10-19
 
 ### Corrigido

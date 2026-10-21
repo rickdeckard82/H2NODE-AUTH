@@ -15,6 +15,7 @@ class VendorKind(str, enum.Enum):
     mikrotik = "mikrotik"
     a10 = "a10"  # A10 Networks ACOS (Thunder / Thunder CGN)
     zte = "zte"  # ZTE ZXAN (OLTs GPON/XGS-PON Titan C6xx) — hoje só TACACS+, sem VSA
+    dell = "dell"  # Dell EMC Networking (switches N-Series, OS6) — hoje só TACACS+, sem VSA
     generic = "generic"  # não filtra VSA (equipamento ignora atributos alheios)
 
 

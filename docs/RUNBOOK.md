@@ -183,9 +183,9 @@ e `db/init/01_db_users.sh`).
 
 ## TACACS+ (tac_plus-ng)
 
-Serviço `tacacs` (porta `49/tcp`). Cobre **Huawei / Juniper / Datacom / A10 / ZTE** que
+Serviço `tacacs` (porta `49/tcp`). Cobre **Huawei / Juniper / Datacom / A10 / ZTE / Dell** que
 falam TACACS+ — o **MikroTik não tem cliente TACACS+** e continua em RADIUS. O ZTE
-hoje só fala TACACS+ neste projeto (sem VSA RADIUS mapeado).
+e o Dell hoje só falam TACACS+ neste projeto (sem VSA RADIUS mapeado).
 
 - **Autenticação/autorização** (usuário, senha, grupo): resolvidas em tempo de
   request pelo **MAVIS** (`tacacs/pulse_mavis.py`) contra o MySQL do painel

@@ -42,6 +42,8 @@ sudo ufw allow OpenSSH                      # ou a porta custom do seu sshd_conf
 # painel: só o IP do reverse proxy (Nginx Proxy Manager), nunca aberto ao mundo
 sudo ufw allow from <IP-DO-NPM> to any port 8080 proto tcp
 
+# RADIUS/TACACS+: freeradius e tacacs usam network_mode: host no docker-compose, então
+# o `ufw allow` comum filtra por origem (não precisa de ufw-docker para eles).
 # RADIUS: só a rede de gerência dos equipamentos
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 1812 proto udp
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 1813 proto udp
