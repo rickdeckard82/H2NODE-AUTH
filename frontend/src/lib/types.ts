@@ -212,3 +212,12 @@ export interface AuditEntry {
   after_json: string | null;
 }
 
+
+export interface Site {
+  id: number;
+  name: string;
+  description: string | null;
+  equipment_count: number;
+  created_at: string;
+  updated_at: string;
+}

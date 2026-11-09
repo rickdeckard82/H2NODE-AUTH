@@ -15,7 +15,7 @@ import {
 import { api, ApiError, type Page } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { fmtDate } from "../../lib/format";
-import type { AaaProtocol, Equipment, Manufacturer } from "../../lib/types";
+import type { AaaProtocol, Equipment, Manufacturer, Site } from "../../lib/types";
 import { useT } from "../../lib/i18n";
 
 interface FormState {
@@ -55,6 +55,10 @@ const empty: FormState = {
   radius_require_message_authenticator: true,
 };
 
+// shortname: minúsculo, pontos e espaços viram traço
+const toShortname = (name: string) =>
+  name.trim().toLowerCase().replace(/[.\s]+/g, "-");
+
 const STATUS_TONE: Record<Equipment["status"], "green" | "amber" | "red"> = {
   active: "green",
   maintenance: "amber",
@@ -77,6 +81,11 @@ export default function EquipmentPage() {
   const manufacturers = useQuery({
     queryKey: ["manufacturers"],
     queryFn: () => api.get<Manufacturer[]>("/manufacturers"),
+  });
+
+  const sites = useQuery({
+    queryKey: ["sites"],
+    queryFn: () => api.get<Site[]>("/sites"),
   });
 
   const list = useQuery({
@@ -358,7 +367,14 @@ export default function EquipmentPage() {
               <input
                 className="input"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => {
+                  const name = e.target.value.toUpperCase();
+                  setForm({
+                    ...form,
+                    name,
+                    shortname: form.id ? form.shortname : toShortname(name),
+                  });
+                }}
                 required
               />
             </Field>
@@ -414,11 +430,21 @@ export default function EquipmentPage() {
               />
             </Field>
             <Field label={t("Site / localização")}>
-              <input
+              <select
                 className="input"
                 value={form.site}
                 onChange={(e) => setForm({ ...form, site: e.target.value })}
-              />
+              >
+                <option value="">{t("— nenhum —")}</option>
+                {form.site && !sites.data?.some((x) => x.name === form.site) && (
+                  <option value={form.site}>{form.site}</option>
+                )}
+                {sites.data?.map((x) => (
+                  <option key={x.id} value={x.name}>
+                    {x.name}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label={t("Porta CoA")}>
               <input

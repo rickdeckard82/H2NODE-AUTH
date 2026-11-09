@@ -23,6 +23,7 @@ from app.api.routes import (
     health,
     manufacturers,
     privilege_profiles,
+    sites,
     system_users,
 )
 from app.api.routes import settings as settings_routes
@@ -111,6 +112,7 @@ for r in (
     manufacturers.router,
     privilege_profiles.router,
     equipment.router,
+    sites.router,
     auth_groups.router,
     auth_users.router,
     accounting.router,

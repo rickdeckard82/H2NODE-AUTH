@@ -21,6 +21,7 @@ from app.models.radius import (
     RadUserGroup,
 )
 from app.models.refresh_token import RefreshToken
+from app.models.site import Site
 from app.models.smtp_settings import SmtpSettings
 from app.models.system_user import SystemRole, SystemUser
 from app.models.user_invite import UserInvite
@@ -41,6 +42,7 @@ __all__ = [
     "PrivilegeProfile",
     "PrivilegeProfileAttr",
     "RefreshToken",
+    "Site",
     "LgpdSettings",
     "SmtpSettings",
     "SystemRole",

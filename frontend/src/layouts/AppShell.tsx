@@ -34,6 +34,7 @@ const NAV: NavEntry[] = [
     children: [
       { to: "/equipment", label: "Equipamentos", icon: "server" },
       { to: "/manufacturers", label: "Grupo de equipamentos", icon: "layers", roles: ["admin"] },
+      { to: "/sites", label: "Site/Localização", icon: "layers", roles: ["operator"] },
     ],
   },
   {

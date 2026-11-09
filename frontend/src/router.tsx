@@ -11,6 +11,7 @@ const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
 const AuthUsersPage = lazy(() => import("./features/auth-users/AuthUsersPage"));
 const UserGroupsPage = lazy(() => import("./features/user-groups/UserGroupsPage"));
 const EquipmentPage = lazy(() => import("./features/equipment/EquipmentPage"));
+const SitesPage = lazy(() => import("./features/sites/SitesPage"));
 const ManufacturersPage = lazy(() => import("./features/manufacturers/ManufacturersPage"));
 const PrivilegeProfilesPage = lazy(() => import("./features/privilege-profiles/PrivilegeProfilesPage"));
 const SystemUsersPage = lazy(() => import("./features/system-users/SystemUsersPage"));
@@ -99,6 +100,14 @@ export const router = createBrowserRouter([
         ),
       },
       { path: "equipment", element: <EquipmentPage /> },
+      {
+        path: "sites",
+        element: (
+          <Protected roles={["operator"]}>
+            <SitesPage />
+          </Protected>
+        ),
+      },
       {
         path: "manufacturers",
         element: (
