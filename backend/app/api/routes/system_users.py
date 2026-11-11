@@ -110,6 +110,31 @@ def resend_invite(
     return Message(detail=f"convite reenviado para {user.email}")
 
 
+@router.post("/{user_id}/reset-password", response_model=Message)
+def reset_password(
+    user_id: int, request: Request,
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_superadmin),
+) -> Message:
+    user = db.get(SystemUser, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
+    if not user.has_password:
+        raise HTTPException(status.HTTP_409_CONFLICT, "usuário ainda não definiu a senha; reenvie o convite")
+    if not user.is_active:
+        raise HTTPException(status.HTTP_409_CONFLICT, "conta desativada")
+    token = invites.create_invite(db, user, ttl_hours=invites.RESET_TTL_HOURS)
+    try:
+        invites.send_reset_email(db, user, token)
+    except mailer.SmtpNotConfigured as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except mailer.SmtpSendError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"falha ao enviar e-mail: {exc}") from exc
+    audit.record(db, action="reset_password_email", entity_type="system_user", entity_id=user.id,
+                 actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
+    db.commit()
+    return Message(detail=f"link de redefinição enviado para {user.email}")
+
+
 @router.post("/{user_id}/reset-mfa", response_model=Message)
 def reset_mfa(
     user_id: int, request: Request,

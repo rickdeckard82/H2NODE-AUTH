@@ -23,9 +23,10 @@ from app.core.security import (
     utcnow,
     verify_password,
 )
-from app.models import RefreshToken, SystemUser
+from app.models import AuthUser, RefreshToken, SystemUser
 from app.schemas.auth import (
     AcceptInviteIn,
+    RadiusResetIn,
     ChangePasswordIn,
     InviteOut,
     LoginIn,
@@ -42,7 +43,7 @@ from app.schemas.auth import (
     TrustedDeviceOut,
 )
 from app.schemas.common import Message
-from app.services import audit, invites, twofactor
+from app.services import audit, auth_user_reset, invites, radius_sync, twofactor
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -499,9 +500,34 @@ def get_invite(request: Request, token: str, db: Session = Depends(get_db)) -> I
     if invite is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
     user = db.get(SystemUser, invite.system_user_id)
-    if user is None or user.has_password:
+    if user is None or not user.is_active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
-    return InviteOut(username=user.username, email=user.email, full_name=user.full_name)
+    return InviteOut(
+        username=user.username, email=user.email, full_name=user.full_name,
+        reset=user.has_password,
+    )
+
+
+@router.post("/reset-password/accept", response_model=Message)
+@limiter.limit("10/minute")
+def accept_reset(body: AcceptInviteIn, request: Request, db: Session = Depends(get_db)) -> Message:
+    invite = invites.resolve_invite(db, body.token)
+    user = db.get(SystemUser, invite.system_user_id) if invite else None
+    if invite is None or user is None or not user.has_password or not user.is_active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "link inválido ou expirado")
+    user.password_hash = hash_password(body.password)
+    invite.used_at = utcnow()
+    # encerra todas as sessões abertas; MFA continua exigido no próximo login
+    db.query(RefreshToken).filter(
+        RefreshToken.system_user_id == user.id, RefreshToken.revoked.is_(False)
+    ).update({"revoked": True})
+    audit.record(
+        db, action="reset_password", entity_type="system_user", entity_id=user.id,
+        actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    return Message(detail="senha redefinida")
 
 
 @router.post("/invite/accept", response_model=SessionOut)
@@ -530,3 +556,36 @@ def accept_invite(
     )
     db.commit()
     return SessionOut(user=MeOut.model_validate(user), csrf_token=csrf)
+
+
+@router.get("/radius-reset/{token}", response_model=InviteOut)
+@limiter.limit("20/minute")
+def get_radius_reset(request: Request, token: str, db: Session = Depends(get_db)) -> InviteOut:
+    row = auth_user_reset.resolve_reset(db, token)
+    user = db.get(AuthUser, row.auth_user_id) if row else None
+    if user is None or not user.is_active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "link inválido ou expirado")
+    return InviteOut(
+        username=user.username, email=user.email or "",
+        full_name=user.full_name or user.username, reset=True,
+    )
+
+
+@router.post("/radius-reset/accept", response_model=Message)
+@limiter.limit("10/minute")
+def accept_radius_reset(
+    body: RadiusResetIn, request: Request, db: Session = Depends(get_db)
+) -> Message:
+    row = auth_user_reset.resolve_reset(db, body.token)
+    user = db.get(AuthUser, row.auth_user_id) if row else None
+    if row is None or user is None or not user.is_active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "link inválido ou expirado")
+    radius_sync.sync_auth_user(db, user, password=body.password)
+    row.used_at = utcnow()
+    audit.record(
+        db, action="reset_password", entity_type="auth_user", entity_id=user.id,
+        actor_username=user.username, ip_address=client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.commit()
+    return Message(detail="senha redefinida")

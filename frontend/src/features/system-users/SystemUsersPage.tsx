@@ -30,6 +30,7 @@ interface FormState {
   timezone: string;
   language: Lang;
   password: string;
+  password2?: string;
   sendInvite: boolean;
 }
 
@@ -57,7 +58,8 @@ export default function SystemUsersPage() {
 
   const list = useQuery({
     queryKey: ["system-users", q, page],
-    queryFn: () => api.get<Page<SystemUser>>("/system-users", { q, page, page_size: 20 }),
+    queryFn: () =>
+      api.get<Page<SystemUser>>("/system-users", { q, page, page_size: 20 }),
   });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["system-users"] });
 
@@ -87,11 +89,17 @@ export default function SystemUsersPage() {
       });
     },
     onSuccess: (_, f) => {
-      toast("ok", f.sendInvite && !f.id ? t("Usuário criado — convite enviado por e-mail") : t("Usuário salvo"));
+      toast(
+        "ok",
+        f.sendInvite && !f.id
+          ? t("Usuário criado — convite enviado por e-mail")
+          : t("Usuário salvo"),
+      );
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
+    onError: (e) =>
+      toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const remove = useMutation({
@@ -100,30 +108,57 @@ export default function SystemUsersPage() {
       toast("ok", t("Usuário removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
+    onError: (e) =>
+      toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: (u: SystemUser) =>
+      api.post<{ detail: string }>(`/system-users/${u.id}/reset-password`),
+    onSuccess: (r) => toast("ok", r.detail),
+    onError: (e) =>
+      toast(
+        "err",
+        e instanceof ApiError
+          ? e.detail
+          : t("Erro ao enviar redefinição de senha"),
+      ),
   });
 
   const resendInvite = useMutation({
-    mutationFn: (u: SystemUser) => api.post<{ detail: string }>(`/system-users/${u.id}/resend-invite`),
+    mutationFn: (u: SystemUser) =>
+      api.post<{ detail: string }>(`/system-users/${u.id}/resend-invite`),
     onSuccess: (r) => toast("ok", r.detail),
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao reenviar convite")),
+    onError: (e) =>
+      toast(
+        "err",
+        e instanceof ApiError ? e.detail : t("Erro ao reenviar convite"),
+      ),
   });
 
   const resetMfa = useMutation({
-    mutationFn: (u: SystemUser) => api.post<{ detail: string }>(`/system-users/${u.id}/reset-mfa`),
+    mutationFn: (u: SystemUser) =>
+      api.post<{ detail: string }>(`/system-users/${u.id}/reset-mfa`),
     onSuccess: (r) => {
       toast("ok", r.detail);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao resetar 2FA")),
+    onError: (e) =>
+      toast("err", e instanceof ApiError ? e.detail : t("Erro ao resetar 2FA")),
   });
 
   return (
     <div>
       <PageHeader
         title={t("Usuários do painel")}
-        subtitle={t("Contas de acesso a este painel (não confundir com usuários de autenticação)")}
-        actions={<Button onClick={() => setForm({ ...empty })}>{t("Novo usuário")}</Button>}
+        subtitle={t(
+          "Contas de acesso a este painel (não confundir com usuários de autenticação)",
+        )}
+        actions={
+          <Button onClick={() => setForm({ ...empty })}>
+            {t("Novo usuário")}
+          </Button>
+        }
       />
 
       <Card className="mb-3">
@@ -163,7 +198,11 @@ export default function SystemUsersPage() {
               <tr key={u.id}>
                 <td className="td font-medium">
                   {u.username}
-                  {u.id === user?.id && <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{t("(você)")}</span>}
+                  {u.id === user?.id && (
+                    <span className="ml-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                      {t("(você)")}
+                    </span>
+                  )}
                 </td>
                 <td className="td">{u.full_name}</td>
                 <td className="td">{u.email}</td>
@@ -172,8 +211,14 @@ export default function SystemUsersPage() {
                 </td>
                 <td className="td">
                   <div className="flex flex-wrap gap-1">
-                    {u.is_active ? <Badge tone="green">{t("ativo")}</Badge> : <Badge tone="red">{t("inativo")}</Badge>}
-                    {!u.has_password && <Badge tone="amber">{t("convite pendente")}</Badge>}
+                    {u.is_active ? (
+                      <Badge tone="green">{t("ativo")}</Badge>
+                    ) : (
+                      <Badge tone="red">{t("inativo")}</Badge>
+                    )}
+                    {!u.has_password && (
+                      <Badge tone="amber">{t("convite pendente")}</Badge>
+                    )}
                     {u.mfa_enabled && <Badge tone="blue">2FA</Badge>}
                   </div>
                 </td>
@@ -207,11 +252,38 @@ export default function SystemUsersPage() {
                         {t("Reenviar convite")}
                       </button>
                     )}
+                    {u.has_password && u.is_active && (
+                      <button
+                        className="text-brand-600 hover:underline dark:text-brand-400"
+                        onClick={() => {
+                          if (
+                            confirm(
+                              t(
+                                "Enviar e-mail de redefinição de senha para {email}?",
+                                {
+                                  email: u.email,
+                                },
+                              ),
+                            )
+                          )
+                            resetPassword.mutate(u);
+                        }}
+                      >
+                        {t("Redefinir senha")}
+                      </button>
+                    )}
                     {u.mfa_enabled && u.id !== user?.id && (
                       <button
                         className="text-amber-600 hover:underline dark:text-amber-400"
                         onClick={() => {
-                          if (confirm(t("Resetar o 2FA de {nome}? A pessoa terá que configurar de novo.", { nome: u.username })))
+                          if (
+                            confirm(
+                              t(
+                                "Resetar o 2FA de {nome}? A pessoa terá que configurar de novo.",
+                                { nome: u.username },
+                              ),
+                            )
+                          )
                             resetMfa.mutate(u);
                         }}
                       >
@@ -222,7 +294,10 @@ export default function SystemUsersPage() {
                       <button
                         className="text-rose-600 hover:underline dark:text-rose-400"
                         onClick={() => {
-                          if (confirm(t("Remover {nome}?", { nome: u.username }))) remove.mutate(u);
+                          if (
+                            confirm(t("Remover {nome}?", { nome: u.username }))
+                          )
+                            remove.mutate(u);
                         }}
                       >
                         {t("Excluir")}
@@ -254,6 +329,13 @@ export default function SystemUsersPage() {
             className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
+              if (
+                (form.id || !form.sendInvite) &&
+                form.password !== (form.password2 ?? "")
+              ) {
+                toast("err", t("As senhas não coincidem"));
+                return;
+              }
               save.mutate(form);
             }}
           >
@@ -264,7 +346,9 @@ export default function SystemUsersPage() {
                   value={form.username}
                   disabled={!!form.id}
                   pattern="[a-zA-Z0-9._\-]+"
-                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, username: e.target.value })
+                  }
                   required
                 />
               </Field>
@@ -272,7 +356,9 @@ export default function SystemUsersPage() {
                 <select
                   className="input"
                   value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+                  onChange={(e) =>
+                    setForm({ ...form, role: e.target.value as Role })
+                  }
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -286,7 +372,9 @@ export default function SystemUsersPage() {
               <input
                 className="input"
                 value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, full_name: e.target.value })
+                }
                 required
               />
             </Field>
@@ -300,11 +388,16 @@ export default function SystemUsersPage() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label={t("Fuso horário")} hint={t("Usado para exibir as datas no painel.")}>
+              <Field
+                label={t("Fuso horário")}
+                hint={t("Usado para exibir as datas no painel.")}
+              >
                 <select
                   className="input"
                   value={form.timezone}
-                  onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, timezone: e.target.value })
+                  }
                 >
                   {(TIMEZONES.includes(form.timezone)
                     ? TIMEZONES
@@ -316,11 +409,16 @@ export default function SystemUsersPage() {
                   ))}
                 </select>
               </Field>
-              <Field label={t("Idioma padrão")} hint={t("Idioma inicial da interface deste usuário.")}>
+              <Field
+                label={t("Idioma padrão")}
+                hint={t("Idioma inicial da interface deste usuário.")}
+              >
                 <select
                   className="input"
                   value={form.language}
-                  onChange={(e) => setForm({ ...form, language: e.target.value as Lang })}
+                  onChange={(e) =>
+                    setForm({ ...form, language: e.target.value as Lang })
+                  }
                 >
                   {LANGS.map((l) => (
                     <option key={l.value} value={l.value}>
@@ -336,7 +434,14 @@ export default function SystemUsersPage() {
                   <input
                     type="radio"
                     checked={form.sendInvite}
-                    onChange={() => setForm({ ...form, sendInvite: true, password: "" })}
+                    onChange={() =>
+                      setForm({
+                        ...form,
+                        sendInvite: true,
+                        password: "",
+                        password2: "",
+                      })
+                    }
                   />
                   {t("Enviar convite por e-mail")}
                 </label>
@@ -351,19 +456,36 @@ export default function SystemUsersPage() {
               </div>
             )}
             {form.id || !form.sendInvite ? (
-              <Field
-                label={form.id ? "Nova senha (opcional)" : "Senha"}
-                hint={t("Mínimo 10 caracteres. Hash Argon2id.")}
-              >
-                <input
-                  className="input"
-                  type="password"
-                  minLength={10}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required={!form.id}
-                />
-              </Field>
+              <>
+                <Field
+                  label={form.id ? "Nova senha (opcional)" : "Senha"}
+                  hint={t("Mínimo 10 caracteres. Hash Argon2id.")}
+                >
+                  <input
+                    className="input"
+                    type="password"
+                    minLength={10}
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm({ ...form, password: e.target.value })
+                    }
+                    required={!form.id}
+                    autoComplete="new-password"
+                  />
+                </Field>
+                <Field label={t("Confirmar senha")}>
+                  <input
+                    className="input"
+                    type="password"
+                    value={form.password2 ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, password2: e.target.value })
+                    }
+                    required={!!form.password || !form.id}
+                    autoComplete="new-password"
+                  />
+                </Field>
+              </>
             ) : (
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 {t(
@@ -375,12 +497,18 @@ export default function SystemUsersPage() {
               <input
                 type="checkbox"
                 checked={form.is_active}
-                onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                onChange={(e) =>
+                  setForm({ ...form, is_active: e.target.checked })
+                }
               />
               {t("Conta ativa")}
             </label>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setForm(null)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setForm(null)}
+              >
                 {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>

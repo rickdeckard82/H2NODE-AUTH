@@ -20,11 +20,17 @@ class InviteOut(BaseModel):
     username: str
     email: str
     full_name: str
+    reset: bool = False
 
 
 class AcceptInviteIn(BaseModel):
     token: str
     password: str = Field(min_length=10, max_length=128)
+
+
+class RadiusResetIn(BaseModel):
+    token: str
+    password: str = Field(min_length=12, max_length=128)
 
 
 class MeOut(BaseModel):

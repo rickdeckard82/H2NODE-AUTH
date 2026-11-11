@@ -27,6 +27,7 @@ interface FormState {
   is_active: boolean;
   expires_at: string;
   password: string;
+  password2?: string;
 }
 
 const empty: FormState = {
@@ -53,6 +54,7 @@ export default function AuthUsersPage() {
   const [form, setForm] = useState<FormState | null>(null);
   const [pwTarget, setPwTarget] = useState<AuthUser | null>(null);
   const [newPw, setNewPw] = useState("");
+  const [newPw2, setNewPw2] = useState("");
 
   const profiles = useQuery({
     queryKey: ["profiles"],
@@ -79,23 +81,30 @@ export default function AuthUsersPage() {
         email: f.email || null,
         privilege_profile_id: f.privilege_profile_id,
         // "" => sem grupo. No PATCH mandamos 0 para desvincular.
-        auth_group_id: f.auth_group_id === "" ? (f.id ? 0 : null) : f.auth_group_id,
+        auth_group_id:
+          f.auth_group_id === "" ? (f.id ? 0 : null) : f.auth_group_id,
         is_active: f.is_active,
         expires_at: f.expires_at ? new Date(f.expires_at).toISOString() : null,
       };
       if (f.id) return api.patch(`/auth-users/${f.id}`, body);
-      return api.post("/auth-users", { ...body, username: f.username, password: f.password });
+      return api.post("/auth-users", {
+        ...body,
+        username: f.username,
+        password: f.password,
+      });
     },
     onSuccess: () => {
       toast("ok", t("Usuário salvo"));
       setForm(null);
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
+    onError: (e) =>
+      toast("err", e instanceof ApiError ? e.detail : t("Erro ao salvar")),
   });
 
   const toggle = useMutation({
-    mutationFn: (u: AuthUser) => api.patch(`/auth-users/${u.id}`, { is_active: !u.is_active }),
+    mutationFn: (u: AuthUser) =>
+      api.patch(`/auth-users/${u.id}`, { is_active: !u.is_active }),
     onSuccess: invalidate,
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro")),
   });
@@ -106,15 +115,28 @@ export default function AuthUsersPage() {
       toast("ok", t("Usuário removido"));
       invalidate();
     },
-    onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
+    onError: (e) =>
+      toast("err", e instanceof ApiError ? e.detail : t("Erro ao remover")),
+  });
+
+  const sendLink = useMutation({
+    mutationFn: (u: AuthUser) =>
+      api.post<{ detail: string }>(`/auth-users/${u.id}/send-reset-link`),
+    onSuccess: (r) => toast("ok", r.detail),
+    onError: (e) =>
+      toast("err", e instanceof ApiError ? e.detail : t("Erro ao enviar link")),
   });
 
   const resetPw = useMutation({
-    mutationFn: () => api.post(`/auth-users/${pwTarget!.id}/reset-password`, { password: newPw }),
+    mutationFn: () =>
+      api.post(`/auth-users/${pwTarget!.id}/reset-password`, {
+        password: newPw,
+      }),
     onSuccess: () => {
       toast("ok", t("Senha redefinida"));
       setPwTarget(null);
       setNewPw("");
+      setNewPw2("");
     },
     onError: (e) => toast("err", e instanceof ApiError ? e.detail : t("Erro")),
   });
@@ -126,7 +148,9 @@ export default function AuthUsersPage() {
         subtitle={t("Contas que autenticam nos equipamentos via RADIUS")}
         actions={
           writable && (
-            <Button onClick={() => setForm({ ...empty })}>{t("Novo usuário")}</Button>
+            <Button onClick={() => setForm({ ...empty })}>
+              {t("Novo usuário")}
+            </Button>
           )
         }
       />
@@ -176,7 +200,9 @@ export default function AuthUsersPage() {
                   {u.auth_group_name ? (
                     <Badge tone="amber">{u.auth_group_name}</Badge>
                   ) : (
-                    <span className="text-slate-400 dark:text-slate-500">—</span>
+                    <span className="text-slate-400 dark:text-slate-500">
+                      —
+                    </span>
                   )}
                 </td>
                 <td className="td">
@@ -186,7 +212,9 @@ export default function AuthUsersPage() {
                     <Badge tone="red">{t("inativo")}</Badge>
                   )}
                 </td>
-                <td className="td">{u.expires_at ? fmtDate(u.expires_at) : "—"}</td>
+                <td className="td">
+                  {u.expires_at ? fmtDate(u.expires_at) : "—"}
+                </td>
                 <td className="td">{fmtDate(u.last_auth_at)}</td>
                 <td className="td text-right">
                   {writable && (
@@ -202,7 +230,9 @@ export default function AuthUsersPage() {
                             privilege_profile_id: u.privilege_profile_id,
                             auth_group_id: u.auth_group_id ?? "",
                             is_active: u.is_active,
-                            expires_at: u.expires_at ? u.expires_at.slice(0, 16) : "",
+                            expires_at: u.expires_at
+                              ? u.expires_at.slice(0, 16)
+                              : "",
                             password: "",
                           })
                         }
@@ -215,6 +245,26 @@ export default function AuthUsersPage() {
                       >
                         {t("Senha")}
                       </button>
+                      {u.email && u.is_active && (
+                        <button
+                          className="text-slate-600 hover:underline dark:text-slate-300"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                t(
+                                  "Enviar e-mail de redefinição de senha para {email}?",
+                                  {
+                                    email: u.email ?? "",
+                                  },
+                                ),
+                              )
+                            )
+                              sendLink.mutate(u);
+                          }}
+                        >
+                          {t("Enviar link")}
+                        </button>
+                      )}
                       <button
                         className="text-amber-600 hover:underline dark:text-amber-400"
                         onClick={() => toggle.mutate(u)}
@@ -225,7 +275,12 @@ export default function AuthUsersPage() {
                         <button
                           className="text-rose-600 hover:underline dark:text-rose-400"
                           onClick={() => {
-                            if (confirm(t("Remover {nome}?", { nome: u.username }))) remove.mutate(u);
+                            if (
+                              confirm(
+                                t("Remover {nome}?", { nome: u.username }),
+                              )
+                            )
+                              remove.mutate(u);
                           }}
                         >
                           {t("Excluir")}
@@ -238,7 +293,10 @@ export default function AuthUsersPage() {
             ))}
             {list.data?.items.length === 0 && (
               <tr>
-                <td className="td text-slate-400 dark:text-slate-500" colSpan={8}>
+                <td
+                  className="td text-slate-400 dark:text-slate-500"
+                  colSpan={8}
+                >
                   {t("Nenhum usuário encontrado.")}
                 </td>
               </tr>
@@ -258,13 +316,19 @@ export default function AuthUsersPage() {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? t("Editar usuário") : t("Novo usuário de autenticação")}
+        title={
+          form?.id ? t("Editar usuário") : t("Novo usuário de autenticação")
+        }
       >
         {form && (
           <form
             className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
+              if (!form.id && form.password !== (form.password2 ?? "")) {
+                toast("err", t("As senhas não coincidem"));
+                return;
+              }
               save.mutate(form);
             }}
           >
@@ -283,7 +347,9 @@ export default function AuthUsersPage() {
                 <input
                   className="input"
                   value={form.full_name}
-                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, full_name: e.target.value })
+                  }
                 />
               </Field>
               <Field label={t("E-mail")}>
@@ -300,7 +366,10 @@ export default function AuthUsersPage() {
                 className="input"
                 value={form.privilege_profile_id}
                 onChange={(e) =>
-                  setForm({ ...form, privilege_profile_id: Number(e.target.value) })
+                  setForm({
+                    ...form,
+                    privilege_profile_id: Number(e.target.value),
+                  })
                 }
                 required
               >
@@ -316,7 +385,9 @@ export default function AuthUsersPage() {
             </Field>
             <Field
               label={t("Grupo de usuário (restrição de IP de origem)")}
-              hint={t("Opcional. Se definido, só autentica de IPs nas faixas do grupo.")}
+              hint={t(
+                "Opcional. Se definido, só autentica de IPs nas faixas do grupo.",
+              )}
             >
               <select
                 className="input"
@@ -324,15 +395,20 @@ export default function AuthUsersPage() {
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    auth_group_id: e.target.value === "" ? "" : Number(e.target.value),
+                    auth_group_id:
+                      e.target.value === "" ? "" : Number(e.target.value),
                   })
                 }
               >
-                <option value="">{t("— sem grupo (sem restrição de IP) —")}</option>
+                <option value="">
+                  {t("— sem grupo (sem restrição de IP) —")}
+                </option>
                 {groups.data?.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
-                    {g.cidrs.length ? ` (${g.cidrs.length} faixa${g.cidrs.length === 1 ? "" : "s"})` : " — sem faixas!"}
+                    {g.cidrs.length
+                      ? ` (${g.cidrs.length} faixa${g.cidrs.length === 1 ? "" : "s"})`
+                      : " — sem faixas!"}
                   </option>
                 ))}
               </select>
@@ -343,32 +419,63 @@ export default function AuthUsersPage() {
                   className="input"
                   type="datetime-local"
                   value={form.expires_at}
-                  onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, expires_at: e.target.value })
+                  }
                 />
               </Field>
               <label className="mt-6 flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={form.is_active}
-                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                  onChange={(e) =>
+                    setForm({ ...form, is_active: e.target.checked })
+                  }
                 />
                 {t("Conta ativa")}
               </label>
             </div>
             {!form.id && (
-              <Field label={t("Senha")} hint={t("Mínimo 12 caracteres. Armazenada como hash SSHA2-512.")}>
+              <Field
+                label={t("Senha")}
+                hint={t(
+                  "Mínimo 12 caracteres. Armazenada como hash SSHA2-512.",
+                )}
+              >
                 <input
                   className="input"
                   type="password"
                   value={form.password}
                   minLength={12}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
                   required
+                  autoComplete="new-password"
+                />
+              </Field>
+            )}
+            {!form.id && (
+              <Field label={t("Confirmar senha")}>
+                <input
+                  className="input"
+                  type="password"
+                  minLength={12}
+                  value={form.password2 ?? ""}
+                  onChange={(e) =>
+                    setForm({ ...form, password2: e.target.value })
+                  }
+                  required
+                  autoComplete="new-password"
                 />
               </Field>
             )}
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setForm(null)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setForm(null)}
+              >
                 {t("Cancelar")}
               </Button>
               <Button type="submit" loading={save.isPending}>
@@ -382,12 +489,18 @@ export default function AuthUsersPage() {
       <Modal
         open={!!pwTarget}
         onClose={() => setPwTarget(null)}
-        title={t("Redefinir senha — {nome}", { nome: pwTarget?.username ?? "" })}
+        title={t("Redefinir senha — {nome}", {
+          nome: pwTarget?.username ?? "",
+        })}
       >
         <form
           className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
+            if (newPw !== newPw2) {
+              toast("err", t("As senhas não coincidem"));
+              return;
+            }
             resetPw.mutate();
           }}
         >
@@ -399,10 +512,26 @@ export default function AuthUsersPage() {
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
               required
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field label={t("Confirmar nova senha")}>
+            <input
+              className="input"
+              type="password"
+              minLength={12}
+              value={newPw2}
+              onChange={(e) => setNewPw2(e.target.value)}
+              required
+              autoComplete="new-password"
             />
           </Field>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setPwTarget(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setPwTarget(null)}
+            >
               {t("Cancelar")}
             </Button>
             <Button type="submit" loading={resetPw.isPending}>

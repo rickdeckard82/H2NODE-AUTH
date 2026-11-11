@@ -20,7 +20,7 @@ def _hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def create_invite(db: Session, user: SystemUser) -> str:
+def create_invite(db: Session, user: SystemUser, ttl_hours: int = INVITE_TTL_HOURS) -> str:
     """Cria um novo convite (invalidando os anteriores) e devolve o token em claro."""
     for pending in db.execute(
         select(UserInvite).where(UserInvite.system_user_id == user.id, UserInvite.used_at.is_(None))
@@ -32,7 +32,7 @@ def create_invite(db: Session, user: SystemUser) -> str:
         UserInvite(
             system_user_id=user.id,
             token_hash=_hash(token),
-            expires_at=utcnow() + timedelta(hours=INVITE_TTL_HOURS),
+            expires_at=utcnow() + timedelta(hours=ttl_hours),
         )
     )
     db.flush()
@@ -67,4 +67,29 @@ def send_invite_email(db: Session, user: SystemUser, token: str) -> None:
     )
     mailer.send_mail(
         db, to=user.email, subject="Pulse RADIUS — finalize seu cadastro", html=html, text=text
+    )
+
+
+RESET_TTL_HOURS = 2
+
+
+def send_reset_email(db: Session, user: SystemUser, token: str) -> None:
+    link = f"{settings.frontend_origin.rstrip('/')}/set-password?token={token}"
+    text = (
+        f"Olá, {user.full_name}.\n\n"
+        f"Um administrador solicitou a redefinição da senha da sua conta no "
+        f"Pulse RADIUS ({user.username}).\n"
+        f"Para criar uma nova senha, acesse:\n{link}\n\n"
+        f"Este link expira em {RESET_TTL_HOURS} horas."
+    )
+    html = (
+        f"<p>Olá, {user.full_name}.</p>"
+        f"<p>Um administrador solicitou a redefinição da senha da sua conta no "
+        f"<strong>Pulse RADIUS</strong> (usuário <code>{user.username}</code>).</p>"
+        f'<p>Para criar uma nova senha, <a href="{link}">clique aqui</a>.</p>'
+        f"<p style=\"color:#64748b;font-size:13px\">Este link expira em "
+        f"{RESET_TTL_HOURS} horas. Se você não esperava este e-mail, ignore-o.</p>"
+    )
+    mailer.send_mail(
+        db, to=user.email, subject="Pulse RADIUS — redefinição de senha", html=html, text=text
     )

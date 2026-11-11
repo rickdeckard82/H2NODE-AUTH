@@ -11,6 +11,7 @@ interface InviteInfo {
   username: string;
   email: string;
   full_name: string;
+  reset?: boolean;
 }
 
 export default function SetPasswordPage() {
@@ -36,7 +37,9 @@ export default function SetPasswordPage() {
       .get<InviteInfo>(`/auth/invite/${token}`)
       .then(setInvite)
       .catch((e) =>
-        setLoadError(e instanceof ApiError ? e.detail : t("Convite inválido ou expirado")),
+        setLoadError(
+          e instanceof ApiError ? e.detail : t("Convite inválido ou expirado"),
+        ),
       );
   }, [token, t]);
 
@@ -51,11 +54,18 @@ export default function SetPasswordPage() {
     }
     setBusy(true);
     try {
-      await api.post("/auth/invite/accept", { token, password });
-      await refresh();
-      navigate("/", { replace: true });
+      if (invite?.reset) {
+        await api.post("/auth/reset-password/accept", { token, password });
+        navigate("/login", { replace: true });
+      } else {
+        await api.post("/auth/invite/accept", { token, password });
+        await refresh();
+        navigate("/", { replace: true });
+      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : t("Falha ao definir a senha"));
+      setError(
+        err instanceof ApiError ? err.detail : t("Falha ao definir a senha"),
+      );
     } finally {
       setBusy(false);
     }
@@ -71,15 +81,27 @@ export default function SetPasswordPage() {
           </div>
 
           {loadError && (
-            <p className="text-center text-sm text-rose-600 dark:text-rose-400">{loadError}</p>
+            <p className="text-center text-sm text-rose-600 dark:text-rose-400">
+              {loadError}
+            </p>
           )}
 
-          {!loadError && !invite && <Spinner className="mx-auto h-6 w-6 text-brand-600" />}
+          {!loadError && !invite && (
+            <Spinner className="mx-auto h-6 w-6 text-brand-600" />
+          )}
 
           {invite && (
             <form onSubmit={onSubmit} className="space-y-3">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t("Olá, {nome}. Defina a senha da sua conta ({login}) para concluir o cadastro.", { nome: invite.full_name, login: invite.username })}
+                {invite.reset
+                  ? t(
+                      "Olá, {nome}. Defina a nova senha da sua conta ({login}).",
+                      { nome: invite.full_name, login: invite.username },
+                    )
+                  : t(
+                      "Olá, {nome}. Defina a senha da sua conta ({login}) para concluir o cadastro.",
+                      { nome: invite.full_name, login: invite.username },
+                    )}
               </p>
               <Field label={t("Nova senha")} hint={t("Mínimo 10 caracteres.")}>
                 <input
@@ -105,7 +127,9 @@ export default function SetPasswordPage() {
                 />
               </Field>
               <Button type="submit" className="w-full" loading={busy}>
-                {t("Criar senha e entrar")}
+                {invite.reset
+                  ? t("Redefinir senha")
+                  : t("Criar senha e entrar")}
               </Button>
             </form>
           )}

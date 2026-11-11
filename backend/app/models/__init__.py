@@ -1,6 +1,7 @@
 from app.models.audit_log import AuditLog
 from app.models.auth_group import AuthGroupCidr, AuthUserGroup
 from app.models.auth_user import AuthUser
+from app.models.auth_user_reset import AuthUserReset
 from app.models.backup_schedule import BackupSchedule
 from app.models.base import Base
 from app.models.equipment import Equipment, EquipmentStatus
@@ -31,6 +32,7 @@ __all__ = [
     "AuditLog",
     "AuthGroupCidr",
     "AuthUser",
+    "AuthUserReset",
     "AuthUserGroup",
     "BackupSchedule",
     "Equipment",

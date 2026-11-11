@@ -6,21 +6,42 @@ import { useAuth, type Role } from "./lib/auth";
 
 const LoginPage = lazy(() => import("./features/auth/LoginPage"));
 const SetPasswordPage = lazy(() => import("./features/auth/SetPasswordPage"));
+const ResetRadiusPasswordPage = lazy(
+  () => import("./features/auth/ResetRadiusPasswordPage"),
+);
 const PrivacyPage = lazy(() => import("./features/legal/PrivacyPage"));
 const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
 const AuthUsersPage = lazy(() => import("./features/auth-users/AuthUsersPage"));
-const UserGroupsPage = lazy(() => import("./features/user-groups/UserGroupsPage"));
+const UserGroupsPage = lazy(
+  () => import("./features/user-groups/UserGroupsPage"),
+);
 const EquipmentPage = lazy(() => import("./features/equipment/EquipmentPage"));
 const SitesPage = lazy(() => import("./features/sites/SitesPage"));
-const ManufacturersPage = lazy(() => import("./features/manufacturers/ManufacturersPage"));
-const PrivilegeProfilesPage = lazy(() => import("./features/privilege-profiles/PrivilegeProfilesPage"));
-const SystemUsersPage = lazy(() => import("./features/system-users/SystemUsersPage"));
+const ManufacturersPage = lazy(
+  () => import("./features/manufacturers/ManufacturersPage"),
+);
+const PrivilegeProfilesPage = lazy(
+  () => import("./features/privilege-profiles/PrivilegeProfilesPage"),
+);
+const SystemUsersPage = lazy(
+  () => import("./features/system-users/SystemUsersPage"),
+);
 const BackupPage = lazy(() => import("./features/backup/BackupPage"));
-const SmtpSettingsPage = lazy(() => import("./features/settings/SmtpSettingsPage"));
-const LgpdSettingsPage = lazy(() => import("./features/settings/LgpdSettingsPage"));
-const AccountingPage = lazy(() => import("./features/accounting/AccountingPage"));
-const AuthenticationPage = lazy(() => import("./features/reports/AuthenticationPage"));
-const AuthorizationPage = lazy(() => import("./features/reports/AuthorizationPage"));
+const SmtpSettingsPage = lazy(
+  () => import("./features/settings/SmtpSettingsPage"),
+);
+const LgpdSettingsPage = lazy(
+  () => import("./features/settings/LgpdSettingsPage"),
+);
+const AccountingPage = lazy(
+  () => import("./features/accounting/AccountingPage"),
+);
+const AuthenticationPage = lazy(
+  () => import("./features/reports/AuthenticationPage"),
+);
+const AuthorizationPage = lazy(
+  () => import("./features/reports/AuthorizationPage"),
+);
 const AuditPage = lazy(() => import("./features/audit/AuditPage"));
 
 function Loader() {
@@ -31,7 +52,13 @@ function Loader() {
   );
 }
 
-function Protected({ roles, children }: { roles?: Role[]; children: ReactNode }) {
+function Protected({
+  roles,
+  children,
+}: {
+  roles?: Role[];
+  children: ReactNode;
+}) {
   const { user, loading, can } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
@@ -67,6 +94,14 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={<Loader />}>
         <PrivacyPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <Suspense fallback={<Loader />}>
+        <ResetRadiusPasswordPage />
       </Suspense>
     ),
   },

@@ -11,8 +11,8 @@ from app.schemas.auth_user import (
     AuthUserPasswordReset,
     AuthUserUpdate,
 )
-from app.schemas.common import Page
-from app.services import audit, radius_sync
+from app.schemas.common import Message, Page
+from app.services import audit, auth_user_reset, mailer, radius_sync
 
 router = APIRouter(prefix="/auth-users", tags=["auth-users"])
 
@@ -147,6 +147,32 @@ def reset_password(
     audit.record(db, action="reset_password", entity_type="auth_user", entity_id=user.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
     db.commit()
+
+
+@router.post("/{user_id}/send-reset-link", response_model=Message,
+             dependencies=[Depends(enforce_csrf)])
+def send_reset_link(
+    user_id: int, request: Request,
+    db: Session = Depends(get_db), actor: SystemUser = Depends(require_operator),
+) -> Message:
+    user = db.get(AuthUser, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "não encontrado")
+    if not user.email:
+        raise HTTPException(status.HTTP_409_CONFLICT, "usuário sem e-mail cadastrado")
+    if not user.is_active:
+        raise HTTPException(status.HTTP_409_CONFLICT, "usuário inativo")
+    token = auth_user_reset.create_reset(db, user)
+    try:
+        auth_user_reset.send_reset_email(db, user, token)
+    except mailer.SmtpNotConfigured as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except mailer.SmtpSendError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"falha ao enviar e-mail: {exc}") from exc
+    audit.record(db, action="reset_password_email", entity_type="auth_user", entity_id=user.id,
+                 actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request))
+    db.commit()
+    return Message(detail=f"link de redefinição enviado para {user.email}")
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT,
