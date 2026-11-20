@@ -15,6 +15,7 @@ Accounting NÃO passa por aqui — vai para o log e é importado pelo acct_impor
 """
 
 import datetime
+import ipaddress
 import os
 import sys
 import time
@@ -25,6 +26,8 @@ sys.path.insert(0, "/opt/tacplus/lib/mavis")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from mavis import (  # noqa: E402
+    AV_A_IPADDR,
+    AV_A_TACCLIENT,
     AV_V_RESULT_ERROR,
     AV_V_RESULT_FAIL,
     AV_V_RESULT_NOTFOUND,
@@ -69,23 +72,42 @@ def _utcnow() -> datetime.datetime:
     return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
 
-def lookup(username: str) -> tuple[bool | None, str | None, str | None]:
-    """(estado_ok, nome_do_perfil, hash_ssha512). Perfil None => usuário inexistente."""
+def lookup(username: str) -> tuple[bool | None, str | None, str | None, int | None]:
+    """(estado_ok, nome_do_perfil, hash_ssha512, grupo). Perfil None => usuário inexistente."""
     rows = _query(
-        "SELECT u.is_active, u.expires_at, p.name "
+        "SELECT u.is_active, u.expires_at, p.name, u.auth_group_id "
         "FROM app_auth_user u JOIN app_privilege_profile p ON p.id = u.privilege_profile_id "
         "WHERE u.username = %s LIMIT 1",
         (username,),
     )
     if not rows:
-        return (None, None, None)
-    is_active, expires_at, pname = rows[0]
+        return (None, None, None, None)
+    is_active, expires_at, pname, group_id = rows[0]
     ok = bool(is_active) and (expires_at is None or expires_at > _utcnow())
     h = _query(
         "SELECT value FROM radcheck WHERE username = %s AND attribute = 'SSHA2-512-Password' LIMIT 1",
         (username,),
     )
-    return (ok, pname, h[0][0] if h else None)
+    return (ok, pname, h[0][0] if h else None, group_id)
+
+
+def ip_allowed(group_id: int | None, ip: str | None) -> bool:
+    """Mesma regra do RADIUS (sites-available/default): usuário com grupo só entra
+    de um IP dentro de uma das faixas do grupo; sem grupo, de qualquer lugar."""
+    if group_id is None:
+        return True
+    try:
+        addr = ipaddress.ip_address((ip or "").strip())
+    except ValueError:
+        return False
+    rows = _query(
+        "SELECT family, ip_start, ip_end FROM app_auth_group_cidr WHERE group_id = %s",
+        (group_id,),
+    )
+    # ip_start/ip_end têm o tamanho de addr.packed (INET6_ATON): comparar bytes = comparar IPs
+    return any(
+        fam == addr.version and bytes(lo) <= addr.packed <= bytes(hi) for fam, lo, hi in rows
+    )
 
 
 def main() -> None:
@@ -97,7 +119,11 @@ def main() -> None:
             continue
 
         try:
-            ok_state, pname, ssha = lookup(D.user)
+            ok_state, pname, ssha, group_id = lookup(D.user)
+            # IPADDR = rem_addr (de onde o usuário conectou); sem ele, o IP do
+            # equipamento — o mesmo fallback do RADIUS (Calling-Station-Id → NAS).
+            origin = D.av_pairs.get(AV_A_IPADDR) or D.av_pairs.get(AV_A_TACCLIENT)
+            allowed = ip_allowed(group_id, origin)
         except Exception as exc:  # noqa: BLE001
             sys.stderr.write(f"h2node_mavis: erro de banco: {exc}\n")
             sys.stderr.flush()
@@ -109,6 +135,9 @@ def main() -> None:
             continue
         if not ok_state:
             D.write(MAVIS_FINAL, AV_V_RESULT_FAIL, "conta desativada ou expirada")
+            continue
+        if not allowed:
+            D.write(MAVIS_FINAL, AV_V_RESULT_FAIL, "IP de origem nao autorizado para o grupo")
             continue
 
         if D.is_tacplus_authc:

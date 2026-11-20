@@ -29,7 +29,10 @@ USER appuser
 EXPOSE 8000
 
 # Aplica migrações, roda o seed idempotente e sobe a API.
-# --forwarded-allow-ips: confia nos cabeçalhos X-Forwarded-* do reverse proxy.
+# --forwarded-allow-ips '*': o backend não é publicado — só o nginx do frontend
+# (ou o proxy TLS embutido) fala com ele, e ambos mandam X-Forwarded-For já
+# resolvido (IP real, um valor só). A confiança no proxy externo fica no
+# frontend (FORWARDED_ALLOW_IPS, ver frontend/realip.sh).
 # --timeout 180: a restauração de backup (DROP/CREATE + INSERT de toda a base)
 # roda de forma síncrona no worker e pode passar dos 30s padrão.
-CMD ["sh", "-c", "alembic upgrade head && python -m app.seed && gunicorn app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 -w 4 --timeout 180 --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-*}\" --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.seed && gunicorn app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 -w 4 --timeout 180 --forwarded-allow-ips '*' --access-logfile - --error-logfile -"]

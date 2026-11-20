@@ -260,3 +260,21 @@ def test_auditor_cannot_see_audit_or_users(client, seeded):
     # mas segue com a leitura de equipamentos e dos relatórios AAA
     assert client.get("/api/equipment").status_code == 200
     assert client.get("/api/accounting/authentication").status_code == 200
+
+
+def test_auth_user_expiry_is_utc_and_can_be_cleared(auth_client):
+    profile_id = auth_client.get("/api/privilege-profiles").json()[0]["id"]
+    r = auth_client.post("/api/auth-users", json={
+        "username": "temp.user", "privilege_profile_id": profile_id,
+        "password": "Str0ngPass!x12", "expires_at": "2030-01-01T23:59:00-03:00",
+    })
+    assert r.status_code == 201, r.text
+    # guardado em UTC e devolvido com o fuso explícito
+    assert r.json()["expires_at"] == "2030-01-02T02:59:00+00:00"
+    uid = r.json()["id"]
+
+    # PATCH sem o campo não mexe; com null remove
+    assert auth_client.patch(f"/api/auth-users/{uid}", json={"full_name": "T"}).json()[
+        "expires_at"] == "2030-01-02T02:59:00+00:00"
+    assert auth_client.patch(f"/api/auth-users/{uid}", json={"expires_at": None}).json()[
+        "expires_at"] is None

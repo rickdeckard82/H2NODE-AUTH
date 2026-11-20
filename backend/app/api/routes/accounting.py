@@ -1,7 +1,8 @@
 import csv
 import io
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import require_auditor
 from app.core.db import get_db
-from app.models import CmdAcct, Equipment, Manufacturer, RadAcct, RadPostAuth
+from app.models import CmdAcct, Equipment, Manufacturer, RadAcct, RadPostAuth, SystemUser
 from app.models.manufacturer import AaaProtocol
 from app.schemas.accounting import (
     AccountingStats,
@@ -37,6 +38,15 @@ def _unescape(s: str | None) -> str:
     """Reverte o escape '=XX' que o rlm_sql aplica a chars fora de safe_characters
     (o site `default` grava o comando via %{sql:...})."""
     return _ESC_RE.sub(lambda m: chr(int(m.group(1), 16)), s or "")
+
+
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _cell(v: object) -> object:
+    """Planilhas executam célula que começa com = + - @ — e username/comando vêm
+    de quem usa o equipamento. O apóstrofo faz a célula virar texto."""
+    return "'" + v if isinstance(v, str) and v.startswith(_FORMULA_START) else v
 
 
 def _session_stmt(
@@ -110,9 +120,9 @@ def export_sessions_csv(
     w.writerow(["username", "nas_ip", "session_id", "start", "stop", "duration_s",
                 "in_octets", "out_octets", "calling_station", "terminate_cause"])
     for r in db.execute(stmt).scalars():
-        w.writerow([r.username, r.nasipaddress, r.acctsessionid, r.acctstarttime,
+        w.writerow(map(_cell, [r.username, r.nasipaddress, r.acctsessionid, r.acctstarttime,
                     r.acctstoptime, r.acctsessiontime, r.acctinputoctets,
-                    r.acctoutputoctets, r.callingstationid, r.acctterminatecause])
+                    r.acctoutputoctets, r.callingstationid, r.acctterminatecause]))
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]), media_type="text/csv",
@@ -190,8 +200,8 @@ def export_authentication_csv(
     w = csv.writer(buf)
     w.writerow(["authdate_utc", "protocol", "username", "source_ip", "dest_ip", "reply"])
     for r in db.execute(stmt).scalars():
-        w.writerow([r.authdate, r.protocol or "radius", r.username,
-                    r.callingstationid or "", r.nasipaddress or "", r.reply])
+        w.writerow(map(_cell, [r.authdate, r.protocol or "radius", r.username,
+                    r.callingstationid or "", r.nasipaddress or "", r.reply]))
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]), media_type="text/csv",
@@ -262,8 +272,8 @@ def export_commands_csv(
     w = csv.writer(buf)
     w.writerow(["event_time_utc", "nas_ip", "username", "source_ip", "action", "command"])
     for r in db.execute(stmt).scalars():
-        w.writerow([r.event_time, r.nasipaddress, _unescape(r.username),
-                    r.callingstationid, r.action, _unescape(r.command)])
+        w.writerow(map(_cell, [r.event_time, r.nasipaddress, _unescape(r.username),
+                    r.callingstationid, r.action, _unescape(r.command)]))
     buf.seek(0)
     return StreamingResponse(
         iter([buf.getvalue()]), media_type="text/csv",
@@ -275,22 +285,39 @@ _REJECT_FILTER = or_(RadPostAuth.reply.like("Access-Reject%"), RadPostAuth.reply
 _ACCEPT_FILTER = RadPostAuth.reply.like("Access-Accept%")
 
 
-def _count_by_day(db: Session, col, *filters, start: datetime) -> dict[str, int]:
-    """{'YYYY-MM-DD': n} agrupado por dia (UTC) de `col`, a partir de `start`."""
-    rows = db.execute(
-        select(func.date(col).label("d"), func.count().label("n"))
-        .where(col >= start, *filters)
-        .group_by(func.date(col))
-    ).all()
-    return {str(d): n for d, n in rows}
+def _local_days(tz_name: str, n: int = 7) -> list[tuple[str, datetime, datetime]]:
+    """Os últimos `n` dias (contando hoje) no fuso do operador, como
+    (YYYY-MM-DD, início, fim) em UTC naive — o formato das colunas do banco."""
+    try:
+        tz = ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, ValueError):
+        tz = ZoneInfo("UTC")
+    today = datetime.now(tz).date()
+
+    def utc(d):
+        return datetime.combine(d, time(), tz).astimezone(UTC).replace(tzinfo=None)
+
+    days = [today - timedelta(days=i) for i in range(n - 1, -1, -1)]
+    return [(d.isoformat(), utc(d), utc(d + timedelta(days=1))) for d in days]
+
+
+def _count_by_day(db: Session, col, *filters, days) -> list[int]:
+    """Uma contagem por dia local — 7 COUNTs por faixa no índice de `col`
+    (GROUP BY DATE() agruparia em UTC e não é portável entre MySQL e SQLite)."""
+    return [
+        db.execute(
+            select(func.count()).select_from(col.class_).where(col >= a, col < b, *filters)
+        ).scalar_one()
+        for _, a, b in days
+    ]
 
 
 @router.get("/stats", response_model=AccountingStats)
-def stats(db: Session = Depends(get_db)) -> AccountingStats:
+def stats(
+    db: Session = Depends(get_db), user: SystemUser = Depends(require_auditor)
+) -> AccountingStats:
     now = datetime.now(UTC).replace(tzinfo=None)
     week_ago = now - timedelta(days=7)
-    # 00:00 UTC de 6 dias atrás => 7 baldes diários contando hoje
-    first_day = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
 
     active = db.execute(
         select(func.count()).select_from(RadAcct).where(RadAcct.acctstoptime.is_(None))
@@ -333,17 +360,13 @@ def stats(db: Session = Depends(get_db)) -> AccountingStats:
     ).all()
     nas_names = _nas_names(db)
 
-    acc_day = _count_by_day(db, RadPostAuth.authdate, _ACCEPT_FILTER, start=first_day)
-    rej_day = _count_by_day(db, RadPostAuth.authdate, _REJECT_FILTER, start=first_day)
-    sess_day = _count_by_day(db, RadAcct.acctstarttime, start=first_day)
+    days = _local_days(user.timezone)
+    acc_day = _count_by_day(db, RadPostAuth.authdate, _ACCEPT_FILTER, days=days)
+    rej_day = _count_by_day(db, RadPostAuth.authdate, _REJECT_FILTER, days=days)
+    sess_day = _count_by_day(db, RadAcct.acctstarttime, days=days)
     daily = [
-        DailyPoint(
-            date=(d := (first_day + timedelta(days=i)).date().isoformat()),
-            accepts=acc_day.get(d, 0),
-            rejects=rej_day.get(d, 0),
-            sessions=sess_day.get(d, 0),
-        )
-        for i in range(7)
+        DailyPoint(date=d, accepts=a, rejects=r, sessions=s)
+        for (d, _, _), a, r, s in zip(days, acc_day, rej_day, sess_day, strict=True)
     ]
 
     return AccountingStats(

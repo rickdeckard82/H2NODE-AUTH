@@ -106,7 +106,7 @@ def update_auth_user(
 
     if body.full_name is not None:
         user.full_name = body.full_name
-    if body.email is not None:
+    if "email" in body.model_fields_set:  # null limpa
         user.email = body.email
     if body.privilege_profile_id is not None:
         _get_profile(db, body.privilege_profile_id)
@@ -119,7 +119,7 @@ def update_auth_user(
             user.auth_group_id = body.auth_group_id
     if body.is_active is not None:
         user.is_active = body.is_active
-    if body.expires_at is not None:
+    if "expires_at" in body.model_fields_set:  # null remove a expiração
         user.expires_at = body.expires_at
     db.flush()
 

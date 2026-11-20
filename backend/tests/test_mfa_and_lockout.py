@@ -111,6 +111,26 @@ def _enable_mfa(auth_client) -> tuple[str, list[str]]:
     return secret, enable.json()["recovery_codes"]
 
 
+def test_wrong_mfa_codes_lock_the_account(auth_client, seeded):
+    from app.models import SystemUser
+
+    secret, _ = _enable_mfa(auth_client)
+    token = auth_client.post(
+        "/api/auth/login", json={"username": "admin", "password": "changeme-admin-123"}
+    ).json()["mfa_token"]
+    for _ in range(5):
+        r = auth_client.post("/api/auth/mfa/verify", json={"mfa_token": token, "code": "000000"})
+        assert r.status_code == 401
+    user = seeded.query(SystemUser).filter_by(username="admin").one()
+    seeded.refresh(user)
+    assert user.lockout_strikes == 1
+    # bloqueada: nem o código certo passa
+    r = auth_client.post(
+        "/api/auth/mfa/verify", json={"mfa_token": token, "code": _current_totp(secret)}
+    )
+    assert r.status_code == 429
+
+
 def test_enable_returns_recovery_codes_and_me_counts_them(auth_client):
     _, codes = _enable_mfa(auth_client)
     assert len(codes) == 10

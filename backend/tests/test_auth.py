@@ -65,3 +65,46 @@ def test_hsts_follows_cookie_secure(client):
         assert r.headers["strict-transport-security"] == "max-age=63072000; includeSubDomains"
     finally:
         main_module.settings.cookie_secure = False
+
+
+def test_password_change_ends_other_sessions(auth_client):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    with TestClient(app) as other:  # outra sessão do mesmo usuário
+        assert other.post("/api/auth/login", json={
+            "username": "admin", "password": "changeme-admin-123"}).status_code == 200
+        changed = auth_client.patch("/api/auth/me/password", json={
+            "current_password": "changeme-admin-123", "new_password": "brand-new-secret-1"})
+        assert changed.status_code == 200, changed.text
+        # a sessão de quem trocou continua (recebeu um refresh novo)...
+        assert auth_client.post("/api/auth/refresh").status_code == 200
+        # ...a outra não (e reusar o token revogado derruba tudo, por projeto)
+        assert other.post("/api/auth/refresh").status_code == 401
+
+
+def test_concurrent_refresh_from_two_tabs_keeps_session(auth_client):
+    old = auth_client.cookies.get("pr_refresh")
+    assert auth_client.post("/api/auth/refresh").status_code == 200  # aba A
+    # aba B chega com o cookie velho logo depois: conflito, não "roubo"
+    r = auth_client.post("/api/auth/refresh", cookies={"pr_refresh": old})
+    assert r.status_code == 409
+    # a sessão nova (aba A) continua valendo
+    assert auth_client.post("/api/auth/refresh").status_code == 200
+
+
+def test_refresh_reuse_after_grace_still_revokes_everything(auth_client, seeded):
+    from datetime import timedelta
+
+    from app.core.security import utcnow
+    from app.models import RefreshToken
+
+    old = auth_client.cookies.get("pr_refresh")
+    assert auth_client.post("/api/auth/refresh").status_code == 200
+    for t in seeded.query(RefreshToken):  # simula o tempo passando além da janela
+        t.issued_at = utcnow() - timedelta(minutes=5)
+    seeded.commit()
+    r = auth_client.post("/api/auth/refresh", cookies={"pr_refresh": old})
+    assert r.status_code == 401
+    assert seeded.query(RefreshToken).filter_by(revoked=False).count() == 0

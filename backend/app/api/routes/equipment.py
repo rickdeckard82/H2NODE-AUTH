@@ -139,12 +139,13 @@ def create_equipment(
     db.add(eq)
     db.flush()
     radius_sync.sync_equipment(db, eq, manufacturer=manufacturer)
-    tacacs_sync.regenerate(db)
     audit.record(db, action="create", entity_type="equipment", entity_id=eq.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  after={"name": eq.name, "mgmt_ip": eq.mgmt_ip, "manufacturer": manufacturer.name,
                         "secret_source": _secret_source(eq)})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    tacacs_sync.regenerate(db)
     db.refresh(eq)
     return _to_out(eq)
 
@@ -191,13 +192,14 @@ def update_equipment(
 
     radius_sync.rename_equipment_nas(db, old_ip, eq.mgmt_ip)
     radius_sync.sync_equipment(db, eq, manufacturer=eq.manufacturer)
-    tacacs_sync.regenerate(db)
     audit.record(db, action="update", entity_type="equipment", entity_id=eq.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  before=before,
                  after={"name": eq.name, "mgmt_ip": eq.mgmt_ip, "status": eq.status.value,
                         "secret_source": _secret_source(eq)})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    tacacs_sync.regenerate(db)
     db.refresh(eq)
     return _to_out(eq)
 
@@ -215,8 +217,9 @@ def delete_equipment(
     db.delete(eq)
     db.flush()
     radius_sync.delete_equipment_nas(db, ip)
-    tacacs_sync.regenerate(db)
     audit.record(db, action="delete", entity_type="equipment", entity_id=equipment_id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  before={"name": name, "mgmt_ip": ip})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    tacacs_sync.regenerate(db)

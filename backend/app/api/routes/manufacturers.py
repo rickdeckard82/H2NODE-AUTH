@@ -125,8 +125,6 @@ def update_manufacturer(
     resynced = 0
     if secret_changed or tacacs_changed or body.vendor_kind is not None:
         resynced = radius_sync.resync_manufacturer_equipment(db, m)
-    if tacacs_changed or body.vendor_kind is not None:
-        tacacs_sync.regenerate(db)
 
     audit.record(db, action="update", entity_type="manufacturer", entity_id=m.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
@@ -134,6 +132,9 @@ def update_manufacturer(
                  after={"vendor_kind": m.vendor_kind.value, "has_secret": bool(m.radius_secret_enc),
                         "equipamentos_resincronizados": resynced})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    if tacacs_changed or body.vendor_kind is not None:
+        tacacs_sync.regenerate(db)
     counts = _counts(db)
     return _to_out(m, counts.get(m.id, 0))
 
@@ -166,8 +167,9 @@ def delete_manufacturer(
     name = m.name
     db.delete(m)
     db.flush()
-    tacacs_sync.regenerate(db)
     audit.record(db, action="delete", entity_type="manufacturer", entity_id=manufacturer_id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  before={"name": name})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    tacacs_sync.regenerate(db)

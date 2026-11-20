@@ -128,21 +128,29 @@ def build_config(db: Session) -> tuple[str, int]:
 
 
 def regenerate(db: Session) -> int:
-    """Reescreve o arquivo de config. No-op se TACACS_HOSTS_PATH não estiver setado."""
+    """Reescreve o arquivo de config a partir do que está COMMITADO — chame depois
+    do commit (descarta a transação aberta da sessão). No-op sem TACACS_HOSTS_PATH."""
     path = settings.tacacs_hosts_path
     if not path:
         return 0
-    text, n = build_config(db)
+    import fcntl  # só Linux (container); os testes não chegam aqui
+
     directory = os.path.dirname(path) or "."
     os.makedirs(directory, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".h2node-tacacs-")
-    try:
-        with os.fdopen(fd, "w") as fh:
-            fh.write(text)
-        os.chmod(tmp, 0o644)
-        os.replace(tmp, path)
-    except BaseException:
-        with contextlib.suppress(FileNotFoundError):
-            os.unlink(tmp)
-        raise
+    # Serializa leitura+escrita entre os workers do gunicorn: quem pega a trava
+    # depois lê o banco já com o commit do outro, e o arquivo nunca volta atrás.
+    with open(os.path.join(directory, ".h2node-tacacs.lock"), "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        db.rollback()  # encerra o snapshot antigo (REPEATABLE READ) antes de ler
+        text, n = build_config(db)
+        fd, tmp = tempfile.mkstemp(dir=directory, prefix=".h2node-tacacs-")
+        try:
+            with os.fdopen(fd, "w") as fh:
+                fh.write(text)
+            os.chmod(tmp, 0o644)
+            os.replace(tmp, path)
+        except BaseException:
+            with contextlib.suppress(FileNotFoundError):
+                os.unlink(tmp)
+            raise
     return n

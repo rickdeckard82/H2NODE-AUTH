@@ -156,9 +156,6 @@ services:
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://localhost}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
-      # IPs de reverse proxies confiáveis (X-Forwarded-*). "*" = confia em qualquer
-      # upstream; em produção prefira o IP do proxy (ex.: do Nginx Proxy Manager).
-      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
       ENABLE_DOCS: ${ENABLE_DOCS:-false}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-admin}
@@ -191,6 +188,7 @@ services:
   # painel (Backup e restauração); este worker só consulta a agenda a cada
   # BACKUP_WORKER_INTERVAL_SECONDS e envia o dump (.sql.enc cifrado com a
   # FERNET_KEY, ou .sql.gz). Nenhuma cópia fica no servidor.
+  # Também roda o expurgo diário de retenção LGPD (prazos em Configurações > LGPD).
   backup-worker:
     build:
       context: ./backend
@@ -223,6 +221,11 @@ services:
     build:
       context: ./frontend
     restart: unless-stopped
+    environment:
+      # Reverse proxies confiáveis (IP/CIDR, separados por vírgula): só deles o
+      # X-Forwarded-For vale como IP do cliente. "*" = faixas privadas (LAN).
+      # Em produção, o IP do Nginx Proxy Manager.
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
     ports:
       # WEB_BIND pode ser o IP privado do servidor para não expor em todas as interfaces.
       - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-8080}:80"

@@ -26,8 +26,8 @@ WEB_BIND=10.0.0.20          # IP privado do servidor (ou 0.0.0.0)
 FRONTEND_ORIGIN=https://radius.suaempresa.com.br
 COOKIE_SECURE=true          # o NPM entrega HTTPS ao navegador
 
-# confie apenas no proxy do NPM para ler X-Forwarded-*
-FORWARDED_ALLOW_IPS=10.0.0.30      # IP do servidor do NPM  (ou * para qualquer)
+# confie apenas no proxy do NPM para ler X-Forwarded-* (lido pelo container frontend)
+FORWARDED_ALLOW_IPS=10.0.0.30      # IP do servidor do NPM  (* = faixas privadas da LAN)
 
 # segredos fortes
 MYSQL_ROOT_PASSWORD=...
@@ -87,8 +87,12 @@ um cliente forje o IP que aparece na auditoria e no bloqueio de login:
 proxy_set_header X-Forwarded-Proto $scheme;
 proxy_set_header X-Forwarded-For  $remote_addr;
 proxy_set_header Host             $host;
-client_max_body_size 2m;
+proxy_read_timeout 600s;
+client_max_body_size 200m;
 ```
+
+Os 200 MB e os 600 s são para a **restauração de backup** pelo painel; o
+container `frontend` continua limitando as demais rotas a 2 MB.
 
 E no `.env` do servidor, defina `FORWARDED_ALLOW_IPS` com o **IP do servidor do
 NPM** (não deixe `*`).

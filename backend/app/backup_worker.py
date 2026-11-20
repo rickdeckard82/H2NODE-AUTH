@@ -2,6 +2,7 @@
 
 A cada BACKUP_WORKER_INTERVAL_SECONDS consulta a linha de `app_backup_schedule`
 e roda o backup se estiver no horário ou se o painel pediu "Executar agora".
+Também roda o expurgo diário de retenção LGPD (services/retention.py).
 Uso: python -m app.backup_worker
 """
 
@@ -13,7 +14,7 @@ from sqlalchemy import inspect
 
 from app.core.db import SessionLocal, engine
 from app.core.logging import configure_logging, logger
-from app.services import backup_ftp
+from app.services import backup_ftp, retention
 
 running = True
 
@@ -61,6 +62,7 @@ def main() -> None:
         db = SessionLocal()
         try:
             backup_ftp.execute(db, engine)
+            retention.run_if_due(db)  # expurgo LGPD (no-op fora da janela de 24h)
         except Exception:  # noqa: BLE001 - o loop nunca morre
             logger.exception("backup_worker_loop_failed")
             db.rollback()

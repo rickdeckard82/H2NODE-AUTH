@@ -64,7 +64,8 @@ def test_operator_cannot_touch_lgpd_but_sees_legal(client, seeded):
     assert op.get("/api/settings/legal").status_code == 200
 
 
-def test_retention_purge_deletes_old_data(seeded):
+def test_retention_purge_deletes_old_data(seeded, monkeypatch):
+    monkeypatch.setattr(retention, "_BATCH", 1)  # força vários lotes
     now = datetime.now()
     old = now - timedelta(days=400)
     recent = now - timedelta(days=5)
@@ -72,6 +73,7 @@ def test_retention_purge_deletes_old_data(seeded):
 
     seeded.add_all([
         RadPostAuth(username="a", pass_="", reply="Access-Accept", authdate=old),
+        RadPostAuth(username="a2", pass_="", reply="Access-Reject", authdate=old),
         RadPostAuth(username="b", pass_="", reply="Access-Accept", authdate=recent),
         CmdAcct(event_time=old, nasipaddress="10.0.0.1", username="a",
                 callingstationid="", action="exec", command="show", acctsessionid="s1"),
@@ -92,7 +94,7 @@ def test_retention_purge_deletes_old_data(seeded):
     seeded.commit()
 
     counts = retention.run_if_due(seeded)
-    assert counts == {"radpostauth": 1, "cmd_acct": 1, "audit_log": 1, "auth_user": 1}
+    assert counts == {"radpostauth": 2, "cmd_acct": 1, "audit_log": 1, "auth_user": 1}
 
     assert [r.username for r in seeded.execute(select(RadPostAuth)).scalars()] == ["b"]
     assert {u.username for u in seeded.execute(select(AuthUser)).scalars()} == {

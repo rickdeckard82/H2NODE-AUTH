@@ -32,7 +32,9 @@ async function tryRefresh(): Promise<boolean> {
       credentials: "include",
       headers: { "X-CSRF-Token": csrfToken() },
     })
-      .then((r) => r.ok)
+      // 409: outra aba renovou com o mesmo cookie há instantes — o navegador já
+      // tem o cookie novo, então a requisição original pode ser repetida
+      .then((r) => r.ok || r.status === 409)
       .catch(() => false)
       .finally(() => {
         refreshing = null;

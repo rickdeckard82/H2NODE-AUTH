@@ -26,10 +26,6 @@ _MAX_UPLOAD = 200 * 1024 * 1024
 _CONFIRM_WORD = "RESTAURAR"
 
 
-def _schema_version(db: Session) -> str | None:
-    return backup.read_schema_version(db)
-
-
 def _gunzip(raw: bytes) -> bytes:
     """`.sql.gz` do backup automático por FTP. Limita o tamanho descompactado."""
     limit = _MAX_UPLOAD * 10
@@ -54,7 +50,7 @@ def export_backup(
     if engine.dialect.name != "mysql":
         raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, "backup requer MySQL")
 
-    version = _schema_version(db)
+    version = backup.read_schema_version(db)
     audit.record(
         db, action="export", entity_type="backup",
         actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
@@ -82,8 +78,11 @@ def export_backup(
     return stream
 
 
+# `def` (não async): roda numa thread. O restore é bloqueante e leva minutos —
+# num `async def` ele travaria o event loop do worker até o gunicorn matá-lo
+# no meio dos DROP/CREATE.
 @router.post("/import")
-async def import_backup(
+def import_backup(
     request: Request,
     file: UploadFile = File(...),
     confirm: str = Form(...),
@@ -95,7 +94,7 @@ async def import_backup(
     if engine.dialect.name != "mysql":
         raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, "restauração requer MySQL")
 
-    raw = await file.read()
+    raw = file.file.read(_MAX_UPLOAD + 1)
     if len(raw) > _MAX_UPLOAD:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "arquivo maior que 200 MB")
     if raw[:2] == b"\x1f\x8b":  # .sql.gz do backup automático por FTP
@@ -111,7 +110,7 @@ async def import_backup(
         except UnicodeDecodeError as exc:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "arquivo não é um backup válido") from exc
 
-    current = _schema_version(db)
+    current = backup.read_schema_version(db)
     # Libera a conexão/transação desta sessão ANTES do DDL: o DROP TABLE bloqueia
     # no metadata lock enquanto qualquer transação (incl. a do require_superadmin)
     # seguir aberta sobre as mesmas tabelas.

@@ -1,5 +1,6 @@
 """Hash de senha (Argon2id) e emissão/validação de JWT para usuários do painel."""
 
+import hashlib
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -91,6 +92,12 @@ def decode_token(token: str, expected_type: str) -> dict[str, Any]:
     if payload.get("type") != expected_type:
         raise jwt.InvalidTokenError("tipo de token inesperado")
     return payload
+
+
+def hash_token(token: str) -> str:
+    """SHA-256 de token aleatório de alta entropia (links por e-mail, dispositivo
+    confiável): sem sal/Argon2 — não é senha e precisa de lookup por hash."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def new_csrf_token() -> str:

@@ -70,8 +70,9 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
 
 1. **X-Forwarded-For confiável.** No Nginx Proxy Manager, use
    `proxy_set_header X-Forwarded-For $remote_addr;` (**substituir**, não anexar) e
-   defina `FORWARDED_ALLOW_IPS` com o IP do NPM (não `*`). Sem isso, o IP na
-   auditoria pode ser forjado pelo cliente.
+   defina `FORWARDED_ALLOW_IPS` com o IP do NPM. O container `frontend` só aceita
+   X-Forwarded-For desses IPs (`*` = faixas privadas) e repassa ao backend apenas
+   o IP resolvido — é ele que vale no rate-limit, no bloqueio de login e na auditoria.
 2. **Firewall.** Exponha `WEB_PORT` só para o servidor do NPM; `1812-1813/udp` só
    para a rede de gerência, e `49/tcp` idem (freeradius e tacacs usam `network_mode: host`,
    então o `ufw allow from <rede> to any port …` comum filtra; não precisa de ufw-docker
@@ -100,8 +101,8 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
 
 - **`RADIUS_REQUIRE_MA`**: `auto` por padrão (exige Message-Authenticator de quem
   já envia). Se todo o parque suporta, mude para `yes` no `.env`.
-- **`FORWARDED_ALLOW_IPS`**: `*` por padrão. Pinne no IP do NPM em produção
-  (item 1 acima).
+- **`FORWARDED_ALLOW_IPS`**: `*` por padrão (= faixas privadas). Pinne no IP do
+  NPM em produção (item 1 acima).
 - **CoA/Disconnect (3799/udp)**: fora do escopo desta versão; se habilitar,
   restrinja no firewall.
 - **Separação de banco**: `app_system_user`/`app_refresh_token`/`app_audit_log`

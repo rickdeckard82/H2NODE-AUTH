@@ -30,6 +30,12 @@ interface FormState {
   password2?: string;
 }
 
+/** ISO com fuso (da API) → valor de `datetime-local`, que é no fuso do navegador. */
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 const empty: FormState = {
   username: "",
   full_name: "",
@@ -231,7 +237,7 @@ export default function AuthUsersPage() {
                             auth_group_id: u.auth_group_id ?? "",
                             is_active: u.is_active,
                             expires_at: u.expires_at
-                              ? u.expires_at.slice(0, 16)
+                              ? toLocalInput(u.expires_at)
                               : "",
                             password: "",
                           })

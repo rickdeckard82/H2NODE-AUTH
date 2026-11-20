@@ -44,7 +44,7 @@ class CommandEventOut(BaseModel):
 
 
 class DailyPoint(BaseModel):
-    date: str  # YYYY-MM-DD (UTC)
+    date: str  # YYYY-MM-DD no fuso do operador
     accepts: int
     rejects: int
     sessions: int

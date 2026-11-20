@@ -114,6 +114,8 @@ def test_change_own_password(auth_client):
         "current_password": "changeme-admin-123", "new_password": "brand-new-password-1",
     })
     assert ok.status_code == 200, ok.text
+    # a troca emite sessão nova (as outras caem); o front lê o CSRF do cookie
+    auth_client.headers.update({"X-CSRF-Token": auth_client.cookies.get("pr_csrf")})
 
     bad = auth_client.patch("/api/auth/me/password", json={
         "current_password": "wrong-password", "new_password": "another-password-1",

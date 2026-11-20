@@ -1,7 +1,6 @@
 """2FA para usuários do painel: TOTP (RFC 6238) + códigos de recuperação
 + dispositivos confiáveis ("lembrar deste dispositivo")."""
 
-import hashlib
 import secrets
 from datetime import timedelta
 
@@ -9,7 +8,7 @@ import pyotp
 import segno
 
 from app.core.config import settings
-from app.core.security import hash_password, utcnow, verify_password
+from app.core.security import hash_password, hash_token, utcnow, verify_password
 from app.models import MfaRecoveryCode, MfaTrustedDevice, SystemUser
 
 _ISSUER = "H2NODE Auth"
@@ -87,12 +86,7 @@ def consume_recovery_code(user: SystemUser, code: str) -> bool:
 
 # --- Dispositivos confiáveis ("lembrar deste dispositivo") --------------------
 #
-# Token aleatório de 256 bits: entropia suficiente para guardar só o SHA-256
-# (sem sal/Argon2 — não é senha e precisa de lookup por hash a cada login).
-
-
-def hash_device_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
+# Token aleatório de 256 bits; no banco só o SHA-256 (core.security.hash_token).
 
 
 def register_trusted_device(
@@ -102,7 +96,7 @@ def register_trusted_device(
     cookie, a linha). Sem commit — quem chama fecha a transação."""
     token = secrets.token_urlsafe(32)
     device = MfaTrustedDevice(
-        token_hash=hash_device_token(token),
+        token_hash=hash_token(token),
         user_agent=(user_agent or "")[:255] or None,
         ip_address=ip_address,
         expires_at=utcnow() + timedelta(days=settings.mfa_trusted_device_ttl_days),
@@ -116,7 +110,7 @@ def trusted_device_valid(user: SystemUser, token: str) -> bool:
     usuário. Nesse caso renova o uso e estende a validade (janela deslizante)."""
     if not token:
         return False
-    wanted = hash_device_token(token)
+    wanted = hash_token(token)
     now = utcnow()
     for dev in user.mfa_trusted_devices:
         if secrets.compare_digest(dev.token_hash, wanted) and dev.expires_at > now:

@@ -18,6 +18,7 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
     hash_password,
+    hash_token,
     needs_rehash,
     new_csrf_token,
     utcnow,
@@ -26,7 +27,6 @@ from app.core.security import (
 from app.models import AuthUser, RefreshToken, SystemUser
 from app.schemas.auth import (
     AcceptInviteIn,
-    RadiusResetIn,
     ChangePasswordIn,
     InviteOut,
     LoginIn,
@@ -38,12 +38,13 @@ from app.schemas.auth import (
     MfaRegenerateIn,
     MfaSetupOut,
     MfaVerifyIn,
+    RadiusResetIn,
     RecoveryCodesOut,
     SessionOut,
     TrustedDeviceOut,
 )
 from app.schemas.common import Message
-from app.services import audit, auth_user_reset, invites, radius_sync, twofactor
+from app.services import audit, auth_user_reset, invites, radius_sync, tokens, twofactor
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -56,6 +57,23 @@ _TOKEN_GC_KEEP_DAYS = 1  # remove tokens expirados/revogados há mais de 1 dia
 
 def _lockout_minutes(strikes: int) -> int:
     return min(_LOCKOUT_BASE_MINUTES * (2 ** max(strikes - 1, 0)), _LOCKOUT_CAP_MINUTES)
+
+
+def _is_locked(user: SystemUser) -> bool:
+    return bool(user.locked_until and user.locked_until > utcnow())
+
+
+def _register_failure(db: Session, user: SystemUser) -> None:
+    """Senha ou código 2FA errado: soma no contador e bloqueia ao chegar no teto."""
+    user.failed_login_count += 1
+    if user.failed_login_count >= _MAX_FAILED_LOGINS:
+        user.lockout_strikes += 1
+        user.locked_until = utcnow() + timedelta(minutes=_lockout_minutes(user.lockout_strikes))
+        user.failed_login_count = 0
+    db.commit()
+
+
+_LOCKED_MSG = "conta temporariamente bloqueada por excesso de tentativas; tente mais tarde"
 
 
 def _mfa_code_ok(user: SystemUser, code: str) -> bool:
@@ -78,6 +96,27 @@ def _gc_refresh_tokens(db: Session) -> None:
             RefreshToken.issued_at < cutoff,
         )
         .execution_options(synchronize_session=False)
+    )
+
+
+def _revoke_all_sessions(db: Session, user_id: int) -> None:
+    db.query(RefreshToken).filter(
+        RefreshToken.system_user_id == user_id, RefreshToken.revoked.is_(False)
+    ).update({"revoked": True})
+
+
+_ROTATION_GRACE = timedelta(seconds=30)
+
+
+def _rotated_just_now(db: Session, stored: RefreshToken) -> bool:
+    """Token revogado por rotação (não por logout/troca de senha) há < 30s."""
+    if not stored.replaced_by_jti:
+        return False
+    new = db.execute(
+        select(RefreshToken).where(RefreshToken.jti == stored.replaced_by_jti)
+    ).scalar_one_or_none()
+    return (
+        new is not None and not new.revoked and new.issued_at > utcnow() - _ROTATION_GRACE
     )
 
 
@@ -126,13 +165,19 @@ def _clear_trusted_device_cookie(resp: Response) -> None:
     )
 
 
-def _issue_session(db: Session, resp: Response, user: SystemUser, request: Request) -> str:
+def _issue_session(
+    db: Session, resp: Response, user: SystemUser, request: Request,
+    replaces: RefreshToken | None = None,
+) -> str:
     access = create_access_token(str(user.id), user.role.value)
     refresh, jti, exp = create_refresh_token(str(user.id))
     csrf = new_csrf_token()
+    if replaces is not None:  # rotação: o token velho aponta para o novo
+        replaces.revoked = True
+        replaces.replaced_by_jti = jti
     db.add(
         RefreshToken(
-            jti=jti, system_user_id=user.id, expires_at=exp,
+            jti=jti, system_user_id=user.id, expires_at=exp, issued_at=utcnow(),
             user_agent=(request.headers.get("user-agent") or "")[:255] or None,
             ip_address=client_ip(request),
         )
@@ -170,11 +215,8 @@ def login(
     ).scalar_one_or_none()
 
     # Conta bloqueada por tentativas malsucedidas.
-    if user is not None and user.locked_until and user.locked_until > utcnow():
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            "conta temporariamente bloqueada por excesso de tentativas; tente mais tarde",
-        )
+    if user is not None and _is_locked(user):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, _LOCKED_MSG)
 
     # verify_password sempre executa (mesmo com user inexistente/sem senha ainda
     # definida, contra um hash descartável) para não vazar isso por timing.
@@ -184,14 +226,7 @@ def login(
 
     if user is None or not password_ok:
         if user is not None:
-            user.failed_login_count += 1
-            if user.failed_login_count >= _MAX_FAILED_LOGINS:
-                user.lockout_strikes += 1
-                user.locked_until = utcnow() + timedelta(
-                    minutes=_lockout_minutes(user.lockout_strikes)
-                )
-                user.failed_login_count = 0
-            db.commit()
+            _register_failure(db, user)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "credenciais inválidas")
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "conta desativada")
@@ -227,7 +262,10 @@ def verify_mfa(
     user = db.get(SystemUser, int(payload["sub"]))
     if user is None or not user.is_active or not user.mfa_enabled or not user.mfa_secret:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "sessão de 2FA inválida")
+    if _is_locked(user):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, _LOCKED_MSG)
     if not _mfa_code_ok(user, body.code):
+        _register_failure(db, user)  # sem isto, quem tem a senha chuta o TOTP à vontade
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "código de 2FA inválido")
 
     if body.remember_device and settings.mfa_trusted_device_ttl_days > 0:
@@ -262,13 +300,14 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     stored = db.execute(
         select(RefreshToken).where(RefreshToken.jti == payload["jti"])
     ).scalar_one_or_none()
+    if stored is not None and stored.revoked and _rotated_just_now(db, stored):
+        # outra aba renovou com este mesmo cookie há instantes: não é roubo. O
+        # navegador já tem o cookie novo — o front repete a requisição.
+        raise HTTPException(status.HTTP_409_CONFLICT, "sessão renovada em outra aba")
     if stored is None or stored.revoked or stored.expires_at < utcnow():
         # reuso de token revogado => derruba toda a árvore de sessões do usuário
         if stored is not None:
-            db.query(RefreshToken).filter(
-                RefreshToken.system_user_id == stored.system_user_id,
-                RefreshToken.revoked.is_(False),
-            ).update({"revoked": True})
+            _revoke_all_sessions(db, stored.system_user_id)
             db.commit()
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "refresh revogado")
 
@@ -276,8 +315,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     if user is None or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "conta inativa")
 
-    stored.revoked = True
-    csrf = _issue_session(db, response, user, request)
+    csrf = _issue_session(db, response, user, request, replaces=stored)
     db.commit()
     return SessionOut(user=MeOut.model_validate(user), csrf_token=csrf)
 
@@ -333,7 +371,10 @@ def change_my_password(
     if not user.password_hash or not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "senha atual incorreta")
     user.password_hash = hash_password(body.new_password)
-    # a senha pode ter vazado: derruba os dispositivos que pulavam o 2FA
+    # a senha pode ter vazado: derruba as outras sessões (fica só uma nova, a
+    # deste navegador) e os dispositivos que pulavam o 2FA
+    _revoke_all_sessions(db, user.id)
+    _issue_session(db, response, user, request)
     dropped = twofactor.discard_trusted_devices(user)
     _clear_trusted_device_cookie(response)
     audit.record(
@@ -446,7 +487,7 @@ def list_trusted_devices(
 ) -> list[TrustedDeviceOut]:
     """Dispositivos em que o 2FA foi lembrado (ainda válidos), mais recente primeiro."""
     tok = request.cookies.get(settings.mfa_device_cookie_name)
-    current_hash = twofactor.hash_device_token(tok) if tok else None
+    current_hash = hash_token(tok) if tok else None
     now = utcnow()
     return [
         TrustedDeviceOut(
@@ -483,7 +524,7 @@ def revoke_trusted_device(
     if dev is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "dispositivo não encontrado")
     tok = request.cookies.get(settings.mfa_device_cookie_name)
-    if tok and dev.token_hash == twofactor.hash_device_token(tok):
+    if tok and dev.token_hash == hash_token(tok):
         _clear_trusted_device_cookie(response)
     before = {"user_agent": dev.user_agent, "ip_address": dev.ip_address, "reason": "manual"}
     user.mfa_trusted_devices.remove(dev)
@@ -515,12 +556,11 @@ def accept_reset(body: AcceptInviteIn, request: Request, db: Session = Depends(g
     user = db.get(SystemUser, invite.system_user_id) if invite else None
     if invite is None or user is None or not user.has_password or not user.is_active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "link inválido ou expirado")
+    if not tokens.consume(db, invite):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "link inválido ou expirado")
     user.password_hash = hash_password(body.password)
-    invite.used_at = utcnow()
     # encerra todas as sessões abertas; MFA continua exigido no próximo login
-    db.query(RefreshToken).filter(
-        RefreshToken.system_user_id == user.id, RefreshToken.revoked.is_(False)
-    ).update({"revoked": True})
+    _revoke_all_sessions(db, user.id)
     audit.record(
         db, action="reset_password", entity_type="system_user", entity_id=user.id,
         actor_id=user.id, actor_username=user.username, ip_address=client_ip(request),
@@ -543,9 +583,10 @@ def accept_invite(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "conta desativada")
+    if not tokens.consume(db, invite):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "convite inválido ou expirado")
 
     user.password_hash = hash_password(body.password)
-    invite.used_at = utcnow()
     user.last_login_at = utcnow()
     _gc_refresh_tokens(db)
     csrf = _issue_session(db, response, user, request)
@@ -580,8 +621,9 @@ def accept_radius_reset(
     user = db.get(AuthUser, row.auth_user_id) if row else None
     if row is None or user is None or not user.is_active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "link inválido ou expirado")
+    if not tokens.consume(db, row):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "link inválido ou expirado")
     radius_sync.sync_auth_user(db, user, password=body.password)
-    row.used_at = utcnow()
     audit.record(
         db, action="reset_password", entity_type="auth_user", entity_id=user.id,
         actor_username=user.username, ip_address=client_ip(request),

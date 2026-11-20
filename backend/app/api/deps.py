@@ -60,14 +60,9 @@ require_superadmin = require_roles()  # só superadmin (lista vazia => cai no ch
 
 
 def client_ip(request: Request) -> str | None:
-    """IP do cliente para auditoria/registro.
+    """IP do cliente para auditoria/registro — o mesmo que o rate-limit usa.
 
-    Só é confiável se o reverse proxy da borda SUBSTITUIR o X-Forwarded-For pelo
-    IP real (ex.: no Nginx Proxy Manager: `proxy_set_header X-Forwarded-For
-    $remote_addr;`). Caso contrário o primeiro valor é fornecido pelo cliente e
-    pode ser forjado. Ver docs/deploy-behind-npm.md.
+    O uvicorn já o tira do X-Forwarded-For, que o nginx do frontend (ou o proxy
+    TLS embutido) reescreve com o IP real resolvido (frontend/realip.sh).
     """
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
     return request.client.host if request.client else None

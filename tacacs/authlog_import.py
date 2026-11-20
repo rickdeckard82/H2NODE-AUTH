@@ -102,8 +102,16 @@ def parse(line: str) -> tuple | None:
 
 def main() -> None:
     global _conn
+    # um byte que não é UTF-8 (ex.: num comando digitado no equipamento) não
+    # pode derrubar o importador — nada o reinicia sozinho
+    sys.stdin.reconfigure(errors="replace")
     for line in sys.stdin:
-        row = parse(line)
+        try:
+            row = parse(line)
+        except Exception as exc:  # noqa: BLE001 - linha ruim: registra e segue
+            sys.stderr.write(f"authlog_import: linha ignorada ({exc}): {line[:200]!r}\n")
+            sys.stderr.flush()
+            continue
         if row is None:
             continue
         for attempt in (1, 2):
@@ -111,7 +119,7 @@ def main() -> None:
                 with _cursor() as cur:
                     cur.execute(_INSERT, row)
                 break
-            except (pymysql.Error, RuntimeError) as exc:
+            except Exception as exc:  # noqa: BLE001 - o loop nunca morre
                 _conn = None
                 if attempt == 2:
                     sys.stderr.write(f"authlog_import: {exc}\n")

@@ -30,12 +30,15 @@ if ! /opt/tacplus/sbin/tac_plus-ng -P "$CFG" 2>&1; then
 fi
 echo "[h2node-tacacs] OK."
 
-# Importador de accounting: segue o log e grava em cmd_acct.
-( tail -n0 -F "$ACCT" | /usr/bin/python3 /opt/h2node/acct_import.py ) &
+# Importador de accounting: segue o log e grava em cmd_acct. O `while` o
+# reinicia se o Python morrer — senão o accounting pararia sem nenhum alerta.
+( while :; do tail -n0 -F "$ACCT" | /usr/bin/python3 /opt/h2node/acct_import.py
+    echo "[h2node-tacacs] acct_import saiu; reiniciando" >&2; sleep 2; done ) &
 
 # Importador de autenticação: segue o access.log e grava as tentativas de
 # login de shell em radpostauth (protocol='tacacs') — tela Authentication.
-( tail -n0 -F "$ACCESS" | /usr/bin/python3 /opt/h2node/authlog_import.py ) &
+( while :; do tail -n0 -F "$ACCESS" | /usr/bin/python3 /opt/h2node/authlog_import.py
+    echo "[h2node-tacacs] authlog_import saiu; reiniciando" >&2; sleep 2; done ) &
 
 # Watcher: quando o painel regrava h2node.cfg (rename atômico), recarrega o daemon.
 # Observa o DIRETÓRIO — sobrevive ao os.replace() que troca o inode do arquivo.

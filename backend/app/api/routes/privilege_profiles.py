@@ -71,11 +71,12 @@ def create_profile(
     db.add(profile)
     db.flush()
     radius_sync.sync_profile_groupreply(db, profile)
-    tacacs_sync.regenerate(db)
     audit.record(db, action="create", entity_type="privilege_profile", entity_id=profile.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  after={"name": profile.name, "attrs": len(profile.attrs)})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    tacacs_sync.regenerate(db)
     db.refresh(profile)
     return _to_out(profile)
 
@@ -120,12 +121,13 @@ def update_profile(
     if body.name and old_name != profile.name:
         radius_sync.rename_profile_group(db, old_name, profile.name)
     radius_sync.sync_profile_groupreply(db, profile)
-    tacacs_sync.regenerate(db)
 
     audit.record(db, action="update", entity_type="privilege_profile", entity_id=profile.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  after={"name": profile.name, "attrs": len(profile.attrs)})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    tacacs_sync.regenerate(db)
     db.refresh(profile)
     return _to_out(profile)
 
@@ -154,8 +156,9 @@ def delete_profile(
     db.delete(profile)
     db.flush()
     radius_sync.delete_profile_group(db, group)
-    tacacs_sync.regenerate(db)
     audit.record(db, action="delete", entity_type="privilege_profile", entity_id=profile_id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
                  before={"name": profile.name})
     db.commit()
+    # só depois do commit: o arquivo reflete o que está gravado
+    tacacs_sync.regenerate(db)

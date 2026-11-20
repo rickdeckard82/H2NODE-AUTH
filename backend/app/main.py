@@ -1,5 +1,6 @@
 import uuid
 from contextlib import asynccontextmanager
+from importlib.metadata import version
 
 import structlog
 from fastapi import FastAPI, Request, status
@@ -42,7 +43,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="H2NODE Auth API",
-    version="0.1.0",
+    version=version("h2node-auth-backend"),  # pyproject.toml: uma fonte só
     docs_url=f"{settings.api_prefix}/docs" if settings.enable_docs else None,
     openapi_url=f"{settings.api_prefix}/openapi.json" if settings.enable_docs else None,
     redoc_url=None,
