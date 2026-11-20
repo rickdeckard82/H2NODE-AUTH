@@ -5,7 +5,9 @@
 Sistema AAA completo para **login administrativo em equipamentos de rede** via
 **RADIUS e TACACS+**, com painel web para gerenciamento. Stack: **FreeRADIUS 3.2 +
 tac_plus-ng + MySQL 8** para o AAA, **FastAPI** no backend, **React + Vite** no
-frontend, tudo em **Docker**.
+frontend, tudo em **Docker**. Faz parte da família **H2NODE**, com o
+[H2NODE Backup](https://github.com/rickdeckard82/H2NODE-Backup) — mesmo padrão visual e de
+código. Página do projeto: <https://ehs.eti.br/h2node-auth>.
 
 | Camada | O que faz |
 |---|---|
@@ -172,4 +174,33 @@ proxy/       nginx (TLS, roteamento /api e SPA)
 docs/        ARCHITECTURE, RUNBOOK, SECURITY e snippets de configuração por fabricante
 ```
 
-Ver [ARCHITECTURE](docs/ARCHITECTURE.md), [RUNBOOK](docs/RUNBOOK.md), [SECURITY](docs/SECURITY.md) e [deploy atrás do NPM](docs/deploy-behind-npm.md).
+## Configurar os equipamentos
+
+Cada equipamento aponta para o IP do servidor do H2NODE Auth (RADIUS `1812`/`1813` udp ou
+TACACS+ `49` tcp) com o segredo/chave cadastrado no painel:
+
+| Fabricante | Protocolo | Guia |
+|---|---|---|
+| Huawei (VRP) | RADIUS ou HWTACACS | [docs/device-config/huawei.md](docs/device-config/huawei.md) |
+| Juniper (JUNOS) | RADIUS ou TACACS+ | [docs/device-config/juniper.md](docs/device-config/juniper.md) |
+| Datacom (DmOS) | RADIUS ou TACACS+ | [docs/device-config/datacom.md](docs/device-config/datacom.md) |
+| MikroTik (RouterOS) | RADIUS | [docs/device-config/mikrotik.md](docs/device-config/mikrotik.md) |
+| A10 Networks (ACOS / Thunder CGN) | RADIUS ou TACACS+ | [docs/device-config/a10.md](docs/device-config/a10.md) |
+| ZTE (OLTs Titan C6xx) | TACACS+ | [docs/device-config/zte.md](docs/device-config/zte.md) |
+| Dell EMC Networking (N-Series) | TACACS+ | [docs/device-config/dell.md](docs/device-config/dell.md) |
+
+## Documentação
+
+- [ARCHITECTURE](docs/ARCHITECTURE.md) — componentes, redes e fluxo de AAA
+- [RUNBOOK](docs/RUNBOOK.md) — operação do dia a dia, backup/restauração, TACACS+, troubleshooting
+- [SECURITY](docs/SECURITY.md) — o que já está implementado e o que depende da sua infra
+- [Deploy atrás do Nginx Proxy Manager](docs/deploy-behind-npm.md)
+- [Hardening do host](docs/host-hardening.md) — SSH, firewall e disco
+- [Migração do Pulse RADIUS](docs/migracao-h2node.md)
+- [CHANGELOG](CHANGELOG.md)
+
+## Licença
+
+Distribuído sob a licença **MIT** — veja [LICENSE](LICENSE). Uso livre, inclusive comercial,
+com modificação e redistribuição; a única exigência é manter o aviso de copyright e a licença
+(crédito ao autor: Everton — [github.com/rickdeckard82](https://github.com/rickdeckard82)).
