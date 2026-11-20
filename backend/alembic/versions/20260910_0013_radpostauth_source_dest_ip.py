@@ -1,6 +1,6 @@
 """radpostauth: IP de origem/destino + protocolo (RADIUS/TACACS+)
 
-Acrescenta colunas próprias do Pulse à tabela padrão `radpostauth`:
+Acrescenta colunas próprias do H2NODE Auth à tabela padrão `radpostauth`:
 
 - `nasipaddress`    — IP de origem da tentativa (o equipamento).
 - `serveripaddress` — IP de destino (o servidor AAA que recebeu o pacote).
@@ -10,7 +10,7 @@ Acrescenta colunas próprias do Pulse à tabela padrão `radpostauth`:
 
 Fora do autogenerate (env.py: RADIUS_TABLES). Como em 0011 (`nas`), nada impede
 acrescentar colunas próprias a uma tabela do schema FreeRADIUS; o `db/init` cria
-só o schema padrão e as migrações somam as colunas do Pulse.
+só o schema padrão e as migrações somam as colunas do H2NODE Auth.
 
 Revision ID: 0013_radpostauth_src_dst
 Revises: 0012_mfa_recovery

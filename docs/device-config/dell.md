@@ -1,4 +1,4 @@
-# Dell EMC Networking (N1524 / N-Series, OS6) — apontar para o Pulse TACACS+
+# Dell EMC Networking (N1524 / N-Series, OS6) — apontar para o H2NODE Auth (TACACS+)
 
 Validado em um **N1524 (firmware 6.6.0.2)**. Hoje o fabricante **Dell** no painel
 só está preparado para **TACACS+** — não há VSA RADIUS mapeado (o grupo existe como
@@ -28,15 +28,15 @@ exit
 ```
 
 - `tacacs local` deixa o usuário local (`username ... privilege 15`) como fallback
-  se o Pulse não responder.
+  se o H2NODE Auth não responder.
 - A lista `TACACS` vale para o login; `TACP` para o `enable` (que também passa
   pelo TACACS+). Aplique também em `line console` / `line telnet` se usar.
-- O Pulse precisa estar com o IP do switch cadastrado como equipamento do grupo
+- O H2NODE Auth precisa estar com o IP do switch cadastrado como equipamento do grupo
   Dell (use o IP da VLAN de gerência, ex.: `interface vlan 516`).
 
 ## Autorização e nível de privilégio
 
-O TACACS+ do Pulse é agnóstico de fabricante: o `priv-lvl` do perfil de privilégio
+O TACACS+ do H2NODE Auth é agnóstico de fabricante: o `priv-lvl` do perfil de privilégio
 (15 / 10 / 1) é entregue no login. Não é necessário nenhum VSA `Dell-*`.
 
 ## Contabilização de comandos

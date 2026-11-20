@@ -52,13 +52,13 @@ def send_invite_email(db: Session, user: SystemUser, token: str) -> None:
     link = f"{settings.frontend_origin.rstrip('/')}/set-password?token={token}"
     text = (
         f"Olá, {user.full_name}.\n\n"
-        f"Uma conta foi criada para você no Pulse RADIUS ({user.username}).\n"
+        f"Uma conta foi criada para você no H2NODE Auth ({user.username}).\n"
         f"Para concluir o cadastro e definir sua senha, acesse:\n{link}\n\n"
         f"Este link expira em {INVITE_TTL_HOURS} horas."
     )
     html = (
         f"<p>Olá, {user.full_name}.</p>"
-        f"<p>Uma conta foi criada para você no <strong>Pulse RADIUS</strong> "
+        f"<p>Uma conta foi criada para você no <strong>H2NODE Auth</strong> "
         f"(usuário <code>{user.username}</code>).</p>"
         f"<p>Para concluir o cadastro e definir sua senha, "
         f'<a href="{link}">clique aqui</a>.</p>'
@@ -66,7 +66,7 @@ def send_invite_email(db: Session, user: SystemUser, token: str) -> None:
         f"{INVITE_TTL_HOURS} horas. Se você não esperava este e-mail, ignore-o.</p>"
     )
     mailer.send_mail(
-        db, to=user.email, subject="Pulse RADIUS — finalize seu cadastro", html=html, text=text
+        db, to=user.email, subject="H2NODE Auth — finalize seu cadastro", html=html, text=text
     )
 
 
@@ -78,18 +78,18 @@ def send_reset_email(db: Session, user: SystemUser, token: str) -> None:
     text = (
         f"Olá, {user.full_name}.\n\n"
         f"Um administrador solicitou a redefinição da senha da sua conta no "
-        f"Pulse RADIUS ({user.username}).\n"
+        f"H2NODE Auth ({user.username}).\n"
         f"Para criar uma nova senha, acesse:\n{link}\n\n"
         f"Este link expira em {RESET_TTL_HOURS} horas."
     )
     html = (
         f"<p>Olá, {user.full_name}.</p>"
         f"<p>Um administrador solicitou a redefinição da senha da sua conta no "
-        f"<strong>Pulse RADIUS</strong> (usuário <code>{user.username}</code>).</p>"
+        f"<strong>H2NODE Auth</strong> (usuário <code>{user.username}</code>).</p>"
         f'<p>Para criar uma nova senha, <a href="{link}">clique aqui</a>.</p>'
         f"<p style=\"color:#64748b;font-size:13px\">Este link expira em "
         f"{RESET_TTL_HOURS} horas. Se você não esperava este e-mail, ignore-o.</p>"
     )
     mailer.send_mail(
-        db, to=user.email, subject="Pulse RADIUS — redefinição de senha", html=html, text=text
+        db, to=user.email, subject="H2NODE Auth — redefinição de senha", html=html, text=text
     )

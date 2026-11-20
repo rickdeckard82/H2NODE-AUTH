@@ -22,7 +22,7 @@ def _configure_smtp(auth_client) -> None:
     r = auth_client.put("/api/settings/smtp", json={
         "host": "smtp.example.com", "port": 587, "username": "bot@example.com",
         "password": "s3cr3t-smtp-pass", "use_tls": True, "use_ssl": False,
-        "from_email": "no-reply@example.com", "from_name": "Pulse RADIUS",
+        "from_email": "no-reply@example.com", "from_name": "H2NODE Auth",
     })
     assert r.status_code == 200, r.text
 

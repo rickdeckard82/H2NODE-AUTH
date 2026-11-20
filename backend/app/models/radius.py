@@ -92,7 +92,7 @@ class RadPostAuth(Base):
     reply: Mapped[str] = mapped_column(String(64), default="")
     authdate: Mapped[datetime] = mapped_column(DateTime)
     class_: Mapped[str | None] = mapped_column("class", String(64))
-    # Colunas próprias do Pulse (fora do schema padrão do FreeRADIUS):
+    # Colunas próprias do H2NODE Auth (fora do schema padrão do FreeRADIUS):
     # nasipaddress    — IP do equipamento acessado (o NAS/TACACS client).
     # callingstationid — IP real de onde o técnico conectou (Calling-Station-Id
     #                    no RADIUS; rem-addr do access.log no TACACS+). Pode
@@ -136,6 +136,6 @@ class Nas(Base):
     server: Mapped[str | None] = mapped_column(String(64))
     community: Mapped[str | None] = mapped_column(String(50))
     description: Mapped[str | None] = mapped_column(String(200), default="RADIUS Client")
-    # Coluna própria do Pulse RADIUS (fora do schema padrão do FreeRADIUS):
+    # Coluna própria do H2NODE Auth (fora do schema padrão do FreeRADIUS):
     # False => exceção por NAS, ver Equipment.radius_require_message_authenticator.
     require_message_authenticator: Mapped[bool] = mapped_column(Boolean, default=True)

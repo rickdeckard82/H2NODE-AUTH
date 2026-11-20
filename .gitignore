@@ -15,3 +15,6 @@ proxy/tls/*.key
 proxy/tls/*.crt
 *.log
 .DS_Store
+
+# ambiente local de demonstração (contém segredos)
+.demo/

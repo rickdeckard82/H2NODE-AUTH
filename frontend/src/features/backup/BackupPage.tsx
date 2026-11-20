@@ -34,7 +34,7 @@ export default function BackupPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `pulse-radius-backup-${stamp}.sql${encryptExport ? ".enc" : ""}`;
+      a.download = `h2node-auth-backup-${stamp}.sql${encryptExport ? ".enc" : ""}`;
       a.click();
       URL.revokeObjectURL(url);
     },

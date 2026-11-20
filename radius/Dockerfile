@@ -9,7 +9,7 @@ COPY sites-available/dynamic-clients    /etc/raddb/sites-available/dynamic-clien
 COPY policy.d/vendor-authz              /etc/raddb/policy.d/vendor-authz
 COPY clients.conf                       /etc/raddb/clients.conf
 COPY dictionary.local                   /etc/raddb/dictionary.local
-COPY entrypoint.sh                      /usr/local/bin/pulse-entrypoint.sh
+COPY entrypoint.sh                      /usr/local/bin/h2node-entrypoint.sh
 
 RUN set -eux; \
     # habilita sql + acct_unique + virtual server de clientes dinâmicos
@@ -20,7 +20,7 @@ RUN set -eux; \
     rm -f /etc/raddb/mods-enabled/eap /etc/raddb/sites-enabled/inner-tunnel; \
     # inclui o dicionário local a partir do dicionário raiz
     printf '\n$INCLUDE dictionary.local\n' >> /etc/raddb/dictionary; \
-    chmod +x /usr/local/bin/pulse-entrypoint.sh
+    chmod +x /usr/local/bin/h2node-entrypoint.sh
 
-ENTRYPOINT ["/usr/local/bin/pulse-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/h2node-entrypoint.sh"]
 CMD ["freeradius", "-f", "-l", "stdout"]

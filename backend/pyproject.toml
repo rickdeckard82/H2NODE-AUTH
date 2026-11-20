@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 packages = ["app"]
 
 [project]
-name = "pulse-radius-backend"
-version = "1.1.1"
-description = "API do painel Pulse RADIUS (AAA com FreeRADIUS + MySQL)"
+name = "h2node-auth-backend"
+version = "1.2.0"
+description = "API do painel H2NODE Auth (AAA com FreeRADIUS + MySQL)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.141.1",

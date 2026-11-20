@@ -163,7 +163,7 @@ export default function SmtpSettingsPage() {
               className="input"
               value={form.from_name}
               onChange={(e) => setForm({ ...form, from_name: e.target.value })}
-              placeholder="Pulse RADIUS"
+              placeholder="H2NODE Auth"
             />
           </Field>
           <div className="col-span-2 flex flex-wrap gap-4">

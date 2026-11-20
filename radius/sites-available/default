@@ -50,21 +50,21 @@ authorize {
     # que também tem dois-pontos e dígitos hex); qualquer outro caso (vazio,
     # MAC, IPv6, lixo) cai no IP de origem do pacote (comportamento anterior).
     update control {
-        &Pulse-Origin-IP := "%{Packet-Src-IP-Address}"
+        &H2NODE-Origin-IP := "%{Packet-Src-IP-Address}"
     }
     if (&Calling-Station-Id =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/) {
         update control {
-            &Pulse-Origin-IP := "%{Calling-Station-Id}"
+            &H2NODE-Origin-IP := "%{Calling-Station-Id}"
             # Sem fallback: só existe quando o valor acima é mesmo um IP do
             # técnico, para não gravar o IP do equipamento como se fosse a
             # origem em radpostauth (ver post-auth).
-            &Pulse-Client-IP := "%{Calling-Station-Id}"
+            &H2NODE-Client-IP := "%{Calling-Station-Id}"
         }
     }
 
     # Se o usuário está num grupo e nenhuma faixa do grupo cobre o IP de
     # origem apurado acima => rejeita.
-    if ("%{sql:SELECT 1 FROM app_auth_user u WHERE u.username = '%{tolower:%{User-Name}}' AND u.auth_group_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM app_auth_group_cidr c WHERE c.group_id = u.auth_group_id AND c.family = IF(LOCATE(':', '%{control:Pulse-Origin-IP}') > 0, 6, 4) AND INET6_ATON('%{control:Pulse-Origin-IP}') BETWEEN c.ip_start AND c.ip_end) LIMIT 1}" == "1") {
+    if ("%{sql:SELECT 1 FROM app_auth_user u WHERE u.username = '%{tolower:%{User-Name}}' AND u.auth_group_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM app_auth_group_cidr c WHERE c.group_id = u.auth_group_id AND c.family = IF(LOCATE(':', '%{control:H2NODE-Origin-IP}') > 0, 6, 4) AND INET6_ATON('%{control:H2NODE-Origin-IP}') BETWEEN c.ip_start AND c.ip_end) LIMIT 1}" == "1") {
         update reply { &Reply-Message := "IP de origem nao autorizado para o grupo" }
         update control { &Auth-Type := Reject }
     }
@@ -109,17 +109,17 @@ accounting {
     #
     # Cisco e a maioria dos gateways: Cisco-AVPair = "cmd=<comando>" (ou
     # "shell:cmd=..."). Para Huawei / Juniper / Datacom, mapeie o VSA real
-    # do SEU firmware para Pulse-Command num `update` aqui em cima — confirme
+    # do SEU firmware para H2NODE-Command num `update` aqui em cima — confirme
     # o nome com `freeradius -X` num comando real. Ver docs/device-config/.
     if ("%{Cisco-AVPair}" =~ /(?:^|shell:)cmd=(.+)$/) {
-        update control { &Pulse-Command := "%{1}" }
+        update control { &H2NODE-Command := "%{1}" }
     }
-    if (&control:Pulse-Command) {
+    if (&control:H2NODE-Command) {
         # %{sql:...} passa cada expansão %{} pela função de escape do driver
         # (chars fora de safe_characters viram "=XX"); o backend reverte na
         # leitura. Assim a string de comando nunca injeta SQL.
         update control {
-            &Pulse-Command-Action := "%{%{Pulse-Command-Action}:-exec}"
+            &H2NODE-Command-Action := "%{%{H2NODE-Command-Action}:-exec}"
         }
         "%{sql: \
             INSERT INTO cmd_acct \
@@ -127,7 +127,7 @@ accounting {
             VALUES ( \
               FROM_UNIXTIME(%{%{integer:Event-Timestamp}:-%l}), \
               '%{Packet-Src-IP-Address}', '%{User-Name}', '%{Calling-Station-Id}', \
-              '%{control:Pulse-Command-Action}', '%{control:Pulse-Command}', '%{Acct-Session-Id}' \
+              '%{control:H2NODE-Command-Action}', '%{control:H2NODE-Command}', '%{Acct-Session-Id}' \
             )}"
     }
 
@@ -157,7 +157,7 @@ post-auth {
           (username, pass, reply, authdate, nasipaddress, callingstationid, serveripaddress, protocol) \
         VALUES ( \
           '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
-          '%{Packet-Src-IP-Address}', '%{%{control:Pulse-Client-IP}:-}', '%{Packet-Dst-IP-Address}', 'radius' \
+          '%{Packet-Src-IP-Address}', '%{%{control:H2NODE-Client-IP}:-}', '%{Packet-Dst-IP-Address}', 'radius' \
         )}"
 
     update {
@@ -171,7 +171,7 @@ post-auth {
               (username, pass, reply, authdate, nasipaddress, callingstationid, serveripaddress, protocol) \
             VALUES ( \
               '%{User-Name}', '', '%{reply:Packet-Type}', '%S.%M', \
-              '%{Packet-Src-IP-Address}', '%{%{control:Pulse-Client-IP}:-}', '%{Packet-Dst-IP-Address}', 'radius' \
+              '%{Packet-Src-IP-Address}', '%{%{control:H2NODE-Client-IP}:-}', '%{Packet-Dst-IP-Address}', 'radius' \
             )}"
         attr_filter.access_reject
         update reply { &Reply-Message := "Acesso negado" }

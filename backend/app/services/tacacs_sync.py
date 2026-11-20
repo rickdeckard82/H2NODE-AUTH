@@ -110,7 +110,7 @@ def build_config(db: Session) -> tuple[str, int]:
     )
     ruleset = (
         "ruleset {\n"
-        "    rule pulse {\n"
+        "    rule h2node {\n"
         "        enabled = yes\n"
         "        script {\n"
         f"{rules}\n"
@@ -135,7 +135,7 @@ def regenerate(db: Session) -> int:
     text, n = build_config(db)
     directory = os.path.dirname(path) or "."
     os.makedirs(directory, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".pulse-tacacs-")
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".h2node-tacacs-")
     try:
         with os.fdopen(fd, "w") as fh:
             fh.write(text)

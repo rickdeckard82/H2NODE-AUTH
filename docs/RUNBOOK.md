@@ -1,4 +1,4 @@
-# Runbook — Pulse RADIUS
+# Runbook — H2NODE Auth
 
 ## Subir / derrubar
 
@@ -74,21 +74,21 @@ Se um equipamento novo não autenticar logo após o cadastro:
 O dump lógico é feito em Python (pymysql), não precisa do binário `mysqldump` no
 container do backend. Restaure só num stack com o **mesmo `FERNET_KEY`**.
 
-### Backup automático agendado por FTP/FTPS (inclusive Pulse Backup)
+### Backup automático agendado por FTP/FTPS (inclusive H2NODE Backup)
 
 No mesmo menu, o quadro **Backup automático por FTP** envia todo dia, no horário e
 fuso escolhidos, o mesmo dump do "Baixar backup" para um servidor FTP/FTPS:
 
-- **Arquivo**: `pulse-radius-backup-AAAAMMDD-HHMMSS.sql.enc` (cifrado com a
+- **Arquivo**: `h2node-auth-backup-AAAAMMDD-HHMMSS.sql.enc` (cifrado com a
   `FERNET_KEY`, padrão) ou `.sql.gz` (em claro, comprimido). Os dois são
   restauráveis direto em **Restaurar backup**.
 - **Envio**: grava como `.part`, confere o tamanho (`SIZE`) e renomeia; depois
   apaga as cópias além de **Cópias mantidas**. A pasta é criada se não existir.
   Nada fica no servidor — o arquivo vai de uma pasta temporária para o FTP e é
   apagado; sobras de uma execução interrompida somem quando o worker reinicia.
-- **Destino só de gravação (Pulse Backup)**: envia direto com o nome final, sem
+- **Destino só de gravação (H2NODE Backup)**: envia direto com o nome final, sem
   `SIZE`/`DELE`/`RNFR`, e não apaga nada — a retenção é a do servidor de backup.
-  O dump traz o cabeçalho/rodapé no formato do `mysqldump`, então o Pulse Backup
+  O dump traz o cabeçalho/rodapé no formato do `mysqldump`, então o H2NODE Backup
   confere se ele chegou completo (no `.sql.gz`; o `.sql.enc` é só guardado).
 - **Testar conexão** usa os dados do formulário sem salvar; **Executar agora**
   pede uma execução, que o worker pega em até `BACKUP_WORKER_INTERVAL_SECONDS`
@@ -134,7 +134,7 @@ sanidade (contagem de tabelas, `app_system_user`, `app_manufacturer`, `radcheck`
 isso num cron do host (ex.: mensal) e alerte se o exit code for != 0:
 
 ```cron
-0 4 1 * * cd /opt/pulse-radius && ./scripts/restore_drill.sh >> /var/log/pulse-radius-restore-drill.log 2>&1
+0 4 1 * * cd /opt/h2node-auth && ./scripts/restore_drill.sh >> /var/log/h2node-auth-restore-drill.log 2>&1
 ```
 
 Itens críticos a guardar fora do host: os dumps **e** o `.env` (contém `FERNET_KEY` —
@@ -168,12 +168,12 @@ traz o comando executado:
 - **Cisco e a maioria dos gateways** (`Cisco-AVPair = "cmd=..."` / `"shell:cmd=..."`)
   funcionam sem ajuste.
 - **Huawei / Juniper / Datacom / A10**: confirme o VSA real do seu firmware com
-  `freeradius -X` num comando executado e mapeie-o para `Pulse-Command` logo no
+  `freeradius -X` num comando executado e mapeie-o para `H2NODE-Command` logo no
   início do bloco em `radius/sites-available/default`, por ex.:
 
   ```
   if (&Huawei-Exec-Command) {           # troque pelo atributo REAL do seu firmware
-      update control { &Pulse-Command := "%{Huawei-Exec-Command}" }
+      update control { &H2NODE-Command := "%{Huawei-Exec-Command}" }
   }
   ```
 
@@ -188,10 +188,10 @@ falam TACACS+ — o **MikroTik não tem cliente TACACS+** e continua em RADIUS. 
 e o Dell hoje só falam TACACS+ neste projeto (sem VSA RADIUS mapeado).
 
 - **Autenticação/autorização** (usuário, senha, grupo): resolvidas em tempo de
-  request pelo **MAVIS** (`tacacs/pulse_mavis.py`) contra o MySQL do painel
+  request pelo **MAVIS** (`tacacs/h2node_mavis.py`) contra o MySQL do painel
   (reusa `SSHA2-512-Password` do `radcheck` e `radius_svc`). Trocar um usuário de
   autenticação **não** exige reload.
-- **Equipamentos + perfis**: o painel gera `/etc/tacacs-shared/pulse.cfg` (volume
+- **Equipamentos + perfis**: o painel gera `/etc/tacacs-shared/h2node.cfg` (volume
   `tacacs_conf`, `include`d) e o container recarrega com `SIGHUP` ao detectar a
   mudança. Regerado ao salvar equipamento / grupo de equipamentos / perfil.
 - **Accounting de comando**: o daemon grava
@@ -206,7 +206,7 @@ e o Dell hoje só falam TACACS+ neste projeto (sem VSA RADIUS mapeado).
   método varia por equipamento); as de autorização já vão para `cmd_acct`.
 - **Protocolo por equipamento**: no cadastro do grupo (padrão `radius`) e do
   equipamento (em branco = herda). `radius` ⇒ vira cliente `nas`; `tacacs` ⇒ vira
-  `host` no `pulse.cfg`. Alternar remove de um lado e adiciona no outro.
+  `host` no `h2node.cfg`. Alternar remove de um lado e adiciona no outro.
 
 Debug ao vivo:
 
@@ -215,7 +215,7 @@ docker compose exec tacacs sh -c 'pkill tac_plus-ng; \
   /opt/tacplus/sbin/tac_plus-ng -d 2047 -D -f /etc/tac_plus-ng/tac_plus-ng.cfg'
 # ou, testar só o MAVIS:
 docker compose exec tacacs sh -c \
-  'printf "0 TACPLUS\n4 <user>\n8 <senha>\n49 AUTH\n=\n" | python3 /opt/pulse/pulse_mavis.py'
+  'printf "0 TACPLUS\n4 <user>\n8 <senha>\n49 AUTH\n=\n" | python3 /opt/h2node/h2node_mavis.py'
 ```
 
 ## Rotação de segredos

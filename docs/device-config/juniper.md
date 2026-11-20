@@ -1,4 +1,4 @@
-# Juniper (JUNOS) — apontar para o Pulse RADIUS
+# Juniper (JUNOS) — apontar para o H2NODE Auth
 
 ```
 set system radius-server 10.0.0.254 port 1812
@@ -36,7 +36,7 @@ set system login user remote-radius class super-user
 ## Contabilização de comandos
 
 O Junos não envia comandos por RADIUS accounting de forma padronizada. Se a sua
-versão suportar, mapeie o VSA correspondente para `Pulse-Command` no
+versão suportar, mapeie o VSA correspondente para `H2NODE-Command` no
 `radius/sites-available/default` (bloco `accounting`) — ver `docs/RUNBOOK.md`.
 
 ## TACACS+ (alternativa ao RADIUS)

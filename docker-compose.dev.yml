@@ -3,14 +3,11 @@
 #
 # - COOKIE_SECURE=false  -> cookies funcionam sobre http://localhost
 # - backend com autoreload + migração/seed no start; API também direto em :8000
-# - MySQL exposto em :3306; FreeRADIUS em modo debug
+# - MySQL em localhost:3306 (via base); FreeRADIUS em modo debug
 # Abra:  http://localhost:8080   (container frontend: SPA + /api)
 #   ou:  http://localhost:5173   (se rodar o Vite à parte: cd frontend && npm run dev)
 services:
-  db:
-    ports:
-      - "3306:3306"
-
+  # MySQL já sai em 127.0.0.1:${DB_LOCAL_PORT:-3306} pelo docker-compose.yml (repetir aqui colide na porta)
   backend:
     build:
       context: ./backend

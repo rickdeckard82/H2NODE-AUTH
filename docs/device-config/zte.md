@@ -1,4 +1,4 @@
-# ZTE ZXAN (OLTs Titan C6xx — C600/C610/C620/C650) — apontar para o Pulse TACACS+
+# ZTE ZXAN (OLTs Titan C6xx — C600/C610/C620/C650) — apontar para o H2NODE Auth (TACACS+)
 
 Cobre a linha **Titan C6xx** (GPON/XGS-PON). Hoje o fabricante **ZTE** no
 painel só está preparado para **TACACS+** — não há VSA RADIUS mapeado (o
@@ -36,7 +36,7 @@ ZXAN(config-system-user)#authorization-template 1
 ZXAN(config-system-user-author-temp)#bind aaa-authorization-template 2002
 ```
 
-> `tacacs local` deixa o login local como fallback se o Pulse não responder —
+> `tacacs local` deixa o login local como fallback se o H2NODE Auth não responder —
 > mesma lógica do `radius local` usado nos outros fabricantes. Confirme a
 > palavra-chave exata (`tacacs`, `tacplus` ou `hwtacacs`, dependendo da
 > versão de firmware) com `?` na CLI antes de aplicar em produção — a fonte
@@ -44,7 +44,7 @@ ZXAN(config-system-user-author-temp)#bind aaa-authorization-template 2002
 
 ## Autorização e nível de privilégio
 
-O TACACS+ do Pulse é **agnóstico de fabricante**: o nível de acesso e os AV
+O TACACS+ do H2NODE Auth é **agnóstico de fabricante**: o nível de acesso e os AV
 pairs vêm do perfil de privilégio cadastrado no painel, não de um VSA por
 vendor. Configure no perfil:
 

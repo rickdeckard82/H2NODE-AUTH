@@ -6,11 +6,11 @@ set -e
 
 sleep 3
 
-echo "[pulse] validando configuração do FreeRADIUS..."
+echo "[h2node-auth] validando configuração do FreeRADIUS..."
 if ! freeradius -C -l stdout; then
-  echo "[pulse] configuração inválida (veja acima). Abortando." >&2
+  echo "[h2node-auth] configuração inválida (veja acima). Abortando." >&2
   exit 1
 fi
-echo "[pulse] configuração OK. Iniciando."
+echo "[h2node-auth] configuração OK. Iniciando."
 
 exec "$@"

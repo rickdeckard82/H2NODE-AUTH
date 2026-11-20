@@ -1,8 +1,8 @@
-# Datacom (DmOS) — apontar para o Pulse RADIUS
+# Datacom (DmOS) — apontar para o H2NODE Auth
 
 ```
 config
- aaa server radius PULSE host 10.0.0.254
+ aaa server radius H2NODE host 10.0.0.254
   shared-secret "<shared-secret-cadastrado-no-painel>"
   authentication
   accounting
@@ -34,7 +34,7 @@ nada no FreeRADIUS precisa mudar além do dicionário.
 ## Contabilização de comandos
 
 Se o DmOS enviar o comando executado num Accounting-Request, mapeie o atributo
-para `Pulse-Command` no `radius/sites-available/default` (bloco `accounting`) —
+para `H2NODE-Command` no `radius/sites-available/default` (bloco `accounting`) —
 confirme o nome com `freeradius -X`. Ver `docs/RUNBOOK.md`.
 
 ## TACACS+ (alternativa ao RADIUS)

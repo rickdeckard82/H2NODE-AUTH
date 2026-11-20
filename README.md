@@ -1,4 +1,6 @@
-# Pulse RADIUS
+# H2NODE Auth
+
+![Painel do H2NODE Auth — visão geral de autenticação e accounting](docs/images/painel.png)
 
 Sistema AAA completo para **login administrativo em equipamentos de rede** via
 **RADIUS e TACACS+**, com painel web para gerenciamento. Stack: **FreeRADIUS 3.2 +
@@ -10,6 +12,10 @@ frontend, tudo em **Docker**.
 | **Authentication** | Valida usuário/senha. RADIUS: PAP + MS-CHAPv2 (hash SSHA2-512 / NT no `radcheck`). TACACS+: resolvido em tempo de request pelo MAVIS contra o mesmo MySQL. |
 | **Authorization** | Perfil de privilégio → atributos RADIUS por fabricante (Huawei, Juniper, Datacom, Mikrotik, A10) ou `priv-lvl` + AV pairs no TACACS+. Allowlist de IP de origem por grupo de usuário. |
 | **Accounting** | Start/Interim/Stop em `radacct`; tentativas de auth em `radpostauth`; comandos executados em `cmd_acct`; dashboard de 7 dias e export CSV. |
+
+> **Antes chamado Pulse RADIUS.** Quem já usa o Pulse RADIUS: veja
+> [docs/migracao-h2node.md](docs/migracao-h2node.md) — os equipamentos não percebem a
+> troca, e o banco, os backups e a config do TACACS+ são aproveitados.
 
 O painel permite cadastrar **usuários de autenticação**, **equipamentos**
 (agrupados por fabricante, cada um falando RADIUS **ou** TACACS+), **grupos de
@@ -77,7 +83,8 @@ configuração LGPD com retenções zeradas, e o primeiro `superadmin` a partir 
 `BOOTSTRAP_ADMIN_*`).
 
 > **Atualizando uma instalação existente**: as migrações rodam no start do
-> container; para aplicá-las sem recriar tudo, `make migrate`.
+> container; para aplicá-las sem recriar tudo, `make migrate`. Vindo do Pulse RADIUS
+> (projeto `pulse-radius`), rode antes `sudo ./scripts/migrar-h2node.sh`.
 
 O painel (SPA + `/api`) fica em **http://\<servidor\>:${WEB_PORT:-8080}**.
 RADIUS: `<servidor>:1812/udp` (auth) e `:1813/udp` (accounting). TACACS+: `:49/tcp`.
@@ -103,14 +110,14 @@ cp .env.example .env
 sed -i \
   -e "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" \
   -e "s|^FERNET_KEY=.*|FERNET_KEY=$(openssl rand -base64 32 | tr '+/' '-_')|" \
-  -e "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=pulse_root|" \
-  -e "s|^MYSQL_BACKEND_PASSWORD=.*|MYSQL_BACKEND_PASSWORD=pulse_backend|" \
-  -e "s|^MYSQL_RADIUS_PASSWORD=.*|MYSQL_RADIUS_PASSWORD=pulse_radius|" \
-  -e "s|^BOOTSTRAP_ADMIN_PASSWORD=.*|BOOTSTRAP_ADMIN_PASSWORD=Pulse!admin123|" \
+  -e "s|^MYSQL_ROOT_PASSWORD=.*|MYSQL_ROOT_PASSWORD=h2node_root|" \
+  -e "s|^MYSQL_BACKEND_PASSWORD=.*|MYSQL_BACKEND_PASSWORD=h2node_backend|" \
+  -e "s|^MYSQL_RADIUS_PASSWORD=.*|MYSQL_RADIUS_PASSWORD=h2node_radius|" \
+  -e "s|^BOOTSTRAP_ADMIN_PASSWORD=.*|BOOTSTRAP_ADMIN_PASSWORD=H2node!admin123|" \
   .env
 
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-#  painel:  http://localhost:8080      (login: admin / Pulse!admin123)
+#  painel:  http://localhost:8080      (login: admin / H2node!admin123)
 #  API:     http://localhost:8000/api/docs
 #  MySQL:   localhost:3306   ·   RADIUS: localhost:1812-1813/udp   ·   TACACS+: localhost:49/tcp
 ```
@@ -159,7 +166,7 @@ make test-backend
 backend/     FastAPI + SQLAlchemy + Alembic  (app/api, app/models, app/services)
 frontend/    React + Vite + TS + Tailwind    (src/features/*, src/lib/i18n)
 radius/      Dockerfile + overrides do FreeRADIUS 3.2
-tacacs/      tac_plus-ng + MAVIS (pulse_mavis.py) + importadores de accounting
+tacacs/      tac_plus-ng + MAVIS (h2node_mavis.py) + importadores de accounting
 db/init/     schema oficial do FreeRADIUS + criação dos usuários de serviço
 proxy/       nginx (TLS, roteamento /api e SPA)
 docs/        ARCHITECTURE, RUNBOOK, SECURITY e snippets de configuração por fabricante

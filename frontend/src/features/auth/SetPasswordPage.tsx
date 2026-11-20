@@ -77,7 +77,7 @@ export default function SetPasswordPage() {
         <div className="card w-full max-w-sm p-6">
           <div className="mb-6 flex flex-col items-center gap-3">
             <Logo className="h-24 w-24" />
-            <div className="text-xl font-bold">Pulse RADIUS</div>
+            <div className="text-xl font-bold">H2NODE Auth</div>
           </div>
 
           {loadError && (

@@ -1,4 +1,4 @@
-# Postura de segurança — Pulse RADIUS
+# Postura de segurança — H2NODE Auth
 
 Resumo do que já está implementado e do que **depende de configuração/infra sua**.
 

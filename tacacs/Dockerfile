@@ -35,13 +35,13 @@ COPY --from=build /opt/tacplus /opt/tacplus
 ENV PATH="/opt/tacplus/sbin:/opt/tacplus/bin:${PATH}"
 
 # password.py é stdlib puro (sem dependências do app) — usado pelo MAVIS.
-COPY backend/app/services/password.py /opt/pulse/password.py
-COPY tacacs/pulse_mavis.py            /opt/pulse/pulse_mavis.py
-COPY tacacs/acct_import.py            /opt/pulse/acct_import.py
-COPY tacacs/authlog_import.py         /opt/pulse/authlog_import.py
+COPY backend/app/services/password.py /opt/h2node/password.py
+COPY tacacs/h2node_mavis.py           /opt/h2node/h2node_mavis.py
+COPY tacacs/acct_import.py            /opt/h2node/acct_import.py
+COPY tacacs/authlog_import.py         /opt/h2node/authlog_import.py
 COPY tacacs/tac_plus-ng.cfg           /etc/tac_plus-ng/tac_plus-ng.cfg
-COPY tacacs/entrypoint.sh             /usr/local/bin/pulse-tacacs-entrypoint.sh
-RUN chmod +x /usr/local/bin/pulse-tacacs-entrypoint.sh
+COPY tacacs/entrypoint.sh             /usr/local/bin/h2node-tacacs-entrypoint.sh
+RUN chmod +x /usr/local/bin/h2node-tacacs-entrypoint.sh
 
 EXPOSE 49/tcp
-ENTRYPOINT ["/usr/local/bin/pulse-tacacs-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/h2node-tacacs-entrypoint.sh"]

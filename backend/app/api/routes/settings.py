@@ -135,9 +135,9 @@ def test_smtp(
 ) -> dict:
     try:
         mailer.send_mail(
-            db, to=body.to, subject="Pulse RADIUS — e-mail de teste",
-            html="<p>Se você recebeu este e-mail, o SMTP do Pulse RADIUS está configurado corretamente.</p>",
-            text="Se você recebeu este e-mail, o SMTP do Pulse RADIUS está configurado corretamente.",
+            db, to=body.to, subject="H2NODE Auth — e-mail de teste",
+            html="<p>Se você recebeu este e-mail, o SMTP do H2NODE Auth está configurado corretamente.</p>",
+            text="Se você recebeu este e-mail, o SMTP do H2NODE Auth está configurado corretamente.",
         )
     except mailer.SmtpNotConfigured as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc

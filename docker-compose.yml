@@ -1,4 +1,4 @@
-name: pulse-radius
+name: h2node-auth
 
 networks:
   edge:
@@ -7,12 +7,20 @@ networks:
     driver: bridge
     internal: true
 
+# Nomes fixos dos volumes. Instalações de antes do rebranding (projeto "pulse-radius")
+# usam VOLUME_PREFIX=pulse-radius no .env para continuar com o banco, os backups e a
+# config do TACACS+ de sempre (scripts/migrar-h2node.sh faz isso).
 volumes:
   db_data:
+    name: ${VOLUME_PREFIX:-h2node-auth}_db_data
   radius_logs:
+    name: ${VOLUME_PREFIX:-h2node-auth}_radius_logs
   db_backups:
+    name: ${VOLUME_PREFIX:-h2node-auth}_db_backups
   tacacs_conf:
+    name: ${VOLUME_PREFIX:-h2node-auth}_tacacs_conf
   tacacs_logs:
+    name: ${VOLUME_PREFIX:-h2node-auth}_tacacs_logs
 
 services:
   # ─────────────────────────── MySQL ───────────────────────────
@@ -157,7 +165,7 @@ services:
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?set BOOTSTRAP_ADMIN_PASSWORD}
       # Arquivo de config do tac_plus-ng gerado pelo painel (volume compartilhado).
-      TACACS_HOSTS_PATH: /etc/tacacs-shared/pulse.cfg
+      TACACS_HOSTS_PATH: /etc/tacacs-shared/h2node.cfg
     networks:
       - edge
       - internal

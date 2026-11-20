@@ -34,7 +34,7 @@ def test_import_rejects_bad_confirmation(auth_client):
     r = auth_client.post(
         "/api/backup/import",
         data={"confirm": "sim"},
-        files={"file": ("b.sql", b"-- Pulse RADIUS backup v1\n", "application/sql")},
+        files={"file": ("b.sql", b"-- H2NODE Auth backup v1\n", "application/sql")},
     )
     assert r.status_code == 400
 
@@ -43,7 +43,7 @@ def test_import_501_on_sqlite_with_valid_confirmation(auth_client):
     r = auth_client.post(
         "/api/backup/import",
         data={"confirm": "RESTAURAR"},
-        files={"file": ("b.sql", b"-- Pulse RADIUS backup v1\n", "application/sql")},
+        files={"file": ("b.sql", b"-- H2NODE Auth backup v1\n", "application/sql")},
     )
     assert r.status_code == 501
 
@@ -53,7 +53,7 @@ def test_encrypt_decrypt_stream_roundtrip():
     from app.services import backup as backup_service
 
     chunks = [
-        "-- Pulse RADIUS backup v1\n",
+        "-- H2NODE Auth backup v1\n",
         "DROP TABLE IF EXISTS `app_system_user`;\n",
         "INSERT INTO `app_system_user` VALUES (1,'admin');\n" * 50,  # bloco maior
         "-- restore complete\n",
@@ -70,11 +70,26 @@ def test_decrypt_rejects_corrupted_or_plaintext_input():
     from app.services import backup as backup_service
 
     with pytest.raises(backup_service.BackupError):
-        backup_service.decrypt_to_text(b"-- Pulse RADIUS backup v1\nnot encrypted")
+        backup_service.decrypt_to_text(b"-- H2NODE Auth backup v1\nnot encrypted")
 
     encrypted = b"".join(backup_service.encrypt_stream(iter(["hello"])))
     with pytest.raises(backup_service.BackupError):
         backup_service.decrypt_to_text(encrypted[:-5])  # trunca o último token
+
+
+def test_legacy_pulse_backups_still_readable():
+    """Backups gerados como Pulse RADIUS (marcador, cifra e separador antigos) restauram."""
+    from app.core.crypto import encrypt
+    from app.services import backup as backup_service
+
+    sep = "\n-- @@PULSE_STMT@@\n"
+    legacy = f"-- Pulse RADIUS backup v1\nSET NAMES utf8mb4;{sep}SELECT 1;{sep}"
+    token = encrypt(legacy).encode("ascii")
+    blob = b"PULSEENC1\n" + len(token).to_bytes(4, "big") + token
+
+    assert backup_service.is_encrypted(blob)
+    assert backup_service.decrypt_to_text(blob) == legacy
+    assert list(backup_service._statements(legacy)) == ["SET NAMES utf8mb4", "SELECT 1"]
 
 
 def test_binary_values_dumped_as_ascii_hex():

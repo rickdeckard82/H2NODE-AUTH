@@ -6,12 +6,28 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
 
 ## [Não lançado]
 
+## [1.2.0] — 2026-11-20
+
 ### Adicionado
 
 - Fabricante **Dell** (switches Dell EMC Networking N-Series) via TACACS+.
+- `scripts/migrar-h2node.sh` e [docs/migracao-h2node.md](docs/migracao-h2node.md):
+  migração do Pulse RADIUS para o H2NODE Auth sem perder banco, backups nem config.
 
 ### Alterado
 
+- **O Pulse RADIUS passa a se chamar H2NODE Auth**: nome, logotipo animado e ícones
+  novos no painel, nos e-mails, no 2FA e na documentação. Nada muda para os
+  equipamentos (mesmos endereços, portas, segredos, usuários e perfis).
+- Projeto compose `h2node-auth`, com volumes de nome fixo (`${VOLUME_PREFIX}_db_data`
+  etc.). Instalações existentes usam `VOLUME_PREFIX=pulse-radius` (o script acrescenta).
+- Config gerada do TACACS+: `/etc/tacacs-shared/h2node.cfg` (antes `pulse.cfg`, copiado
+  no primeiro start); o backend passa a regravá-la a cada start.
+- Atributos internos do FreeRADIUS `Pulse-*` → `H2NODE-*` (`H2NODE-Command`,
+  `H2NODE-Command-Action`, `H2NODE-Origin-IP`, `H2NODE-Client-IP`; mesmos números).
+  Quem mapeou o comando do firmware no `radius/sites-available/default` troca o nome.
+- Backups: `h2node-auth-backup-*.sql(.enc|.gz)`. Os backups do Pulse RADIUS continuam
+  restauráveis e as cópias antigas no FTP entram na retenção pela data.
 - `freeradius` e `tacacs` passam a usar `network_mode: host` (sem mapeamento de portas):
   o filtro por origem é o `ufw allow` comum. O MySQL é publicado só em `127.0.0.1`
   (`DB_LOCAL_PORT`). `RADIUS_BIND`/`TACACS_BIND` deixam de existir. **Antes de

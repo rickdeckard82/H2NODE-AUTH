@@ -92,7 +92,7 @@ export default function LoginPage() {
           <form onSubmit={onSubmitCode} className="card w-full max-w-sm p-6">
             <div className="mb-6 flex flex-col items-center gap-3">
               <Logo className="h-24 w-24" />
-              <div className="text-xl font-bold">Pulse RADIUS</div>
+              <div className="text-xl font-bold">H2NODE Auth</div>
             </div>
             <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
               {useRecovery
@@ -161,7 +161,7 @@ export default function LoginPage() {
           <form onSubmit={onSubmitPassword} className="card w-full max-w-sm p-6">
             <div className="mb-6 flex flex-col items-center gap-3">
               <Logo className="h-24 w-24" />
-              <div className="text-xl font-bold">Pulse RADIUS</div>
+              <div className="text-xl font-bold">H2NODE Auth</div>
             </div>
 
             <div className="space-y-3">

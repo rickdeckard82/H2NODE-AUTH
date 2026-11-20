@@ -66,5 +66,5 @@ def send_reset_email(db: Session, user: AuthUser, token: str) -> None:
         f"{RESET_TTL_HOURS} horas. Se você não esperava este e-mail, ignore-o.</p>"
     )
     mailer.send_mail(
-        db, to=user.email, subject="Pulse RADIUS — redefinição de senha", html=html, text=text
+        db, to=user.email, subject="H2NODE Auth — redefinição de senha", html=html, text=text
     )

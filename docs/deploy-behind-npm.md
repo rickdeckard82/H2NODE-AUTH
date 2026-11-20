@@ -1,6 +1,6 @@
 # Deploy atrás de um reverse proxy externo (Nginx Proxy Manager)
 
-Cenário: o servidor do Pulse RADIUS tem **IP privado**; outro servidor roda o
+Cenário: o servidor do H2NODE Auth tem **IP privado**; outro servidor roda o
 **Nginx Proxy Manager (NPM)** e publica o painel na internet/intranet com TLS e
 domínio. Os equipamentos de rede falam RADIUS direto com o IP privado do servidor.
 
@@ -13,7 +13,7 @@ Neste modo o **proxy TLS embutido não é usado** (fica atrás do profile
 `tls-proxy`). O container `frontend` é o entrypoint HTTP: serve a SPA e encaminha
 `/api` para o backend.
 
-## 1. Configuração no servidor do Pulse RADIUS
+## 1. Configuração no servidor do H2NODE Auth
 
 `.env` (a partir de `.env.example`):
 
@@ -51,7 +51,7 @@ docker compose up -d
 docker compose ps        # frontend deve expor 0.0.0.0/<IP>:8080->80
 ```
 
-## 2. Firewall do servidor Pulse RADIUS
+## 2. Firewall do servidor H2NODE Auth
 
 | Porta | Origem permitida | Uso |
 |---|---|---|
@@ -67,7 +67,7 @@ Tudo o mais fechado. `3306` (MySQL) e `8000` (backend) **não** são publicados 
 **Details**
 - Domain Names: `radius.suaempresa.com.br`
 - Scheme: `http`
-- Forward Hostname / IP: `10.0.0.20` (IP privado do servidor Pulse RADIUS)
+- Forward Hostname / IP: `10.0.0.20` (IP privado do servidor H2NODE Auth)
 - Forward Port: `8080`
 - Cache Assets: opcional
 - **Block Common Exploits**: ligado
@@ -98,7 +98,7 @@ roteia `/api` para o backend internamente.
 
 ## 4. Equipamentos (NAS)
 
-Aponte cada equipamento para o **IP privado do servidor Pulse RADIUS** nas portas
+Aponte cada equipamento para o **IP privado do servidor H2NODE Auth** nas portas
 padrão, com o *shared secret* cadastrado no painel (no equipamento ou herdado do
 grupo/fabricante):
 
@@ -119,7 +119,7 @@ resolução de cliente e a tradução de VSA usam o IP de origem do pacote UDP.
 curl -s http://10.0.0.20:8080/api/health          # {"status":"ok"}
 curl -skI https://radius.suaempresa.com.br         # 200, via NPM
 
-# RADIUS, de dentro do servidor Pulse RADIUS:
+# RADIUS, de dentro do servidor H2NODE Auth:
 docker compose exec freeradius radtest -t pap <user> <senha> 127.0.0.1:1812 0 testing123
 ```
 
@@ -129,7 +129,7 @@ Login no painel: `https://radius.suaempresa.com.br` com `BOOTSTRAP_ADMIN_*`.
 
 - **CoA / Disconnect (3799/udp)** está fora do escopo desta versão; se for
   habilitar depois, libere também essa porta *do servidor para os equipamentos*.
-- Se o NPM e o Pulse RADIUS ficarem no mesmo host Docker, dá para colocá-los na
+- Se o NPM e o H2NODE Auth ficarem no mesmo host Docker, dá para colocá-los na
   mesma rede e apontar o NPM para `frontend:80` em vez de `<IP>:8080`.
 - Backups do MySQL: `docker compose --profile backup up -d db-backup` (ver
   [RUNBOOK.md](RUNBOOK.md)).

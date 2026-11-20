@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# Módulo SQL — backend MySQL do Pulse RADIUS
+# Módulo SQL — backend MySQL do H2NODE Auth
 # ─────────────────────────────────────────────────────────────
 sql {
     dialect = "mysql"

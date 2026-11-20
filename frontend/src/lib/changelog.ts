@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.1.1";
+export const APP_VERSION = "1.2.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 /** Mais recente primeiro. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.2.0",
+    date: "2026-11-20",
+    changes: [
+      "O Pulse RADIUS agora se chama H2NODE Auth: nome, logotipo animado e ícones novos no painel, nos e-mails e no 2FA. Nada muda para os equipamentos: RADIUS (1812/1813) e TACACS+ (49) continuam nos mesmos endereços, com os mesmos segredos, usuários e perfis.",
+      "Servidor: scripts/migrar-h2node.sh passa a instalação para o projeto h2node-auth mantendo o mesmo banco, os backups e a config do TACACS+ (VOLUME_PREFIX=pulse-radius). Veja docs/migracao-h2node.md.",
+      "Backups: os arquivos passam a se chamar h2node-auth-backup-*. Backups antigos do Pulse RADIUS (.sql, .sql.gz e .sql.enc) continuam restauráveis, e as cópias antigas no FTP entram na retenção pela data.",
+      "2FA: aplicativos autenticadores já configurados continuam valendo; só os novos cadastros aparecem como “H2NODE Auth”.",
+      "Fabricante Dell (N-Series) via TACACS+; freeradius e tacacs em network_mode: host (libere 49/tcp e 1812:1813/udp no ufw antes de atualizar); Site/Localização no cadastro de equipamento; confirmação de senha e redefinição por e-mail.",
+    ],
+  },
   {
     version: "1.1.1",
     date: "2026-10-19",

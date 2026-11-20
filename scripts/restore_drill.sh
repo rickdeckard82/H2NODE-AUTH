@@ -13,7 +13,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-DRILL_NAME="pulse-radius-restore-drill-$$"
+DRILL_NAME="h2node-auth-restore-drill-$$"
 DRILL_NET="${DRILL_NAME}-net"
 DRILL_ROOT_PASSWORD="drill-$$-$(date +%s)"
 
@@ -52,7 +52,7 @@ else
 fi
 echo "[restore-drill] alvo: $SRC"
 
-TMP_SQL="$(mktemp /tmp/pulse-radius-restore-drill.XXXXXX.sql)"
+TMP_SQL="$(mktemp /tmp/h2node-auth-restore-drill.XXXXXX.sql)"
 
 if $COPY_FROM_VOLUME; then
   extract_cmd="cat \"$SRC\""

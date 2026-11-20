@@ -113,7 +113,7 @@ def fake_ftp(monkeypatch):
 @pytest.fixture
 def fake_dump(monkeypatch):
     def write(engine, cfg, path: Path, version):
-        path.write_bytes(b"-- Pulse RADIUS backup v1\n" + b"x" * 100)
+        path.write_bytes(b"-- H2NODE Auth backup v1\n" + b"x" * 100)
 
     monkeypatch.setattr(backup_ftp, "write_dump", write)
 
@@ -163,35 +163,50 @@ def test_next_run_moves_to_tomorrow_after_run():
 
 def test_run_backup_uploads_part_and_prunes(fake_dump):
     for day in range(1, 5):
-        FakeFTP.files[f"pulse-radius-backup-202610{day:02d}-023000.sql.enc"] = b"old"
+        FakeFTP.files[f"h2node-auth-backup-202610{day:02d}-023000.sql.enc"] = b"old"
     FakeFTP.files["outro-arquivo.txt"] = b"keep"
     cfg = _cfg(keep_count=2, ftp_directory="/backups/pulse", ftp_tls=True)
 
     result = backup_ftp.run_backup(None, cfg, "0018", now=datetime(2026, 10, 19, 2, 30))
 
-    assert result.uploaded == "pulse-radius-backup-20261019-023000.sql.enc"
+    assert result.uploaded == "h2node-auth-backup-20261019-023000.sql.enc"
     client = FakeFTP.instances[-1]
     assert "PROT P" in client.commands
     assert client.cwd_path == "/backups/pulse"
     assert f"STOR {result.uploaded}.part" in client.commands
     assert sorted(FakeFTP.files) == [
+        "h2node-auth-backup-20261004-023000.sql.enc",
+        "h2node-auth-backup-20261019-023000.sql.enc",
         "outro-arquivo.txt",
-        "pulse-radius-backup-20261004-023000.sql.enc",
-        "pulse-radius-backup-20261019-023000.sql.enc",
     ]
     assert len(result.removed) == 3
 
 
+def test_prune_counts_legacy_pulse_names_by_date(fake_dump):
+    """Cópias de antes do rebranding (pulse-radius-backup-*) entram na retenção pela data."""
+    FakeFTP.files["pulse-radius-backup-20261017-023000.sql.enc"] = b"old"
+    FakeFTP.files["pulse-radius-backup-20261018-023000.sql.enc"] = b"old"
+    cfg = _cfg(keep_count=2)
+
+    result = backup_ftp.run_backup(None, cfg, None, now=datetime(2026, 10, 19, 2, 30))
+
+    assert sorted(FakeFTP.files) == [
+        "h2node-auth-backup-20261019-023000.sql.enc",
+        "pulse-radius-backup-20261018-023000.sql.enc",
+    ]
+    assert result.removed == ["pulse-radius-backup-20261017-023000.sql.enc"]
+
+
 def test_run_backup_write_only_never_lists_or_deletes(fake_dump):
     FakeFTP.write_only = True
-    FakeFTP.files["pulse-radius-backup-20261001-023000.sql.gz"] = b"old"
+    FakeFTP.files["h2node-auth-backup-20261001-023000.sql.gz"] = b"old"
     cfg = _cfg(ftp_write_only=True, encrypted=False, keep_count=1)
 
     result = backup_ftp.run_backup(None, cfg, None, now=datetime(2026, 10, 19, 2, 30))
 
     assert result.uploaded.endswith(".sql.gz")
     assert FakeFTP.instances[-1].commands[-1] == f"STOR {result.uploaded}"
-    assert "pulse-radius-backup-20261001-023000.sql.gz" in FakeFTP.files
+    assert "h2node-auth-backup-20261001-023000.sql.gz" in FakeFTP.files
     assert result.removed == []
 
 
@@ -225,7 +240,7 @@ def test_execute_records_success_and_audit(db, fake_dump):
     assert cfg.last_status == "success"
     assert cfg.run_requested_at is None
     assert cfg.last_success_at is not None
-    assert cfg.last_message.startswith("enviado pulse-radius-backup-")
+    assert cfg.last_message.startswith("enviado h2node-auth-backup-")
     log = db.query(AuditLog).filter_by(entity_type="backup_schedule").one()
     assert log.action == "backup_success"
     assert log.actor_username == "sistema"

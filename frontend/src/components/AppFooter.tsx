@@ -11,7 +11,7 @@ export function AppFooter({ className = "" }: { className?: string }) {
   return (
     <div className={`text-xs leading-relaxed text-slate-400 dark:text-slate-500 ${className}`}>
       <div>
-        Pulsar © {new Date().getFullYear()} Pulse RADIUS{" "}
+        © {new Date().getFullYear()} H2NODE Auth{" "}
         <button
           type="button"
           onClick={() => setShowChangelog(true)}

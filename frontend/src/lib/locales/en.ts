@@ -256,11 +256,11 @@ export const en: Record<string, string> = {
 
   // ---- Aviso de Privacidade (/privacidade) ----
   "Aviso de Privacidade": "Privacy Notice",
-  "Pulse RADIUS · última atualização em {data}": "Pulse RADIUS · last updated {data}",
+  "H2NODE Auth · última atualização em {data}": "H2NODE Auth · last updated {data}",
   "← Voltar": "← Back",
   "1. Sobre este aviso": "1. About this notice",
-  "O Pulse RADIUS é um sistema interno de controle de acesso (AAA — autenticação, autorização e contabilização) a equipamentos de rede. Este aviso descreve quais dados pessoais são tratados, com que finalidade e quais são os seus direitos, nos termos da Lei nº 13.709/2018 (Lei Geral de Proteção de Dados — LGPD).":
-    "Pulse RADIUS is an internal access-control system (AAA — authentication, authorization and accounting) for network devices. This notice describes which personal data is processed, for what purpose, and what your rights are, under Brazilian Law 13.709/2018 (LGPD).",
+  "O H2NODE Auth é um sistema interno de controle de acesso (AAA — autenticação, autorização e contabilização) a equipamentos de rede. Este aviso descreve quais dados pessoais são tratados, com que finalidade e quais são os seus direitos, nos termos da Lei nº 13.709/2018 (Lei Geral de Proteção de Dados — LGPD).":
+    "H2NODE Auth is an internal access-control system (AAA — authentication, authorization and accounting) for network devices. This notice describes which personal data is processed, for what purpose, and what your rights are, under Brazilian Law 13.709/2018 (LGPD).",
   "2. Controlador e Encarregado (DPO)": "2. Controller and Data Protection Officer (DPO)",
   "Controlador:": "Controller:",
   "Pedidos relativos a dados pessoais devem ser enviados ao Encarregado pelo Tratamento de Dados Pessoais:":
@@ -316,6 +316,17 @@ export const en: Record<string, string> = {
 
   // ---- Notas de versão (changelog) — versão atual ----
   "Notas de versão": "Release notes",
+  // 1.2.0
+  "O Pulse RADIUS agora se chama H2NODE Auth: nome, logotipo animado e ícones novos no painel, nos e-mails e no 2FA. Nada muda para os equipamentos: RADIUS (1812/1813) e TACACS+ (49) continuam nos mesmos endereços, com os mesmos segredos, usuários e perfis.":
+    "Pulse RADIUS is now H2NODE Auth: new name, animated logo and icons in the panel, e-mails and 2FA. Nothing changes for network devices: RADIUS (1812/1813) and TACACS+ (49) stay on the same addresses, with the same secrets, users and profiles.",
+  "Servidor: scripts/migrar-h2node.sh passa a instalação para o projeto h2node-auth mantendo o mesmo banco, os backups e a config do TACACS+ (VOLUME_PREFIX=pulse-radius). Veja docs/migracao-h2node.md.":
+    "Server: scripts/migrar-h2node.sh moves the install to the h2node-auth project keeping the same database, backups and TACACS+ config (VOLUME_PREFIX=pulse-radius). See docs/migracao-h2node.md.",
+  "Backups: os arquivos passam a se chamar h2node-auth-backup-*. Backups antigos do Pulse RADIUS (.sql, .sql.gz e .sql.enc) continuam restauráveis, e as cópias antigas no FTP entram na retenção pela data.":
+    "Backups: files are now named h2node-auth-backup-*. Old Pulse RADIUS backups (.sql, .sql.gz and .sql.enc) can still be restored, and old copies on the FTP server count towards retention by date.",
+  "2FA: aplicativos autenticadores já configurados continuam valendo; só os novos cadastros aparecem como “H2NODE Auth”.":
+    "2FA: authenticator apps already set up keep working; only new enrollments show up as “H2NODE Auth”.",
+  "Fabricante Dell (N-Series) via TACACS+; freeradius e tacacs em network_mode: host (libere 49/tcp e 1812:1813/udp no ufw antes de atualizar); Site/Localização no cadastro de equipamento; confirmação de senha e redefinição por e-mail.":
+    "Dell (N-Series) vendor via TACACS+; freeradius and tacacs on network_mode: host (allow 49/tcp and 1812:1813/udp in ufw before upgrading); Site/Location on devices; password confirmation and reset by e-mail.",
   "2FA (TOTP) para o painel: QR code no cadastro, códigos de recuperação de uso único e “lembrar deste dispositivo” (pula o código por 30 dias, com gestão e revogação no modal de 2FA).":
     "Panel 2FA (TOTP): QR code on setup, single-use recovery codes and “trust this device” (skips the code for 30 days, managed and revocable in the 2FA dialog).",
   "Bloqueio de login progressivo, revelar segredo RADIUS, convite de usuário por e-mail (SMTP), troca da própria senha e backups cifrados.":
@@ -633,8 +644,8 @@ export const en: Record<string, string> = {
 
   // ---- Backup automático por FTP ----
   "Backup automático por FTP": "Scheduled FTP backup",
-  "Envia todo dia, no horário escolhido, o mesmo backup do banco gerado em “Baixar backup” para um servidor FTP/FTPS — inclusive o Pulse Backup. Nenhuma cópia fica neste servidor: o arquivo é apagado assim que enviado.":
-    "Every day at the chosen time, sends the same database backup produced by “Download backup” to an FTP/FTPS server — Pulse Backup included. No copy is kept on this server: the file is deleted as soon as it is sent.",
+  "Envia todo dia, no horário escolhido, o mesmo backup do banco gerado em “Baixar backup” para um servidor FTP/FTPS — inclusive o H2NODE Backup. Nenhuma cópia fica neste servidor: o arquivo é apagado assim que enviado.":
+    "Every day at the chosen time, sends the same database backup produced by “Download backup” to an FTP/FTPS server — H2NODE Backup included. No copy is kept on this server: the file is deleted as soon as it is sent.",
   "Última execução": "Last run",
   "Próxima execução": "Next run",
   "Último sucesso": "Last success",
@@ -654,12 +665,12 @@ export const en: Record<string, string> = {
   "As mais antigas além deste número são apagadas após cada envio.":
     "Older copies beyond this number are deleted after each upload.",
   "Usar FTPS (TLS explícito)": "Use FTPS (explicit TLS)",
-  "Destino só de gravação (Pulse Backup)": "Write-only destination (Pulse Backup)",
+  "Destino só de gravação (H2NODE Backup)": "Write-only destination (H2NODE Backup)",
   "Cifrar o arquivo com o FERNET_KEY do servidor": "Encrypt the file with the server FERNET_KEY",
   "Arquivo enviado:": "File sent:",
   "Restaurável direto em “Restaurar backup” abaixo.": "Can be restored directly in “Restore backup” below.",
-  "Sem cifra, o .sql.gz contém hashes de senha e segredos RADIUS em claro. Use só com FTPS ou com um destino que cifre ao receber (o Pulse Backup cifra e também confere se o dump chegou completo).":
-    "Unencrypted, the .sql.gz holds password hashes and RADIUS secrets in clear text. Use it only over FTPS or with a destination that encrypts on arrival (Pulse Backup encrypts and also checks that the dump arrived complete).",
+  "Sem cifra, o .sql.gz contém hashes de senha e segredos RADIUS em claro. Use só com FTPS ou com um destino que cifre ao receber (o H2NODE Backup cifra e também confere se o dump chegou completo).":
+    "Unencrypted, the .sql.gz holds password hashes and RADIUS secrets in clear text. Use it only over FTPS or with a destination that encrypts on arrival (H2NODE Backup encrypts and also checks that the dump arrived complete).",
   "Destino só de gravação: o arquivo é enviado direto com o nome final (sem .part, conferência de tamanho ou renomeação) e nada é apagado no FTP. O histórico e a retenção ficam no servidor de backup.":
     "Write-only destination: the file is uploaded straight under its final name (no .part, size check or rename) and nothing is deleted on the FTP server. History and retention stay on the backup server.",
   "Sem FTPS, a senha FTP e o arquivo trafegam sem criptografia na rede.":

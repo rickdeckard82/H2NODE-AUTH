@@ -28,7 +28,7 @@ class BackupSchedule(Base, TimestampMixin):
     ftp_password_enc: Mapped[str | None] = mapped_column(String(512), nullable=True)
     ftp_directory: Mapped[str | None] = mapped_column(String(500), nullable=True)
     ftp_tls: Mapped[bool] = mapped_column(Boolean, default=True)
-    # Destino só de gravação (ex.: Pulse Backup): envia direto com o nome final e
+    # Destino só de gravação (ex.: H2NODE Backup): envia direto com o nome final e
     # não apaga cópias antigas (a retenção fica a cargo do servidor de backup).
     ftp_write_only: Mapped[bool] = mapped_column(Boolean, default=False)
     run_requested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

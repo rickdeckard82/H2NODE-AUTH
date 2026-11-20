@@ -63,7 +63,7 @@ export default function PrivacyPage() {
           <div>
             <h1 className="text-xl font-bold">{t("Aviso de Privacidade")}</h1>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              {t("Pulse RADIUS · última atualização em {data}", { data: lastUpdated })}
+              {t("H2NODE Auth · última atualização em {data}", { data: lastUpdated })}
             </p>
           </div>
         </div>
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
           <Section title={t("1. Sobre este aviso")}>
             <p>
               {t(
-                "O Pulse RADIUS é um sistema interno de controle de acesso (AAA — autenticação, autorização e contabilização) a equipamentos de rede. Este aviso descreve quais dados pessoais são tratados, com que finalidade e quais são os seus direitos, nos termos da Lei nº 13.709/2018 (Lei Geral de Proteção de Dados — LGPD).",
+                "O H2NODE Auth é um sistema interno de controle de acesso (AAA — autenticação, autorização e contabilização) a equipamentos de rede. Este aviso descreve quais dados pessoais são tratados, com que finalidade e quais são os seus direitos, nos termos da Lei nº 13.709/2018 (Lei Geral de Proteção de Dados — LGPD).",
               )}
             </p>
           </Section>

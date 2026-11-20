@@ -116,7 +116,7 @@ export default function BackupSchedulePanel() {
       </h2>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         {t(
-          "Envia todo dia, no horário escolhido, o mesmo backup do banco gerado em “Baixar backup” para um servidor FTP/FTPS — inclusive o Pulse Backup. Nenhuma cópia fica neste servidor: o arquivo é apagado assim que enviado.",
+          "Envia todo dia, no horário escolhido, o mesmo backup do banco gerado em “Baixar backup” para um servidor FTP/FTPS — inclusive o H2NODE Backup. Nenhuma cópia fica neste servidor: o arquivo é apagado assim que enviado.",
         )}
       </p>
 
@@ -255,7 +255,7 @@ export default function BackupSchedulePanel() {
           <input
             className="input"
             value={form.ftp_directory}
-            placeholder="/backups/pulse-radius"
+            placeholder="/backups/h2node-auth"
             onChange={(e) => set({ ftp_directory: e.target.value })}
           />
         </Field>
@@ -294,7 +294,7 @@ export default function BackupSchedulePanel() {
               checked={form.ftp_write_only}
               onChange={(e) => set({ ftp_write_only: e.target.checked })}
             />
-            {t("Destino só de gravação (Pulse Backup)")}
+            {t("Destino só de gravação (H2NODE Backup)")}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -317,13 +317,13 @@ export default function BackupSchedulePanel() {
         <div className="space-y-1 text-xs text-slate-500 sm:col-span-2 dark:text-slate-400">
           <p>
             {t("Arquivo enviado:")}{" "}
-            <code>pulse-radius-backup-AAAAMMDD-HHMMSS{ext}</code>.{" "}
+            <code>h2node-auth-backup-AAAAMMDD-HHMMSS{ext}</code>.{" "}
             {t("Restaurável direto em “Restaurar backup” abaixo.")}
           </p>
           {!form.encrypted && (
             <p className="text-amber-700 dark:text-amber-400">
               {t(
-                "Sem cifra, o .sql.gz contém hashes de senha e segredos RADIUS em claro. Use só com FTPS ou com um destino que cifre ao receber (o Pulse Backup cifra e também confere se o dump chegou completo).",
+                "Sem cifra, o .sql.gz contém hashes de senha e segredos RADIUS em claro. Use só com FTPS ou com um destino que cifre ao receber (o H2NODE Backup cifra e também confere se o dump chegou completo).",
               )}
             </p>
           )}

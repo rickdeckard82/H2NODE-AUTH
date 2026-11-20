@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# Dicionário local do Pulse RADIUS
+# Dicionário local do H2NODE Auth
 #
 # Huawei, Juniper e Mikrotik já vêm no dicionário padrão do FreeRADIUS.
 # Datacom (DmOS) nem sempre acompanha a distribuição — definimos aqui.
@@ -11,26 +11,26 @@
 # ─────────────────────────────────────────────────────────────
 
 # ─────────────────────────────────────────────────────────────
-# Atributos internos do Pulse (NUNCA vão no fio — só carregam valor entre
-# módulos). O site `default` grava cmd_acct quando `Pulse-Command` está
+# Atributos internos do H2NODE Auth (NUNCA vão no fio — só carregam valor entre
+# módulos). O site `default` grava cmd_acct quando `H2NODE-Command` está
 # presente. Cisco/genérico (Cisco-AVPair = "cmd=...") já é tratado direto;
 # para Huawei / Juniper / Datacom, mapeie o VSA real do SEU firmware para
-# `Pulse-Command` num `update` (ver docs/device-config/*.md) depois de
+# `H2NODE-Command` num `update` (ver docs/device-config/*.md) depois de
 # confirmar o nome do atributo com `freeradius -X`.
 # ─────────────────────────────────────────────────────────────
-ATTRIBUTE       Pulse-Command                   3320    string
-ATTRIBUTE       Pulse-Command-Action            3321    string
+ATTRIBUTE       H2NODE-Command                  3320    string
+ATTRIBUTE       H2NODE-Command-Action           3321    string
 
 # Guarda o IP de origem "real" apurado no site `default` (Calling-Station-Id
 # do NAS quando parece um IP válido, senão Packet-Src-IP-Address) para a
 # checagem de allowlist por grupo de usuário — ver authorize em sites-available/default.
-ATTRIBUTE       Pulse-Origin-IP                 3322    string
+ATTRIBUTE       H2NODE-Origin-IP                3322    string
 
-# Igual ao Pulse-Origin-IP, mas só é definido quando o Calling-Station-Id do
+# Igual ao H2NODE-Origin-IP, mas só é definido quando o Calling-Station-Id do
 # NAS é mesmo um IPv4 válido (sem fallback para Packet-Src-IP-Address). Grava
 # o IP do técnico em radpostauth.callingstationid — ver post-auth em
 # sites-available/default. Fica indefinido quando o NAS não repassa esse dado.
-ATTRIBUTE       Pulse-Client-IP                 3323    string
+ATTRIBUTE       H2NODE-Client-IP                3323    string
 
 VENDOR          Datacom                 3709
 

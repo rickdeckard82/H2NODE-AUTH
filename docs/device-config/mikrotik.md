@@ -1,4 +1,4 @@
-# Mikrotik (RouterOS) — apontar para o Pulse RADIUS
+# Mikrotik (RouterOS) — apontar para o H2NODE Auth
 
 ```
 /radius

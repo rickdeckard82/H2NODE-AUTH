@@ -78,12 +78,12 @@ seed: ## Popula fabricantes, perfis e primeiro admin
 	$(COMPOSE) exec backend python -m app.seed
 
 test-backend: ## Roda a suíte pytest do backend (imagem própria, sem tocar na stack)
-	docker build --build-arg INSTALL_DEV=true -t pulse-radius-backend-test ./backend
+	docker build --build-arg INSTALL_DEV=true -t h2node-auth-backend-test ./backend
 	docker run --rm \
 	  -e JWT_SECRET=test-secret-0000000000000000000000000000000000 \
 	  -e FERNET_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
 	  -e DATABASE_URL=sqlite+pysqlite:///:memory: \
-	  pulse-radius-backend-test sh -c 'ruff check app tests && pytest -q'
+	  h2node-auth-backend-test sh -c 'ruff check app tests && pytest -q'
 
 restore-drill: ## Testa de verdade a restauração do último backup (MySQL efêmero e descartável)
 	./scripts/restore_drill.sh

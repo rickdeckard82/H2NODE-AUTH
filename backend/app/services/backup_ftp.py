@@ -33,9 +33,14 @@ from app.models import BackupSchedule
 from app.services import audit, backup
 
 DEFAULT_TIMEZONE = "America/Sao_Paulo"
-FILE_PREFIX = "pulse-radius-backup"
-TEMP_PREFIX = "pulse-radius-ftp-"
-BACKUP_NAME_RE = re.compile(rf"^{FILE_PREFIX}-\d{{8}}-\d{{6}}\.sql\.(?:enc|gz)$")
+FILE_PREFIX = "h2node-auth-backup"
+TEMP_PREFIX = "h2node-auth-ftp-"
+# Nomes de antes do rebranding (Pulse RADIUS): entram na retenção como os novos.
+LEGACY_FILE_PREFIXES = ("pulse-radius-backup",)
+LEGACY_TEMP_PREFIXES = ("pulse-radius-ftp-",)
+_PREFIXES_RE = "|".join(re.escape(p) for p in (FILE_PREFIX, *LEGACY_FILE_PREFIXES))
+BACKUP_NAME_RE = re.compile(rf"^(?:{_PREFIXES_RE})-\d{{8}}-\d{{6}}\.sql\.(?:enc|gz)$")
+_STAMP_RE = re.compile(r"\d{8}-\d{6}")
 # Se o worker estava parado no horário, ainda roda até este tempo depois; mais que
 # isso espera o dia seguinte (evita um dump pesado no meio do expediente).
 CATCH_UP = timedelta(hours=6)
@@ -143,7 +148,7 @@ def _guard_data_channel(client: ftplib.FTP) -> None:
             raise BackupFtpError(
                 f"o servidor FTP aceitou o login, mas a porta de dados passiva {host}:{port} não "
                 f"respondeu ({type(exc).__name__}). Libere no firewall do servidor FTP a faixa de "
-                "portas passivas para o IP deste servidor — no Pulse Backup, 30000-30049 "
+                "portas passivas para o IP deste servidor — no H2NODE Backup, 30000-30049 "
                 "(FTP_PASSIVE_PORTS): scripts/ufw-setup.sh device <IP> ftp. Atrás de NAT, confira "
                 "também o FTP_MASQUERADE_ADDRESS."
             ) from exc
@@ -179,7 +184,7 @@ def change_directory(client: ftplib.FTP, directory: str | None, create: bool = F
 
 def upload(client: ftplib.FTP, local_path: Path, remote_name: str, write_only: bool = False) -> None:
     if write_only:
-        # Destino só de gravação (ex.: Pulse Backup): não aceita SIZE, DELE nem
+        # Destino só de gravação (ex.: H2NODE Backup): não aceita SIZE, DELE nem
         # renomear. Vai direto com o nome final; o 226 do STOR confirma o recebimento.
         with open(local_path, "rb") as handle:
             client.storbinary(f"STOR {remote_name}", handle)
@@ -208,11 +213,18 @@ def list_backups(client: ftplib.FTP) -> list[str]:
     return [n for n in (name.rsplit("/", 1)[-1] for name in names) if BACKUP_NAME_RE.match(n)]
 
 
+def _stamp_of(name: str) -> str:
+    m = _STAMP_RE.search(name)
+    return m.group(0) if m else ""
+
+
 def prune(client: ftplib.FTP, keep_count: int) -> list[str]:
     """Mantém só as `keep_count` cópias mais recentes. Devolve as apagadas."""
     removed = []
-    # O carimbo vem logo depois do prefixo: ordem alfabética == cronológica.
-    for name in sorted(list_backups(client), reverse=True)[keep_count:]:
+    # Ordena pelo carimbo AAAAMMDD-HHMMSS (não pelo nome inteiro): com o prefixo
+    # antigo (pulse-radius-backup) e o novo na mesma pasta, a ordem alfabética
+    # deixaria de ser a cronológica.
+    for name in sorted(list_backups(client), key=_stamp_of, reverse=True)[keep_count:]:
         client.delete(name)
         removed.append(name)
     return removed
@@ -310,10 +322,12 @@ def run_backup(
 def clean_leftovers(temp_dir: str | None = None) -> int:
     """Apaga pastas temporárias de backups interrompidos. Devolve quantas removeu."""
     removed = 0
-    for path in Path(temp_dir or tempfile.gettempdir()).glob(f"{TEMP_PREFIX}*"):
-        if path.is_dir():
-            shutil.rmtree(path, ignore_errors=True)
-            removed += 1
+    base = Path(temp_dir or tempfile.gettempdir())
+    for prefix in (TEMP_PREFIX, *LEGACY_TEMP_PREFIXES):
+        for path in base.glob(f"{prefix}*"):
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=True)
+                removed += 1
     return removed
 
 
@@ -346,7 +360,7 @@ def describe_error(exc: BaseException) -> str:
     if isinstance(exc, ftplib.error_perm) and text.startswith("550"):
         return (
             f"permissão negada no FTP: {text} — se o destino só aceita gravação "
-            "(ex.: Pulse Backup), marque “Destino só de gravação”"
+            "(ex.: H2NODE Backup), marque “Destino só de gravação”"
         )
     if isinstance(exc, BackupFtpError | backup.BackupError):
         return text

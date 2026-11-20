@@ -2,7 +2,7 @@
 
 Este documento cobre as camadas 7 e 8 da auditoria de segurança que **não podem
 ser resolvidas em código**: são configuração do sistema operacional do servidor
-onde o Pulse RADIUS roda. Ninguém deve rodar isto automaticamente — revise cada
+onde o H2NODE Auth roda. Ninguém deve rodar isto automaticamente — revise cada
 comando antes de aplicar, principalmente os de SSH (um erro aqui pode trancar
 seu próprio acesso remoto). Testado para Debian/Ubuntu; adapte para sua distro.
 
@@ -10,7 +10,7 @@ seu próprio acesso remoto). Testado para Debian/Ubuntu; adapte para sua distro.
 
 ```bash
 # gere uma chave no seu computador (não no servidor) se ainda não tiver:
-ssh-keygen -t ed25519 -C "seu-nome@pulse-radius"
+ssh-keygen -t ed25519 -C "seu-nome@h2node-auth"
 ssh-copy-id usuario@servidor
 
 # no servidor, edite /etc/ssh/sshd_config:
@@ -72,14 +72,14 @@ keyring plugin/TDE configurado) — a proteção vem do disco do host. Duas opç
 ```bash
 # EXEMPLO — adapte o device (/dev/sdX) ao seu ambiente; isto APAGA o conteúdo atual
 sudo cryptsetup luksFormat /dev/sdX
-sudo cryptsetup open /dev/sdX pulse_data
-sudo mkfs.ext4 /dev/mapper/pulse_data
-sudo mkdir -p /mnt/pulse-data
-sudo mount /dev/mapper/pulse_data /mnt/pulse-data
+sudo cryptsetup open /dev/sdX h2node_data
+sudo mkfs.ext4 /dev/mapper/h2node_data
+sudo mkdir -p /mnt/h2node-data
+sudo mount /dev/mapper/h2node_data /mnt/h2node-data
 ```
 
 Depois, aponte o volume `db_data` do `docker-compose.yml` para um bind mount
-dentro de `/mnt/pulse-data` (em vez do volume nomeado padrão do Docker), e
+dentro de `/mnt/h2node-data` (em vez do volume nomeado padrão do Docker), e
 configure `/etc/crypttab` para desbloquear o disco no boot (com chave em TPM,
 se disponível, para reinício sem digitação manual — ou aceite que o servidor
 precisa de intervenção manual após reboot).

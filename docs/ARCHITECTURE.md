@@ -1,4 +1,4 @@
-# Arquitetura — Pulse RADIUS
+# Arquitetura — H2NODE Auth
 
 ## Componentes
 

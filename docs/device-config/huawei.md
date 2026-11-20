@@ -1,9 +1,9 @@
-# Huawei (VRP) — apontar para o Pulse RADIUS
+# Huawei (VRP) — apontar para o H2NODE Auth
 
 `10.0.0.254` = IP do host que roda o container `freeradius`.
 
 ```
-radius-server template PULSE
+radius-server template H2NODE
  radius-server authentication 10.0.0.254 1812 weight 80
  radius-server accounting 10.0.0.254 1813 weight 80
  radius-server shared-key cipher <shared-secret-cadastrado-no-painel>
@@ -18,7 +18,7 @@ aaa
  domain default_admin
   authentication-scheme SCH_RADIUS
   accounting-scheme ACC_RADIUS
-  radius-server PULSE
+  radius-server H2NODE
 #
 user-interface vty 0 4
  authentication-mode aaa
@@ -37,25 +37,25 @@ Opcionalmente `Service-Type = Administrative-User`. O `NAS-IP-Address` que o
 equipamento envia precisa ser exatamente o `mgmt_ip` cadastrado — force com:
 
 ```
-radius-server template PULSE
+radius-server template H2NODE
  radius-attribute nas-ip-address 10.0.0.1
 ```
 
 ## Contabilização de comandos
 
-Habilite o *command accounting* apontando para o Pulse e, no
+Habilite o *command accounting* apontando para o H2NODE Auth e, no
 `radius/sites-available/default` (bloco `accounting`), mapeie o VSA de comando
-do seu firmware para `Pulse-Command` — confirme o nome exato com
+do seu firmware para `H2NODE-Command` — confirme o nome exato com
 `freeradius -X` num comando real. Ver `docs/RUNBOOK.md` → "Contabilização de
 comandos".
 
 ## HWTACACS (alternativa ao RADIUS)
 
-O tac_plus-ng do Pulse atende HWTACACS (variante Huawei do TACACS+). No painel:
+O tac_plus-ng do H2NODE Auth atende HWTACACS (variante Huawei do TACACS+). No painel:
 grupo **Huawei** → *Protocolo AAA* = `tacacs` + *Chave TACACS+*. No VRP:
 
 ```
-hwtacacs-server template PULSE
+hwtacacs-server template H2NODE
  hwtacacs-server authentication 10.0.0.254
  hwtacacs-server authorization 10.0.0.254
  hwtacacs-server accounting 10.0.0.254

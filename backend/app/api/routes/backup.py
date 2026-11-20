@@ -66,14 +66,14 @@ def export_backup(
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     dump = backup.dump_sql(engine, include_accounting=include_accounting, schema_version=version)
     if encrypted:
-        filename = f"pulse-radius-backup-{stamp}.sql.enc"
+        filename = f"h2node-auth-backup-{stamp}.sql.enc"
         stream: StreamingResponse = StreamingResponse(
             backup.encrypt_stream(dump),
             media_type="application/octet-stream",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     else:
-        filename = f"pulse-radius-backup-{stamp}.sql"
+        filename = f"h2node-auth-backup-{stamp}.sql"
         stream = StreamingResponse(
             dump,
             media_type="application/sql",
@@ -123,7 +123,7 @@ async def import_backup(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
     # O dump cobre as tabelas (equipamentos, perfis, chaves...), mas o
-    # /etc/tacacs-shared/pulse.cfg que o tac_plus-ng lê é um arquivo derivado,
+    # /etc/tacacs-shared/h2node.cfg que o tac_plus-ng lê é um arquivo derivado,
     # fora do banco — sem isto ele ficaria com os hosts/perfis de antes da
     # restauração até a próxima edição de equipamento/perfil no painel.
     try:
@@ -251,7 +251,7 @@ def test_schedule(
         return {
             "detail": "conexão OK. Destino só de gravação: as cópias antigas ficam no servidor de backup."
         }
-    return {"detail": f"conexão OK. {existing} backup(s) do Pulse RADIUS na pasta."}
+    return {"detail": f"conexão OK. {existing} backup(s) do H2NODE Auth na pasta."}
 
 
 @router.post("/schedule/run", response_model=BackupScheduleOut, status_code=status.HTTP_202_ACCEPTED)

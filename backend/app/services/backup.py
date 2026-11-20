@@ -24,21 +24,25 @@ from sqlalchemy.orm import Session
 from app.core.crypto import decrypt, encrypt
 
 # Primeira linha do arquivo — usada para validar o upload na restauração.
-MARKER = "-- Pulse RADIUS backup v1"
+MARKER = "-- H2NODE Auth backup v1"
+# Backups gerados antes do rebranding (Pulse RADIUS) continuam restauráveis.
+LEGACY_MARKERS = ("-- Pulse RADIUS backup v1",)
 
-# Cabeçalho/rodapé no formato do mysqldump: o Pulse Backup (destino do backup
+# Cabeçalho/rodapé no formato do mysqldump: o H2NODE Backup (destino do backup
 # por FTP) só confirma que um .sql chegou completo quando acha os dois.
-MYSQLDUMP_HEAD = "-- MySQL dump compatible (Pulse RADIUS)"
+MYSQLDUMP_HEAD = "-- MySQL dump compatible (H2NODE Auth)"
 MYSQLDUMP_END = "-- Dump completed"
 
 # Cabeçalho do formato cifrado (ver encrypt_stream/decrypt_to_text). Nunca
 # colide com MARKER: dumps em claro sempre começam com "--".
-ENC_MAGIC = b"PULSEENC1\n"
+ENC_MAGIC = b"H2NODEENC1\n"
+LEGACY_ENC_MAGICS = (b"PULSEENC1\n",)
 
 # Separador de instruções. Os literais gerados pelo pymysql nunca contêm
 # quebra de linha crua (\n vira \\n), então este sentinela só aparece nos
 # limites reais de instrução — split seguro na restauração.
-_STMT_SEP = "\n-- @@PULSE_STMT@@\n"
+_STMT_SEP = "\n-- @@H2NODE_STMT@@\n"
+_LEGACY_STMT_SEPS = ("\n-- @@PULSE_STMT@@\n",)
 
 # Histórico volumoso, omitido quando o operador desmarca "incluir accounting".
 _HISTORY_TABLES = {"radacct", "radpostauth"}
@@ -153,6 +157,8 @@ def read_schema_version(db: Session) -> str | None:
 
 
 def _statements(sql_text: str) -> Iterator[str]:
+    for legacy in _LEGACY_STMT_SEPS:
+        sql_text = sql_text.replace(legacy, _STMT_SEP)
     for chunk in sql_text.split(_STMT_SEP):
         body = "\n".join(
             ln for ln in chunk.splitlines() if not ln.lstrip().startswith("--")
@@ -168,8 +174,8 @@ def restore_sql(engine: Engine, sql_text: str, *, current_version: str | None = 
     parcialmente restaurado. O chamador já exige confirmação explícita.
     """
     _require_mysql(engine)
-    if not sql_text.lstrip().startswith(MARKER):
-        raise BackupError("arquivo não é um backup do Pulse RADIUS")
+    if not sql_text.lstrip().startswith((MARKER, *LEGACY_MARKERS)):
+        raise BackupError("arquivo não é um backup do H2NODE Auth")
 
     dump_version: str | None = None
     for ln in sql_text.splitlines()[:6]:
@@ -216,14 +222,22 @@ def encrypt_stream(chunks: Iterator[str]) -> Iterator[bytes]:
         yield struct.pack(">I", len(token)) + token
 
 
+def _enc_magic(data: bytes) -> bytes | None:
+    for magic in (ENC_MAGIC, *LEGACY_ENC_MAGICS):
+        if data.startswith(magic):
+            return magic
+    return None
+
+
 def is_encrypted(data: bytes) -> bool:
-    return data.startswith(ENC_MAGIC)
+    return _enc_magic(data) is not None
 
 
 def decrypt_to_text(data: bytes) -> str:
-    if not data.startswith(ENC_MAGIC):
+    magic = _enc_magic(data)
+    if magic is None:
         raise BackupError("arquivo não está no formato cifrado esperado")
-    buf = data[len(ENC_MAGIC):]
+    buf = data[len(magic):]
     parts: list[str] = []
     pos = 0
     while pos < len(buf):

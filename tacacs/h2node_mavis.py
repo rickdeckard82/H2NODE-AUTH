@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""MAVIS backend do Pulse — autenticação e lookup de grupo contra o MySQL do painel.
+"""MAVIS backend do H2NODE Auth — autenticação e lookup de grupo contra o MySQL do painel.
 
 Protocolo MAVIS: linhas "<int> <valor>" no stdin terminadas por "=", resposta no
 mesmo formato + "=<verdict>". Usa a lib mavis.py que vem com o tac_plus-ng.
@@ -99,7 +99,7 @@ def main() -> None:
         try:
             ok_state, pname, ssha = lookup(D.user)
         except Exception as exc:  # noqa: BLE001
-            sys.stderr.write(f"pulse_mavis: erro de banco: {exc}\n")
+            sys.stderr.write(f"h2node_mavis: erro de banco: {exc}\n")
             sys.stderr.flush()
             D.write(MAVIS_FINAL, AV_V_RESULT_ERROR, "backend error")
             continue

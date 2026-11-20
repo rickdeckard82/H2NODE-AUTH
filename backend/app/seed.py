@@ -160,6 +160,23 @@ def main() -> None:
         raise
     finally:
         db.close()
+    sync_tacacs()
+
+
+def sync_tacacs() -> None:
+    """Regrava a config do TACACS+ a cada start: o arquivo gerado mudou de nome
+    (pulse.cfg → h2node.cfg) e não pode depender de uma edição no painel para
+    voltar a existir. Falhar aqui não impede o painel de subir."""
+    from app.services import tacacs_sync
+
+    db = SessionLocal()
+    try:
+        n = tacacs_sync.regenerate(db)
+        logger.info("tacacs_config_synced", hosts=n)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("tacacs_config_sync_failed", error=str(exc))
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
