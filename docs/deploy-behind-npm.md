@@ -57,7 +57,7 @@ docker compose ps        # frontend deve expor 0.0.0.0/<IP>:8080->80
 |---|---|---|
 | `8080/tcp` (WEB_PORT) | **só o IP do servidor do NPM** | painel + API |
 | `1812/udp`, `1813/udp` | rede de gerência dos equipamentos | RADIUS auth + accounting |
-| `49/tcp` | rede de gerência dos equipamentos | TACACS+ (Huawei/Juniper/Datacom/A10) — omita se não usar |
+| `49/tcp` | rede de gerência dos equipamentos | TACACS+ (Huawei/Juniper/Datacom/A10/ZTE/Dell) — omita se não usar |
 | `22/tcp` | administração | SSH |
 
 Tudo o mais fechado. `3306` (MySQL) e `8000` (backend) **não** são publicados no modo padrão.
@@ -135,5 +135,6 @@ Login no painel: `https://radius.suaempresa.com.br` com `BOOTSTRAP_ADMIN_*`.
   habilitar depois, libere também essa porta *do servidor para os equipamentos*.
 - Se o NPM e o H2NODE Auth ficarem no mesmo host Docker, dá para colocá-los na
   mesma rede e apontar o NPM para `frontend:80` em vez de `<IP>:8080`.
-- Backups do MySQL: `docker compose --profile backup up -d db-backup` (ver
+- Backups do MySQL: o serviço `db-backup` já sobe por padrão; defina
+  `BACKUP_ENCRYPTION_KEY` no `.env` para os dumps saírem cifrados (ver
   [RUNBOOK.md](RUNBOOK.md)).

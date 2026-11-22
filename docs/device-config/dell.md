@@ -32,7 +32,7 @@ exit
 - A lista `TACACS` vale para o login; `TACP` para o `enable` (que também passa
   pelo TACACS+). Aplique também em `line console` / `line telnet` se usar.
 - O H2NODE Auth precisa estar com o IP do switch cadastrado como equipamento do grupo
-  Dell (use o IP da VLAN de gerência, ex.: `interface vlan 516`).
+  Dell (use o IP da interface de gerência, ex.: a `interface vlan` da rede de gerência).
 
 ## Autorização e nível de privilégio
 

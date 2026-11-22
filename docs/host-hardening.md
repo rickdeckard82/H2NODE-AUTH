@@ -1,8 +1,7 @@
 # Hardening do host — SSH, firewall e disco (fora do escopo do Docker Compose)
 
-Este documento cobre as camadas 7 e 8 da auditoria de segurança que **não podem
-ser resolvidas em código**: são configuração do sistema operacional do servidor
-onde o H2NODE Auth roda. Ninguém deve rodar isto automaticamente — revise cada
+Este documento cobre a parte da segurança que **não pode ser resolvida em código**:
+a configuração do sistema operacional do servidor onde o H2NODE Auth roda. Ninguém deve rodar isto automaticamente — revise cada
 comando antes de aplicar, principalmente os de SSH (um erro aqui pode trancar
 seu próprio acesso remoto). Testado para Debian/Ubuntu; adapte para sua distro.
 
@@ -48,7 +47,7 @@ sudo ufw allow from <IP-DO-NPM> to any port 8080 proto tcp
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 1812 proto udp
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 1813 proto udp
 
-# TACACS+ (se usar Huawei/Juniper/Datacom/A10 com tac_plus-ng)
+# TACACS+ (se algum equipamento usar TACACS+)
 sudo ufw allow from <CIDR-DA-REDE-DE-GERENCIA> to any port 49 proto tcp
 
 sudo ufw enable

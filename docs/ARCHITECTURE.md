@@ -4,15 +4,20 @@
 
 | Container | Imagem | Rede | Portas |
 |---|---|---|---|
-| `db` | mysql:8.4 | internal | 3306 (só `--profile dev`) |
-| `freeradius` | build (freeradius:3.2) | internal | 1812/udp, 1813/udp |
+| `db` | mysql:8.4 | internal + edge | 3306 só em `127.0.0.1` do host |
+| `freeradius` | build (freeradius:3.2) | host (`network_mode: host`) | 1812/udp, 1813/udp |
+| `tacacs` | build (tac_plus-ng) | host (`network_mode: host`) | 49/tcp |
+| `redis` | redis:7-alpine | internal | — (rate-limit compartilhado) |
 | `backend` | build (python:3.12) | edge + internal | 8000 (interno) |
-| `frontend` | build (node → nginx) | edge | 80 (interno) |
-| `proxy` | build (nginx) | edge | 80, 443 |
-| `adminer` | adminer:4 | internal + edge | 8080 (só `--profile dev`) |
+| `backup-worker` | mesma do backend | edge + internal | — (backup agendado por FTP) |
+| `db-backup` | mysql:8.4 | internal | — (dump periódico no volume `db_backups`) |
+| `frontend` | build (node → nginx) | edge | `WEB_PORT` (padrão 8080) → 80 |
+| `proxy` | build (nginx) | edge | 80, 443 (só `--profile tls-proxy`) |
+| `adminer` | adminer:4 | internal + edge | 8081 (só `--profile dev`) |
 
-`internal` é uma rede Docker sem acesso à internet. O `db` nunca é exposto ao host
-em produção.
+`internal` é uma rede Docker sem acesso à internet. O `db` não fica acessível pela
+rede: só pelo loopback do host, por onde `freeradius` e `tacacs` (que usam a rede do
+host para receber os pacotes dos equipamentos) chegam até ele.
 
 ## Banco de dados (`radius`)
 

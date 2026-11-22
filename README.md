@@ -2,6 +2,17 @@
 
 ![Painel do H2NODE Auth — visão geral de autenticação e accounting](docs/images/painel.png)
 
+**Em poucas palavras:** em vez de criar o mesmo usuário e senha em cada roteador,
+switch ou OLT, você cadastra a equipe uma vez neste painel e aponta os equipamentos
+para ele. Cada login passa a ser conferido aqui, com o nível de acesso certo para
+cada pessoa, e fica registrado quem entrou, em qual equipamento e quais comandos
+executou. Desligou alguém da equipe? Desative o usuário no painel e o acesso cai em
+todos os equipamentos de uma vez.
+
+Serve para qualquer provedor ou empresa com equipamentos de rede (Huawei, Juniper,
+Datacom, MikroTik, A10, ZTE, Dell e outros que falem RADIUS ou TACACS+). Roda em
+um único servidor Linux com Docker.
+
 Sistema AAA completo para **login administrativo em equipamentos de rede** via
 **RADIUS e TACACS+**, com painel web para gerenciamento. Stack: **FreeRADIUS 3.2 +
 tac_plus-ng + MySQL 8** para o AAA, **FastAPI** no backend, **React + Vite** no

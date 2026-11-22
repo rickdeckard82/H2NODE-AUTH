@@ -17,5 +17,5 @@ def test_nt_hash_known_vectors():
 
 
 def test_nt_hash_is_stable_and_unsalted():
-    assert make_nt_hash("ehsv2@(Neolink)#") == make_nt_hash("ehsv2@(Neolink)#")
+    assert make_nt_hash("Senh@(Exemplo)#1") == make_nt_hash("Senh@(Exemplo)#1")
     assert len(make_nt_hash("qualquer")) == 32

@@ -37,8 +37,9 @@ Resumo do que já está implementado e do que **depende de configuração/infra 
   `Referrer-Policy`, `Permissions-Policy` no HTML; HSTS no proxy TLS.
 - **Superfície**: `/api/docs` e `/api/openapi.json` desligados por padrão
   (`ENABLE_DOCS=false`); `/api/metrics` bloqueado na borda (só rede interna).
-- **Rede**: `db` e `freeradius` na rede Docker `internal` (sem internet); `backend`
-  sem porta publicada (só acessível via `frontend`).
+- **Rede**: `db` publicado só em `127.0.0.1` do host (alcançado por `freeradius` e
+  `tacacs`, que usam a rede do host); `redis` só na rede Docker `internal` (sem
+  internet); `backend` sem porta publicada (só acessível via `frontend`).
 - **Containers**: backend roda como usuário não-root; imagem do frontend com
   `npm ci` (build reprodutível a partir do lockfile).
 - **Dependências**: `npm audit` = 0 vulnerabilidades; `pip-audit` = 0

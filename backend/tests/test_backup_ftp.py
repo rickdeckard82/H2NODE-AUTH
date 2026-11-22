@@ -41,7 +41,7 @@ class FakeFTP:
         pass
 
     def makepasv(self):
-        return ("186.233.16.10", 30027)
+        return ("203.0.113.10", 30027)
 
     def ntransfercmd(self, cmd, rest=None):
         """Como o ftplib: PASV + conexão de dados ANTES de mandar o comando."""
@@ -376,7 +376,7 @@ def test_blocked_passive_port_gives_actionable_error(fake_dump):
     with pytest.raises(backup_ftp.BackupFtpError) as exc:
         backup_ftp.run_backup(None, _cfg(ftp_write_only=True), None)
     msg = backup_ftp.describe_error(exc.value)
-    assert "186.233.16.10:30027" in msg
+    assert "203.0.113.10:30027" in msg
     assert "30000-30049" in msg
 
 
