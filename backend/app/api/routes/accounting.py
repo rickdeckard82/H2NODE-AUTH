@@ -131,12 +131,6 @@ def export_sessions_csv(
 
 
 # ─────────────────────────── Authentication (radpostauth) ───────────────────────────
-def _like(term: str) -> str:
-    """Termo do usuário -> padrão LIKE literal (% e _ não viram curinga)."""
-    esc = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return f"%{esc}%"
-
-
 def _authn_stmt(username: str | None, accepted: bool | None, protocol: str | None,
                 since: datetime | None, until: datetime | None,
                 source: str | None = None, dest: str | None = None):
@@ -144,12 +138,12 @@ def _authn_stmt(username: str | None, accepted: bool | None, protocol: str | Non
     if username:
         stmt = stmt.where(RadPostAuth.username.like(f"%{username}%"))
     if source and source.strip():
-        stmt = stmt.where(RadPostAuth.callingstationid.like(_like(source.strip()), escape="\\"))
+        stmt = stmt.where(RadPostAuth.callingstationid.contains(source.strip(), autoescape=True))
     if dest and dest.strip():
-        pat = _like(dest.strip())
+        term = dest.strip()
         # destino = IP do equipamento ou o nome cadastrado dele
-        by_name = select(Equipment.mgmt_ip).where(Equipment.name.like(pat, escape="\\"))
-        stmt = stmt.where(or_(RadPostAuth.nasipaddress.like(pat, escape="\\"),
+        by_name = select(Equipment.mgmt_ip).where(Equipment.name.icontains(term, autoescape=True))
+        stmt = stmt.where(or_(RadPostAuth.nasipaddress.contains(term, autoescape=True),
                               RadPostAuth.nasipaddress.in_(by_name)))
     if accepted is True:
         stmt = stmt.where(RadPostAuth.reply.like("Access-Accept%"))
