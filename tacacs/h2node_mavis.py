@@ -122,7 +122,11 @@ def main() -> None:
             ok_state, pname, ssha, group_id = lookup(D.user)
             # IPADDR = rem_addr (de onde o usuário conectou); sem ele, o IP do
             # equipamento — o mesmo fallback do RADIUS (Calling-Station-Id → NAS).
-            origin = D.av_pairs.get(AV_A_IPADDR) or D.av_pairs.get(AV_A_TACCLIENT)
+            # alguns NAS (ex.: Datacom DmOS) mandam rem_addr "0.0.0.0" / "::": não é IP real
+            rem = (D.av_pairs.get(AV_A_IPADDR) or "").strip()
+            if rem in ("0.0.0.0", "::", "0:0:0:0:0:0:0:0"):
+                rem = ""
+            origin = rem or D.av_pairs.get(AV_A_TACCLIENT)
             allowed = ip_allowed(group_id, origin)
         except Exception as exc:  # noqa: BLE001
             sys.stderr.write(f"h2node_mavis: erro de banco: {exc}\n")

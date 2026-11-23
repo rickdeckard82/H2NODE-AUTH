@@ -94,10 +94,44 @@ def parse(line: str) -> tuple | None:
 
     username = (f[1] if len(f) > 1 else "")[:64]
     rem_addr = f[3].strip() if len(f) > 4 else ""
+    if rem_addr in ("0.0.0.0", "::", "0:0:0:0:0:0:0:0"):
+        rem_addr = ""  # NAS que não informa o IP de origem
     row = [username, reply, authdate, nas_ip[:45], rem_addr[:45] or None]
     if _SERVER_IP:
         row.append(_SERVER_IP[:45])
     return tuple(row)
+
+
+# (nas, user) com login gravado sem IP de origem (NAS que manda rem_addr 0.0.0.0 no
+# login, ex. Datacom DmOS); o IP real chega na 1ª linha de autorização seguinte.
+_PENDING: dict[tuple[str, str], bool] = {}
+_UNSPEC = ("", "0.0.0.0", "::", "0:0:0:0:0:0:0:0")
+
+_BACKFILL = (
+    "UPDATE radpostauth SET callingstationid = %s "
+    "WHERE protocol = 'tacacs' AND username = %s AND nasipaddress = %s "
+    "AND (callingstationid IS NULL OR callingstationid = '') "
+    "AND authdate >= %s - INTERVAL 5 MINUTE"
+)
+
+
+def backfill(line: str) -> tuple | None:
+    """Linha de autorização com IP real -> params para completar o login pendente."""
+    f = line.rstrip("\n").split("\t")
+    if len(f) < 5:
+        return None
+    head = f[0].split()
+    if len(head) < 4:
+        return None
+    nas_ip, user, rem = head[-1][:45], f[1][:64], f[3].strip()
+    if rem in _UNSPEC or (nas_ip, user) not in _PENDING:
+        return None
+    try:
+        ts = datetime.datetime.fromisoformat(f"{head[0]}T{head[1]}")
+    except ValueError:
+        return None
+    del _PENDING[(nas_ip, user)]
+    return rem[:45], user, nas_ip, ts
 
 
 def main() -> None:
@@ -113,7 +147,23 @@ def main() -> None:
             sys.stderr.flush()
             continue
         if row is None:
+            try:
+                bf = backfill(line)
+            except Exception:  # noqa: BLE001
+                bf = None
+            if bf:
+                try:
+                    with _cursor() as cur:
+                        cur.execute(_BACKFILL, bf)
+                except Exception as exc:  # noqa: BLE001
+                    _conn = None
+                    sys.stderr.write(f"authlog_import: backfill: {exc}\n")
+                    sys.stderr.flush()
             continue
+        if row[4] is None:
+            if len(_PENDING) > 2000:
+                _PENDING.pop(next(iter(_PENDING)))
+            _PENDING[(row[3], row[0])] = True
         for attempt in (1, 2):
             try:
                 with _cursor() as cur:

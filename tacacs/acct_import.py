@@ -62,6 +62,8 @@ def parse(line: str) -> tuple | None:
         first = ts_raw.split(" ")[0]
         ts_raw = first + "T00:00:00"
     accttype, session_id, nas, user, nac, port, service = (f[1:8] + [""] * 7)[:7]
+    if nac in ("0.0.0.0", "::", "0:0:0:0:0:0:0:0"):
+        nac = ""
     cmd = "\t".join(f[8:]).strip() if len(f) > 8 else ""
     try:
         event_time = datetime.datetime.fromisoformat(ts_raw.split("+")[0].rstrip("Z"))
