@@ -133,7 +133,8 @@ def export_sessions_csv(
 # ─────────────────────────── Authentication (radpostauth) ───────────────────────────
 def _authn_stmt(username: str | None, accepted: bool | None, protocol: str | None,
                 since: datetime | None, until: datetime | None,
-                source: str | None = None, dest: str | None = None):
+                source: str | None = None, dest: str | None = None,
+                db: Session | None = None):
     stmt = select(RadPostAuth)
     if username:
         stmt = stmt.where(RadPostAuth.username.like(f"%{username}%"))
@@ -141,10 +142,17 @@ def _authn_stmt(username: str | None, accepted: bool | None, protocol: str | Non
         stmt = stmt.where(RadPostAuth.callingstationid.contains(source.strip(), autoescape=True))
     if dest and dest.strip():
         term = dest.strip()
-        # destino = IP do equipamento ou o nome cadastrado dele
-        by_name = select(Equipment.mgmt_ip).where(Equipment.name.icontains(term, autoescape=True))
-        stmt = stmt.where(or_(RadPostAuth.nasipaddress.contains(term, autoescape=True),
-                              RadPostAuth.nasipaddress.in_(by_name)))
+        # destino = IP do equipamento ou o nome cadastrado dele. O nome é resolvido
+        # numa consulta à parte: subconsulta entre as tabelas do RADIUS e do painel
+        # pode dar "Illegal mix of collations" no MariaDB.
+        conds = [RadPostAuth.nasipaddress.contains(term, autoescape=True)]
+        if db is not None:
+            ips = db.execute(
+                select(Equipment.mgmt_ip).where(Equipment.name.icontains(term, autoescape=True))
+            ).scalars().all()
+            if ips:
+                conds.append(RadPostAuth.nasipaddress.in_(ips))
+        stmt = stmt.where(or_(*conds))
     if accepted is True:
         stmt = stmt.where(RadPostAuth.reply.like("Access-Accept%"))
     elif accepted is False:
@@ -173,7 +181,7 @@ def list_authentication(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
 ) -> Page[AuthEventOut]:
-    stmt = _authn_stmt(username, accepted, protocol, since, until, source, dest)
+    stmt = _authn_stmt(username, accepted, protocol, since, until, source, dest, db)
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
     rows = db.execute(
         stmt.order_by(RadPostAuth.authdate.desc())
@@ -206,7 +214,7 @@ def export_authentication_csv(
     source: str | None = None,
     dest: str | None = None,
 ) -> StreamingResponse:
-    stmt = _authn_stmt(username, accepted, protocol, since, until, source, dest).order_by(
+    stmt = _authn_stmt(username, accepted, protocol, since, until, source, dest, db).order_by(
         RadPostAuth.authdate.desc()
     ).limit(50000)
     buf = io.StringIO()
