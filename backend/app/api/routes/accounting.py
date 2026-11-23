@@ -131,11 +131,26 @@ def export_sessions_csv(
 
 
 # ─────────────────────────── Authentication (radpostauth) ───────────────────────────
+def _like(term: str) -> str:
+    """Termo do usuário -> padrão LIKE literal (% e _ não viram curinga)."""
+    esc = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{esc}%"
+
+
 def _authn_stmt(username: str | None, accepted: bool | None, protocol: str | None,
-                since: datetime | None, until: datetime | None):
+                since: datetime | None, until: datetime | None,
+                source: str | None = None, dest: str | None = None):
     stmt = select(RadPostAuth)
     if username:
         stmt = stmt.where(RadPostAuth.username.like(f"%{username}%"))
+    if source and source.strip():
+        stmt = stmt.where(RadPostAuth.callingstationid.like(_like(source.strip()), escape="\\"))
+    if dest and dest.strip():
+        pat = _like(dest.strip())
+        # destino = IP do equipamento ou o nome cadastrado dele
+        by_name = select(Equipment.mgmt_ip).where(Equipment.name.like(pat, escape="\\"))
+        stmt = stmt.where(or_(RadPostAuth.nasipaddress.like(pat, escape="\\"),
+                              RadPostAuth.nasipaddress.in_(by_name)))
     if accepted is True:
         stmt = stmt.where(RadPostAuth.reply.like("Access-Accept%"))
     elif accepted is False:
@@ -159,10 +174,12 @@ def list_authentication(
     protocol: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
+    source: str | None = None,
+    dest: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
 ) -> Page[AuthEventOut]:
-    stmt = _authn_stmt(username, accepted, protocol, since, until)
+    stmt = _authn_stmt(username, accepted, protocol, since, until, source, dest)
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
     rows = db.execute(
         stmt.order_by(RadPostAuth.authdate.desc())
@@ -192,8 +209,10 @@ def export_authentication_csv(
     protocol: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
+    source: str | None = None,
+    dest: str | None = None,
 ) -> StreamingResponse:
-    stmt = _authn_stmt(username, accepted, protocol, since, until).order_by(
+    stmt = _authn_stmt(username, accepted, protocol, since, until, source, dest).order_by(
         RadPostAuth.authdate.desc()
     ).limit(50000)
     buf = io.StringIO()

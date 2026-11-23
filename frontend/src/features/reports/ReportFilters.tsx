@@ -22,11 +22,13 @@ export function ReportFilters({
   value,
   onChange,
   showNas = false,
+  extra,
   right,
 }: {
   value: ReportFilterState;
   onChange: (next: ReportFilterState) => void;
   showNas?: boolean;
+  extra?: ReactNode;
   right?: ReactNode;
 }) {
   const set = (patch: Partial<ReportFilterState>) => onChange({ ...value, ...patch });
@@ -54,6 +56,7 @@ export function ReportFilters({
           />
         </label>
       )}
+      {extra}
       <label className="block">
         <span className="label">{t("De")}</span>
         <input

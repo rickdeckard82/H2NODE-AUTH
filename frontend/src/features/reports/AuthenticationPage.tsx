@@ -14,6 +14,8 @@ export default function AuthenticationPage() {
   const [filters, setFilters] = useState<ReportFilterState>(emptyFilters);
   const [accepted, setAccepted] = useState<"" | "true" | "false">("");
   const [protocol, setProtocol] = useState<"" | "radius" | "tacacs">("");
+  const [source, setSource] = useState("");
+  const [dest, setDest] = useState("");
   const [page, setPage] = useState(1);
 
   const query = {
@@ -22,6 +24,8 @@ export default function AuthenticationPage() {
     protocol: protocol || undefined,
     since: toIso(filters.since),
     until: toIso(filters.until),
+    source: source.trim() || undefined,
+    dest: dest.trim() || undefined,
   };
 
   const list = useQuery({
@@ -56,6 +60,34 @@ export default function AuthenticationPage() {
       <ReportFilters
         value={filters}
         onChange={onFilters}
+        extra={
+          <>
+            <label className="block">
+              <span className="label">{t("Origem")}</span>
+              <input
+                className="input max-w-[160px]"
+                placeholder="186.233.16.9"
+                value={source}
+                onChange={(e) => {
+                  setSource(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label className="block">
+              <span className="label">{t("Destino")}</span>
+              <input
+                className="input max-w-[180px]"
+                placeholder={t("IP ou nome")}
+                value={dest}
+                onChange={(e) => {
+                  setDest(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          </>
+        }
         right={
           <>
             <label className="block">

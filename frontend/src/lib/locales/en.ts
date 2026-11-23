@@ -81,6 +81,7 @@ export const en: Record<string, string> = {
 
   // ---- Login / definir senha ----
   Usuário: "Username",
+  "IP ou nome": "IP or name",
   Senha: "Password",
   "Falha ao entrar": "Sign-in failed",
   "Código inválido": "Invalid code",
