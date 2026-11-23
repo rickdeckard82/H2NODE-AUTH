@@ -110,6 +110,11 @@ def ip_allowed(group_id: int | None, ip: str | None) -> bool:
     )
 
 
+# NAS que não informa o IP do técnico (rem_addr 0.0.0.0): liberar (padrão) ou negar
+# nos grupos com restrição de IP.
+_UNKNOWN_IP_ALLOW = os.getenv("TACACS_UNKNOWN_IP", "allow").lower() != "deny"
+
+
 def main() -> None:
     while True:
         D = Mavis()
@@ -126,8 +131,13 @@ def main() -> None:
             rem = (D.av_pairs.get(AV_A_IPADDR) or "").strip()
             if rem in ("0.0.0.0", "::", "0:0:0:0:0:0:0:0"):
                 rem = ""
-            origin = rem or D.av_pairs.get(AV_A_TACCLIENT)
-            allowed = ip_allowed(group_id, origin)
+            if not rem and _UNKNOWN_IP_ALLOW:
+                # IP do técnico desconhecido: não dá para aplicar a restrição de IP
+                # do grupo neste login (a senha continua exigida)
+                allowed = True
+            else:
+                origin = rem or D.av_pairs.get(AV_A_TACCLIENT)
+                allowed = ip_allowed(group_id, origin)
         except Exception as exc:  # noqa: BLE001
             sys.stderr.write(f"h2node_mavis: erro de banco: {exc}\n")
             sys.stderr.flush()

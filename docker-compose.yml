@@ -106,6 +106,7 @@ services:
       # Opcional: IP deste servidor TACACS+, exibido como "IP de destino" das
       # tentativas de login na tela Authentication (o access.log não o traz).
       TACACS_SERVER_IP: ${TACACS_SERVER_IP:-}
+      TACACS_UNKNOWN_IP: ${TACACS_UNKNOWN_IP:-allow}
     # Usa a pilha de rede do host: escuta direto em 49/tcp, sem NAT do Docker.
     network_mode: host
     volumes:
