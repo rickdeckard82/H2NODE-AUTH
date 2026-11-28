@@ -67,9 +67,22 @@ PROFILES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
         },
     ),
 }
+# Leitura p/ agentes de monitoramento: RADIUS igual ao read-only; no TACACS+,
+# enable 15 (Dell OS6 exige modo privilegiado até p/ `show`) e só comandos de leitura.
+PROFILES["noc-leitura"] = (
+    "Monitoramento: leitura com enable 15, só comandos de leitura (TACACS+)",
+    PROFILES["read-only"][1],
+)
 
 # priv-lvl TACACS+ (exec) equivalente de cada perfil interno.
-PROFILE_TACACS_LEVEL = {"admin-full": 15, "operator": 10, "read-only": 1}
+PROFILE_TACACS_LEVEL = {"admin-full": 15, "operator": 10, "read-only": 1, "noc-leitura": 1}
+# campos extra só na criação — perfis já existentes não são sobrescritos
+PROFILE_TACACS_EXTRA: dict[str, dict] = {
+    "noc-leitura": {
+        "tacacs_enable_level": 15,
+        "tacacs_cmd_allow": "^show( |$)\n^terminal length\n^(exit|quit)$",
+    },
+}
 
 
 def seed_manufacturers(db: Session) -> dict[str, Manufacturer]:
@@ -94,6 +107,7 @@ def seed_profiles(db: Session, mfrs: dict[str, Manufacturer]) -> None:
             profile = PrivilegeProfile(
                 name=pname, description=desc, is_builtin=True,
                 tacacs_priv_level=PROFILE_TACACS_LEVEL.get(pname, 1),
+                **PROFILE_TACACS_EXTRA.get(pname, {}),
             )
             db.add(profile)
             db.flush()

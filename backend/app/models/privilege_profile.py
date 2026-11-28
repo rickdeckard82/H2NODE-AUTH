@@ -15,6 +15,11 @@ class PrivilegeProfile(Base, TimestampMixin):
     # ex.: "shell:roles=network-admin"). Usados pelo MAVIS na autorização.
     tacacs_priv_level: Mapped[int] = mapped_column(Integer, default=1)
     tacacs_extra_avpairs: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Nível liberado no `enable` com a senha de login (0 = sem enable). Nulo =
+    # igual ao priv-lvl (só se > 1), comportamento anterior.
+    tacacs_enable_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Autorização de comandos: regex por linha; vazio = todo comando permitido.
+    tacacs_cmd_allow: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     attrs: Mapped[list["PrivilegeProfileAttr"]] = relationship(
         back_populates="profile",

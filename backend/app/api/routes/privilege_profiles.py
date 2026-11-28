@@ -26,8 +26,15 @@ def _to_out(p: PrivilegeProfile) -> PrivilegeProfileOut:
         ],
         tacacs_priv_level=p.tacacs_priv_level,
         tacacs_extra_avpairs=p.tacacs_extra_avpairs,
+        tacacs_enable_level=p.tacacs_enable_level,
+        tacacs_cmd_allow=p.tacacs_cmd_allow,
         created_at=p.created_at, updated_at=p.updated_at,
     )
+
+
+def _audit_after(p: PrivilegeProfile) -> dict:
+    return {"name": p.name, "attrs": len(p.attrs), "tacacs_priv_level": p.tacacs_priv_level,
+            "tacacs_enable_level": p.tacacs_enable_level, "tacacs_cmd_allow": p.tacacs_cmd_allow}
 
 
 def _validate_manufacturers(db: Session, attrs) -> None:
@@ -62,6 +69,8 @@ def create_profile(
         name=body.name, description=body.description,
         tacacs_priv_level=body.tacacs_priv_level,
         tacacs_extra_avpairs=body.tacacs_extra_avpairs,
+        tacacs_enable_level=body.tacacs_enable_level,
+        tacacs_cmd_allow=body.tacacs_cmd_allow or None,
     )
     profile.attrs = [
         PrivilegeProfileAttr(manufacturer_id=a.manufacturer_id, attribute=a.attribute,
@@ -73,7 +82,7 @@ def create_profile(
     radius_sync.sync_profile_groupreply(db, profile)
     audit.record(db, action="create", entity_type="privilege_profile", entity_id=profile.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
-                 after={"name": profile.name, "attrs": len(profile.attrs)})
+                 after=_audit_after(profile))
     db.commit()
     # só depois do commit: o arquivo reflete o que está gravado
     tacacs_sync.regenerate(db)
@@ -104,6 +113,10 @@ def update_profile(
         profile.tacacs_priv_level = body.tacacs_priv_level
     if body.tacacs_extra_avpairs is not None:
         profile.tacacs_extra_avpairs = body.tacacs_extra_avpairs or None
+    if "tacacs_enable_level" in body.model_fields_set:
+        profile.tacacs_enable_level = body.tacacs_enable_level
+    if body.tacacs_cmd_allow is not None:
+        profile.tacacs_cmd_allow = body.tacacs_cmd_allow or None
     if body.attrs is not None:
         _validate_manufacturers(db, body.attrs)
         # Emite os DELETEs das linhas antigas antes de reinserir — senão o flush
@@ -124,7 +137,7 @@ def update_profile(
 
     audit.record(db, action="update", entity_type="privilege_profile", entity_id=profile.id,
                  actor_id=actor.id, actor_username=actor.username, ip_address=client_ip(request),
-                 after={"name": profile.name, "attrs": len(profile.attrs)})
+                 after=_audit_after(profile))
     db.commit()
     # só depois do commit: o arquivo reflete o que está gravado
     tacacs_sync.regenerate(db)

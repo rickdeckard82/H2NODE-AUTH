@@ -169,3 +169,92 @@ def test_profile_route_tacacs_fields(auth_client, seeded):
     p = next(x for x in got if x["id"] == pid)
     assert p["tacacs_priv_level"] == 15
     assert p["tacacs_extra_avpairs"] == "shell:roles=network-admin"
+
+
+# ── enable e autorização de comandos por perfil ────────────────────────
+
+
+def _prof(**kw):
+    from app.models import PrivilegeProfile
+
+    return PrivilegeProfile(name=kw.pop("name", "p1"), **kw)
+
+
+def test_profile_block_regression_without_new_fields():
+    # saída idêntica à anterior aos campos tacacs_enable_level/tacacs_cmd_allow
+    assert tacacs_sync._profile_block(_prof(tacacs_priv_level=15)) == (
+        "profile p1 {\n"
+        "    enable 15 = login\n"
+        "    script {\n"
+        '        if (cmd == "") {\n'
+        "            set priv-lvl = 15\n"
+        "            permit\n"
+        "        }\n"
+        "        permit\n"
+        "    }\n"
+        "}\n"
+    )
+    assert "enable" not in tacacs_sync._profile_block(_prof(tacacs_priv_level=1))
+
+
+def test_profile_block_enable_level_independent():
+    txt = tacacs_sync._profile_block(_prof(tacacs_priv_level=1, tacacs_enable_level=15))
+    assert "    enable 15 = login\n" in txt
+    assert "set priv-lvl = 1\n" in txt
+    txt = tacacs_sync._profile_block(_prof(tacacs_priv_level=15, tacacs_enable_level=0))
+    assert "enable" not in txt
+    assert "set priv-lvl = 15\n" in txt
+
+
+def test_profile_block_cmd_allow():
+    txt = tacacs_sync._profile_block(_prof(
+        tacacs_priv_level=1,
+        tacacs_cmd_allow="^show( |$)\n# comentário\n\n^terminal length\n^(exit|quit)$",
+    ))
+    assert txt.count("if (cmd =~ /") == 3
+    assert "        if (cmd =~ /^show( |$)/) permit\n" in txt
+    assert "        if (cmd =~ /^(exit|quit)$/) permit\n        deny\n    }\n}\n" in txt
+    assert "        permit\n    }" not in txt
+
+
+def test_seed_noc_leitura(db, seeded):
+    text, _ = tacacs_sync.build_config(db)
+    block = text[text.index("profile noc-leitura {"):]
+    block = block[: block.index("\n}\n") + 3]
+    assert "enable 15 = login" in block
+    assert "set priv-lvl = 1\n" in block
+    assert block.count("if (cmd =~") == 3
+    assert block.rstrip().endswith("deny\n    }\n}")
+
+
+def test_profile_route_enable_and_cmd_allow(auth_client, seeded):
+    r = auth_client.post("/api/privilege-profiles", json={
+        "name": "noc-x", "tacacs_priv_level": 1, "tacacs_enable_level": 15,
+        "tacacs_cmd_allow": "^show( |$)\n^dir \\/flash",
+    })
+    assert r.status_code == 201, r.text
+    pid = r.json()["id"]
+    assert r.json()["tacacs_enable_level"] == 15
+
+    # PATCH sem o campo não mexe; null explícito limpa
+    r = auth_client.patch(f"/api/privilege-profiles/{pid}", json={"description": "x"})
+    assert r.json()["tacacs_enable_level"] == 15
+    r = auth_client.patch(f"/api/privilege-profiles/{pid}", json={"tacacs_enable_level": None})
+    assert r.json()["tacacs_enable_level"] is None
+
+
+@pytest.mark.parametrize("body,needle", [
+    ({"tacacs_cmd_allow": "^show\n^(abc"}, "linha 2"),
+    ({"tacacs_cmd_allow": "^dir /flash"}, "linha 1"),
+    ({"tacacs_cmd_allow": '^show "x"'}, "linha 1"),
+    ({"tacacs_cmd_allow": "^show\\"}, "linha 1"),
+    ({"tacacs_enable_level": 16}, None),
+    ({"tacacs_enable_level": -1}, None),
+])
+def test_profile_route_rejects_invalid(auth_client, seeded, body, needle):
+    r = auth_client.post("/api/privilege-profiles", json={"name": "bad-p", **body})
+    assert r.status_code == 422, r.text
+    if needle:
+        assert needle in r.text
+    pid = next(p["id"] for p in auth_client.get("/api/privilege-profiles").json())
+    assert auth_client.patch(f"/api/privilege-profiles/{pid}", json=body).status_code == 422

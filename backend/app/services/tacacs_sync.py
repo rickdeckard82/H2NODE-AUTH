@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.core.crypto import decrypt
 from app.models import Equipment, Manufacturer, PrivilegeProfile
 from app.models.manufacturer import AaaProtocol
+from app.schemas.privilege_profile import cmd_allow_lines
 
 _AVPAIR_KEY = re.compile(r"^[A-Za-z0-9:_.\-]+$")
 
@@ -62,10 +63,21 @@ def _profile_block(p: PrivilegeProfile) -> str:
     sets_txt = "\n".join(sets)
     # priv-lvl + AV pairs (ex.: local-user-name p/ Junos) valem para a autorização
     # de login/exec — `cmd` vazio — de qualquer serviço (shell, junos-exec, …).
-    # Autorização de comando (`cmd` preenchido) é apenas permitida.
-    # `enable` (ex.: Dell OS6 `enable authentication`) aceita a senha de login,
-    # só até o nível do perfil — perfil nível 0/1 (leitura) não ganha enable.
-    enable = f"    enable {lvl} = login\n" if lvl > 1 else ""
+    # Autorização de comando (`cmd` preenchido): sem tacacs_cmd_allow, tudo é
+    # permitido; com ele, só o que casar com alguma regex.
+    # `enable` (ex.: Dell OS6 `enable authentication`) aceita a senha de login.
+    # Sem tacacs_enable_level: até o nível do perfil, e nível 0/1 não ganha enable.
+    # Com ele: o nível informado, independente do priv-lvl (0 = sem enable).
+    if p.tacacs_enable_level is None:
+        en_lvl = lvl if lvl > 1 else 0
+    else:
+        en_lvl = max(0, min(15, p.tacacs_enable_level))
+    enable = f"    enable {en_lvl} = login\n" if en_lvl else ""
+    rules = cmd_allow_lines(p.tacacs_cmd_allow)
+    tail = (
+        "".join(f"        if (cmd =~ /{rx}/) permit\n" for _, rx in rules) + "        deny\n"
+        if rules else "        permit\n"
+    )
     return (
         f"profile {p.name} {{\n"
         f"{enable}"
@@ -74,7 +86,7 @@ def _profile_block(p: PrivilegeProfile) -> str:
         f"{sets_txt}\n"
         f"            permit\n"
         f"        }}\n"
-        f"        permit\n"
+        f"{tail}"
         f"    }}\n"
         f"}}\n"
     )
