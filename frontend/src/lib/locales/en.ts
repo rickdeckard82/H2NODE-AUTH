@@ -368,6 +368,10 @@ export const en: Record<string, string> = {
   "10.0.0.0/24  ou  192.168.1.5": "10.0.0.0/24  or  192.168.1.5",
   AAA: "AAA",
   "AV pairs extra": "Extra AV pairs",
+  "Nível de enable (TACACS+)": "Enable level (TACACS+)",
+  "vazio = igual ao priv-lvl": "empty = same as priv-lvl",
+  "Comandos permitidos (regex, um por linha)": "Allowed commands (regex, one per line)",
+  "vazio = todos os comandos permitidos": "empty = all commands allowed",
   "Aceita IPv4/IPv6, com ou sem máscara (IP simples = /32 ou /128). É o IP de onde o técnico conecta (não o IP do equipamento sendo acessado).":
     "Accepts IPv4/IPv6, with or without a mask (bare IP = /32 or /128). It's the IP the technician connects from (not the IP of the device being accessed).",
   Antes: "Before",

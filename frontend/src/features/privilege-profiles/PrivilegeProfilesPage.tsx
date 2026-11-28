@@ -22,6 +22,8 @@ interface FormState {
   attrs: ProfileAttr[];
   tacacs_priv_level: number;
   tacacs_extra_avpairs: string;
+  tacacs_enable_level: string; // "" = igual ao priv-lvl
+  tacacs_cmd_allow: string;
 }
 
 export default function PrivilegeProfilesPage() {
@@ -50,6 +52,8 @@ export default function PrivilegeProfilesPage() {
         description: f.description || null,
         tacacs_priv_level: f.tacacs_priv_level,
         tacacs_extra_avpairs: f.tacacs_extra_avpairs || null,
+        tacacs_enable_level: f.tacacs_enable_level === "" ? null : Number(f.tacacs_enable_level),
+        tacacs_cmd_allow: f.tacacs_cmd_allow,
         attrs: f.attrs.map((a) => ({
           manufacturer_id: a.manufacturer_id,
           attribute: a.attribute,
@@ -99,7 +103,7 @@ export default function PrivilegeProfilesPage() {
         actions={
           <Button
             onClick={() =>
-              setForm({ name: "", description: "", is_builtin: false, attrs: [], tacacs_priv_level: 1, tacacs_extra_avpairs: "" })
+              setForm({ name: "", description: "", is_builtin: false, attrs: [], tacacs_priv_level: 1, tacacs_extra_avpairs: "", tacacs_enable_level: "", tacacs_cmd_allow: "" })
             }
           >{t("Novo perfil")}</Button>
         }
@@ -140,6 +144,8 @@ export default function PrivilegeProfilesPage() {
                       description: p.description ?? "",
                       tacacs_priv_level: p.tacacs_priv_level,
                       tacacs_extra_avpairs: p.tacacs_extra_avpairs ?? "",
+                      tacacs_enable_level: p.tacacs_enable_level?.toString() ?? "",
+                      tacacs_cmd_allow: p.tacacs_cmd_allow ?? "",
                       is_builtin: p.is_builtin,
                       attrs: p.attrs.map((a) => ({ ...a })),
                     })
@@ -220,6 +226,27 @@ export default function PrivilegeProfilesPage() {
                     onChange={(e) =>
                       setForm({ ...form, tacacs_extra_avpairs: e.target.value })
                     }
+                  />
+                </Field>
+                <Field label={t("Nível de enable (TACACS+)")} hint={t("vazio = igual ao priv-lvl")}>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    max={15}
+                    value={form.tacacs_enable_level}
+                    onChange={(e) => setForm({ ...form, tacacs_enable_level: e.target.value })}
+                  />
+                </Field>
+                <Field
+                  label={t("Comandos permitidos (regex, um por linha)")}
+                  hint={t("vazio = todos os comandos permitidos")}
+                >
+                  <textarea
+                    className="input font-mono"
+                    rows={3}
+                    value={form.tacacs_cmd_allow}
+                    onChange={(e) => setForm({ ...form, tacacs_cmd_allow: e.target.value })}
                   />
                 </Field>
               </div>

@@ -45,6 +45,8 @@ export interface PrivilegeProfile {
   attrs: ProfileAttr[];
   tacacs_priv_level: number;
   tacacs_extra_avpairs: string | null;
+  tacacs_enable_level: number | null;
+  tacacs_cmd_allow: string | null;
   created_at: string;
   updated_at: string;
 }
