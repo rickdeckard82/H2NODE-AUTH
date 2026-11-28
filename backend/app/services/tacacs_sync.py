@@ -63,8 +63,12 @@ def _profile_block(p: PrivilegeProfile) -> str:
     # priv-lvl + AV pairs (ex.: local-user-name p/ Junos) valem para a autorização
     # de login/exec — `cmd` vazio — de qualquer serviço (shell, junos-exec, …).
     # Autorização de comando (`cmd` preenchido) é apenas permitida.
+    # `enable` (ex.: Dell OS6 `enable authentication`) aceita a senha de login,
+    # só até o nível do perfil — perfil nível 0/1 (leitura) não ganha enable.
+    enable = f"    enable {lvl} = login\n" if lvl > 1 else ""
     return (
         f"profile {p.name} {{\n"
+        f"{enable}"
         f"    script {{\n"
         f"        if (cmd == \"\") {{\n"
         f"{sets_txt}\n"

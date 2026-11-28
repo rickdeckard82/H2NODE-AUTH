@@ -52,6 +52,7 @@ def test_build_config_has_host_and_ruleset(db, seeded, mfr):
     assert "profile admin-full {" in text
     assert 'if (member == "admin-full")' in text
     assert "set priv-lvl = 15" in text
+    assert "enable 15 = login" in text
 
 
 def test_tacacs_equipment_not_in_nas(db, mfr):

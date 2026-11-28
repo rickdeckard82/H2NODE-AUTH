@@ -39,6 +39,10 @@ exit
 O TACACS+ do H2NODE Auth é agnóstico de fabricante: o `priv-lvl` do perfil de privilégio
 (15 / 10 / 1) é entregue no login. Não é necessário nenhum VSA `Dell-*`.
 
+O `enable` usa a **mesma senha do login**: cada perfil gera `enable <nível> = login`
+até o seu priv-lvl (ex.: `admin-full` → `enable 15`). Perfis de nível 0/1 não têm
+enable e a tentativa é recusada.
+
 ## Contabilização de comandos
 
 `aaa accounting commands "dfltCmdList" start-stop tacacs` envia cada comando
