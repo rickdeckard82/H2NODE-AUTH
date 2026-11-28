@@ -6,6 +6,16 @@ A fonte exibida no painel (menu lateral → clicar na versão) é
 
 ## [Não lançado]
 
+### Adicionado
+
+- Perfil de privilégio, TACACS+: **Nível de enable** (separado do priv-lvl; vazio =
+  igual ao priv-lvl, `0` = sem enable) e **Comandos permitidos** (regex por linha,
+  casada com o comando e os argumentos; vazio = tudo permitido). Perfis existentes não
+  mudam. Migração `0022_tacacs_enable_cmd`.
+- Perfil interno `noc-leitura`: priv-lvl 1, enable 15 e só comandos de leitura, para
+  agentes de monitoramento em switches Dell OS6. Veja
+  [docs/device-config/dell.md](docs/device-config/dell.md).
+
 ## [1.2.0] — 2026-11-20
 
 ### Adicionado
